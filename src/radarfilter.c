@@ -113,6 +113,7 @@ void radarfilter_exec(
 
 	//related to parametric model of turbulence
 	double parametric_turbulence_sigmaT;
+	double parametric_turbulence_sigmaT_plus; //for calculation of derivatives via finite difference
 	
 	int traj_n, i_traj;
 	double traj_dxy, traj_dz, traj_d, traj_dt;
@@ -555,8 +556,11 @@ void radarfilter_exec(
 							pow(parametric_turbulence_sigmaT, 2.) + 
 							((tmpkolmogorovconstant * pow(tmpedr, 2./3.)) / (4. * M_PI))) * tmpIsqrt;
 							
+							
 					}
 				}
+				
+				parametric_turbulence_sigmaT_plus = parametric_turbulence_sigmaT * 1.001;
 			}
 		}
 				
@@ -608,14 +612,23 @@ void radarfilter_exec(
 								traj_delta_u = 0.;
 								traj_delta_v = 0.;
 								traj_delta_w = 0.;									
-								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {									
+								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {
+									double tmpdu, tmpdv, tmpdw, sgndu, sgndv, sgndw;
+									
+									tmpdu = traj_delta_u + traj_u[i_traj] - traj_u[i_traj+1];
+									tmpdv = traj_delta_v + traj_v[i_traj] - traj_v[i_traj+1];
+									tmpdw = (-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed) + traj_delta_w + traj_w[i_traj] - traj_w[i_traj+1];
+									sgndu = tmpdu / fabs(tmpdu);
+									sgndv = tmpdv / fabs(tmpdv);
+									sgndw = tmpdw / fabs(tmpdw);
+									
 									traj_delta_u += 
-									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy  * pow(traj_delta_u + traj_u[i_traj] - traj_u[i_traj+1], 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
+									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy  * sgndu * pow(tmpdu, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
 									traj_delta_v += 
-									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * pow(traj_delta_v + traj_v[i_traj] - traj_v[i_traj+1], 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
+									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * sgndv * pow(tmpdv, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
 									traj_delta_w += 
 									res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * 
-									(pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed, 2.) -  pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + traj_delta_w + traj_w[i_traj] - traj_w[i_traj+1], 2.)) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]); 
+									(pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed, 2.) - (sgndw * pow(tmpdw, 2.))) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]); 
 								}
 								
 								//add to the solution
@@ -664,6 +677,15 @@ void radarfilter_exec(
 								res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_u[i_res] + tmp_turbulence_u;
 								res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_v[i_res] + tmp_turbulence_v;
 								res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_w[i_res] - res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + tmp_turbulence_w;
+
+								//calculate turbulence vector plus (for calculation of derivatives via finite difference)
+								tmp_turbulence_u 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_az) * sin(parmod_el);
+								tmp_turbulence_v 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * sin(parmod_az) * sin(parmod_el);
+								tmp_turbulence_w 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_el);
+							
+								res_vol->subvolume_particle_u[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_u[i_res] + tmp_turbulence_u;
+								res_vol->subvolume_particle_v[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_v[i_res] + tmp_turbulence_v;
+								res_vol->subvolume_particle_w[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_w[i_res] - res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + tmp_turbulence_w;
 							}
 						}
 					}
@@ -1971,9 +1993,9 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 				res_vol->subvolume_particle_v[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd] , sizeof(double*));
 				res_vol->subvolume_particle_w[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd] , sizeof(double*));			
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-					res_vol->subvolume_particle_u[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod , sizeof(double));
-					res_vol->subvolume_particle_v[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod , sizeof(double));
-					res_vol->subvolume_particle_w[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod , sizeof(double));
+					res_vol->subvolume_particle_u[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
+					res_vol->subvolume_particle_v[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
+					res_vol->subvolume_particle_w[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
 				}
 			}
 		}

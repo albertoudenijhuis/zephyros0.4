@@ -130,6 +130,19 @@ typedef struct st_radarmeasurement
 	double		***spectrum_eta_i_hv; //(psd, particle, spectrum interval)
 	double		***spectrum_eta_i_vh; //(psd, particle, spectrum interval)
 	double		***spectrum_eta_i_vv; //(psd, particle, spectrum interval)
+	
+	//derivatives to eddy dissipation rate ^ (1/3)
+	double		der_edr13_dBZ_hh;
+	double		der_edr13_dBZdr;
+	double		der_edr13_dBLdr;
+	double		der_edr13_Doppler_velocity_hh_ms;
+	double		der_edr13_Doppler_spectral_width_hh_ms;
+
+	/*
+	double		*Doppler_spectrum_dBZ_hh;
+	double 		*specific_dBZdr;
+	double 		*specific_dBLdr;
+	*/
 } t_radarmeasurement;
 
 typedef struct st_radarfilter_res_vol			/* resolution volume */
