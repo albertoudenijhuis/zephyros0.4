@@ -616,20 +616,22 @@ void radarfilter_exec(
 								traj_delta_w = 0.;									
 								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {
 									
-									tmpdu = traj_delta_u + traj_u[i_traj] - traj_u[i_traj+1];
-									tmpdv = traj_delta_v + traj_v[i_traj] - traj_v[i_traj+1];
-									tmpdw = (-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed) + traj_delta_w + traj_w[i_traj] - traj_w[i_traj+1];
+									tmpdu = traj_u[i_traj+1] - (traj_delta_u + traj_u[i_traj]);
+									tmpdv = traj_v[i_traj+1] - (traj_delta_v + traj_v[i_traj]) ;
+									tmpdw = traj_w[i_traj+1] - ((-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed) + traj_delta_w + traj_w[i_traj]);
 									sgndu = tmpdu / fabs(tmpdu);
 									sgndv = tmpdv / fabs(tmpdv);
 									sgndw = tmpdw / fabs(tmpdw);
 									
 									traj_delta_u += 
-									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy  * sgndu * pow(tmpdu, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
+										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy *
+										sgndu * pow(tmpdu, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
 									traj_delta_v += 
-									-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * sgndv * pow(tmpdv, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
+										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * 
+										sgndv * pow(tmpdv, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
 									traj_delta_w += 
-									res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * 
-									(pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed, 2.) - (sgndw * pow(tmpdw, 2.))) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]); 
+										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * 
+										 ((-1. * pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed, 2.)) + (sgndw * pow(tmpdw , 2.))) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]); 
 								}
 								
 								//add to the solution
