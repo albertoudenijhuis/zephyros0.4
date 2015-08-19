@@ -1,0 +1,89 @@
+# configuration file for Zephyros
+# '# ' number sign + blank space at the beginning of a line means a comment and these lines are skipped
+# comments can also be put in parentheses: (comment)
+# the parsing module can not read booleans => use integers with 0 = .false. and any other number is true
+
+section general
+subsection overall
+version_number       0.4    ( version number of the tool that corresponds to this configuration file)
+
+section retrieval
+subsection algorithm
+#A series of wind retrievals is be applied.
+#The results of the first run are used for the second run. And so on.
+#Typically the first run helps the second run to find a good a priori solution.
+run                     1       (counter from 1 ... max 100)
+type                    2       (0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+cl_x_m_refl             1.e-4
+cl_y_m_refl             1.e-4
+cl_z_m_refl             1.e-4
+cl_t_s_refl             1.e-4
+cl_x_m_hspeed           1.e-4
+cl_y_m_hspeed           1.e-4
+cl_z_m_hspeed           1.e-4
+cl_t_s_hspeed           1.e-4
+cl_x_m_hdir             1.e-4
+cl_y_m_hdir             1.e-4
+cl_z_m_hdir             1.e-4
+cl_t_s_hdir             1.e-4
+cl_x_m_w                1.e-4
+cl_y_m_w                1.e-4
+cl_z_m_w                1.e-4
+cl_t_s_w                1.e-4
+c_threshold             0.1
+fcoriolis               0.0001148       ( coriolis parameter at 51.96)
+xvec_m                  3   0.  0.  10.     ( minimum value, maximum value, difference)
+yvec_m                  3   0.  0.  10.     ( minimum value, maximum value, difference)
+zvec_m                  3   0.  0.  10.     ( minimum value, maximum value, difference)
+tvec_s                  3   0.  0.  10.     ( minimum value, maximum value, difference)
+prior_srefl             1.e2
+prior_shspeed           1.e3
+prior_shdir             1.e3
+prior_sw                1.e3
+fit_vr					1				(0 = no, 1 = fit radial velocities in observation space)
+fit_refl                1
+fit_hspeed              1
+fit_hdir                1
+fit_w                   1
+apply_advection			0				(0 = no, 1 = advect reflection and wind field, with the wind field)
+apply_geostrophic_correction 0			(0 = no, 1 = apply geostrophic correction)
+fit_maximum_time_s      10
+advection_integration_steps      5
+
+run                     2       (counter from 1 ... max 100)
+type                    2       (0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+cl_x_m_refl             1.e-4
+cl_y_m_refl             1.e-4
+cl_z_m_refl             1.e-4
+cl_t_s_refl             1.e-4
+cl_x_m_hspeed           1.e-4
+cl_y_m_hspeed           1.e-4
+cl_z_m_hspeed           1.e-4
+cl_t_s_hspeed           1.e-4
+cl_x_m_hdir             1.e3
+cl_y_m_hdir             1.e3
+cl_z_m_hdir             1.e3
+cl_t_s_hdir             1.e5
+cl_x_m_w                1.e-4
+cl_y_m_w                1.e-4
+cl_z_m_w                1.e-4
+cl_t_s_w                1.e-4
+c_threshold             0.1
+fcoriolis               0.0001148       ( coriolis parameter at 51.96)
+xvec_m                  -20.e3 20.e3 1.0e3      ( minimum value, maximum value, difference)
+yvec_m                  -20.e3 20.e3 1.0e3      ( minimum value, maximum value, difference)
+zvec_m                  0. 0. 10.      ( minimum value, maximum value, difference)
+tvec_s                  0.  1.e5  1.e5     ( minimum value, maximum value, difference)
+prior_srefl             50.
+prior_shspeed           5.
+prior_shdir             .1
+prior_sw                5.
+fit_vr					1				(0 = no, 1 = fit radial velocities in observation space)
+fit_refl                1
+fit_hspeed              1
+fit_hdir                1
+fit_w                   1
+apply_advection			0				(0 = no, 1 = advect reflection and wind field, with the wind field)
+apply_geostrophic_correction 0			(0 = no, 1 = apply geostrophic correction)
+fit_maximum_time_s      60
+advection_integration_steps      5

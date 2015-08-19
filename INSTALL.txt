@@ -1,0 +1,20 @@
+Installation instructions for windows + matlab.
+
+- Install cygwin64 on windows.
+https://cygwin.com/install.html
+
+- During the cygwin64 installation process, select the packages: libcxsparse0, libcxsparse-devel, gcc-core (GNU compiler collection) and gdb (The GNU Debugger).
+- Go to the folders wrapradarfilter, wrapwindfield, wrapwindvectors, and open make.bat with a text editor.
+- Update the directories and execute make.bat. This will generate executables.
+- Try the examples.
+- Have fun!
+
+
+Installation instruction for Python
+- Use make files.
+- shared -fPIC has to be added to all librarie compilations!
+
+
+
+bugs resolved:
+- Thanks to Kavish. (

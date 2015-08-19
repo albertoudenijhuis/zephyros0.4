@@ -1,0 +1,44 @@
+# configuration file for Zephyros
+# '# ' number sign + blank space at the beginning of a line means a comment and these lines are skipped
+# comments can also be put in parentheses: (comment)
+# the parsing module can not read booleans => use integers with 0 = .false. and any other number is true
+
+section general
+subsection overall
+version_number       0.4    ( version number of the tool that corresponds to this configuration file)
+
+section retrieval
+subsection edr
+method				1	(0 = do not apply, 1 = variance, 2 = power spectrum, 3 = second order structure function, 4 = thrid order structure function )
+domain				0   (0 = space, 1 = time)
+samples				100 (samples per retrieval)
+retr_C_u
+retr_C_v
+retr_C_w
+
+
+method				2	(0 = do not apply, 1 = variance, 2 = power spectrum, 3 = second order structure function, 4 = thrid order structure function )
+domain				0   (0 = space, 1 = time)
+samples				100 (samples per retrieval)
+periodic			0   (0 = non-periodic analysis, 1 = periodic analysis)
+intervals			3
+retr_C_u
+retr_C_v
+retr_C_w
+
+method				3	(0 = do not apply, 1 = variance, 2 = power spectrum, 3 = second order structure function, 4 = thrid order structure function )
+domain				0   (0 = space, 1 = time)
+samples				100 (samples per retrieval)
+periodic			0   (0 = non-periodic analysis, 1 = periodic analysis)
+retr_C_u
+retr_C_v
+retr_C_w
+
+method				4	(0 = do not apply, 1 = variance, 2 = power spectrum, 3 = second order structure function, 4 = thrid order structure function )
+domain				0   (0 = space, 1 = time)
+samples				100 (samples per retrieval)
+periodic			0   (0 = non-periodic analysis, 1 = periodic analysis)
+retr_C_u
+retr_C_v
+retr_C_w
+

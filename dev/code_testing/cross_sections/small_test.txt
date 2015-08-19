@@ -1,0 +1,166 @@
+Opening configuration file: ../../../input_files/general/standard_output.cfg
+Opening configuration file: ../../../input_files/general/water_refractive_index_segelstein.cfg
+Opening configuration file: ../../../input_files/general/atmosphere/US1976.cfg
+Opening configuration file: ../../../input_files/general/instruments/tara.cfg
+Opening configuration file: ../../../input_files/simulation/scatterers/droplet_5mm.cfg
+Opening configuration file: ../../../input_files/simulation/wind/vector.cfg
+
+
+
+
+
+
+
+
+De Wolf (1990) cross sections for specific configuration and equivolumetric diameter of 8.00e+00 mm.
+
+eh_u3_sq = 0.00000e+00
+ev_u3_sq = 4.99917e-01
+pow(scat->dewolf1990_shapefactor_biglambda12, 2.) + (pow(scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3, 2.) * pow(ev_u3_sq , 2.)) = 1.3419440205e-03
+(2. * scat->dewolf1990_shapefactor_biglambda12 * (scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3) * ev_u3_sq) = -1.1578065209e-03
+
+
+
+wgs84_phirad                   = 6.90e-310
+wgs84_lambdarad                = 6.90e-310
+wgs84_h                        = 3.64e-316
+wgs84_radar_location_phirad    = 0.00e+00
+wgs84_radar_location_lambdarad = 0.00e+00
+wgs84_radar_location_h         = 0.00e+00
+wgs84_radar_location_h         = 0.00e+00
+
+ecef_xyzt                      = (6.15e+197, 1.29e-306, 0.00e+00, 0.00e+00)
+ecef_radar_location_xyzt       = (0.00e+00, 0.00e+00, 0.00e+00, 0.00e+00)
+
+ref_wgs84_phirad               = 0.00e+00
+ref_wgs84_lambdarad            = 0.00e+00
+ref_wgs84_h                    = 0.00e+00
+enu_xyzt                       = (5.00e+02, 5.00e+02, 7.07e+02, 0.00e+00)
+enu_radar_location_xyzt        = (0.00e+00, 0.00e+00, 0.00e+00, 0.00e+00)
+
+radar_effearthcorrection       = 0.00e+00
+radar_azel_alpha               = 7.85e-01
+radar_azel_gamma               = 7.85e-01
+radar_azel_gamma_cor           = 7.85e-01
+radar_range                    = 1.00e+03
+
+radar_enu_dir                  = (5.00e-01, 5.00e-01, 7.07e-01, 0.00e+00)
+
+radar_beam_theta               = 0.00e+00
+radar_beam_phi                 = 0.00e+00
+radar_pol_hor_dir              = (-7.07e-01, 7.07e-01, 0.00e+00, 0.00e+00)
+radar_pol_ver_dir              = (5.00e-01, 5.00e-01, -7.07e-01, 0.00e+00)
+
+
+
+air_totalpressure_hPa          = 1.01e+03
+air_drypressure_hPa            = 1.01e+03
+air_vaporpressure_hPa          = 0.00e+00
+air_temperature_K              = 2.85e+02
+air_dynamic_viscosity          = 1.80e-05
+air_kinematic_viscosity        = 1.45e-05
+air_density                    = 1.24e+00
+air_gravity                    = 9.80e+00
+particle_type                  = 2
+particle_density               = 9.98e+02
+particle_axis_ratio            = 5.26e-01
+particle_D_maj_mm              = 9.91e+00
+particle_D_eqvol_mm            = 8.00e+00
+particle_D_min_mm              = 5.21e+00
+particle_mass_kg               = 2.68e-04
+particle_A_maj                 = 7.72e-05
+particle_A_min                 = 4.06e-05
+particle_volume                = 2.68e-07
+particle_dir                   = (0.00e+00, 0.00e+00, 1.00e+00)
+particle_terminal_fall_speed   = 9.99e+00
+particle_inertial_distance_maj = 2.68e+01
+particle_inertial_distance_min = 5.09e+01
+particle_refractive_index      = 8.72e+00 + -7.02e-01i
+particle_sigma_hh              = 7.34e-07
+particle_sigma_hv              = 0.00e+00
+particle_sigma_vv              = 1.34e-07
+particle_attenuation           = 0.00e+00
+dewolf1990_shapefactor_biglambda12 = 3.18e-02
+dewolf1990_shapefactor_biglambda3 = 6.82e-02
+dewolf1990_fct                 = 7.26e-04
+radar_wavelength_m             = 9.09e-02
+
+
+
+
+
+
+
+
+De Wolf (1990) cross sections for specific configuration and equivolumetric diameter of 9.86e+00 mm.
+
+eh_u3_sq = 0.00000e+00
+ev_u3_sq = 4.99917e-01
+pow(scat->dewolf1990_shapefactor_biglambda12, 2.) + (pow(scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3, 2.) * pow(ev_u3_sq , 2.)) = 1.8098125024e-03
+(2. * scat->dewolf1990_shapefactor_biglambda12 * (scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3) * ev_u3_sq) = -1.8098121681e-03
+
+
+
+wgs84_phirad                   = 6.90e-310
+wgs84_lambdarad                = 6.90e-310
+wgs84_h                        = 3.64e-316
+wgs84_radar_location_phirad    = 0.00e+00
+wgs84_radar_location_lambdarad = 0.00e+00
+wgs84_radar_location_h         = 0.00e+00
+wgs84_radar_location_h         = 0.00e+00
+
+ecef_xyzt                      = (6.15e+197, 1.29e-306, 0.00e+00, 0.00e+00)
+ecef_radar_location_xyzt       = (0.00e+00, 0.00e+00, 0.00e+00, 0.00e+00)
+
+ref_wgs84_phirad               = 0.00e+00
+ref_wgs84_lambdarad            = 0.00e+00
+ref_wgs84_h                    = 0.00e+00
+enu_xyzt                       = (5.00e+02, 5.00e+02, 7.07e+02, 0.00e+00)
+enu_radar_location_xyzt        = (0.00e+00, 0.00e+00, 0.00e+00, 0.00e+00)
+
+radar_effearthcorrection       = 0.00e+00
+radar_azel_alpha               = 7.85e-01
+radar_azel_gamma               = 7.85e-01
+radar_azel_gamma_cor           = 7.85e-01
+radar_range                    = 1.00e+03
+
+radar_enu_dir                  = (5.00e-01, 5.00e-01, 7.07e-01, 0.00e+00)
+
+radar_beam_theta               = 0.00e+00
+radar_beam_phi                 = 0.00e+00
+radar_pol_hor_dir              = (-7.07e-01, 7.07e-01, 0.00e+00, 0.00e+00)
+radar_pol_ver_dir              = (5.00e-01, 5.00e-01, -7.07e-01, 0.00e+00)
+
+
+
+air_totalpressure_hPa          = 1.01e+03
+air_drypressure_hPa            = 1.01e+03
+air_vaporpressure_hPa          = 0.00e+00
+air_temperature_K              = 2.85e+02
+air_dynamic_viscosity          = 1.80e-05
+air_kinematic_viscosity        = 1.45e-05
+air_density                    = 1.24e+00
+air_gravity                    = 9.80e+00
+particle_type                  = 2
+particle_density               = 9.98e+02
+particle_axis_ratio            = 4.00e-01
+particle_D_maj_mm              = 1.34e+01
+particle_D_eqvol_mm            = 9.86e+00
+particle_D_min_mm              = 5.35e+00
+particle_mass_kg               = 5.01e-04
+particle_A_maj                 = 1.41e-04
+particle_A_min                 = 5.63e-05
+particle_volume                = 5.02e-07
+particle_dir                   = (0.00e+00, 0.00e+00, 1.00e+00)
+particle_terminal_fall_speed   = 1.02e+01
+particle_inertial_distance_maj = 2.83e+01
+particle_inertial_distance_min = 7.08e+01
+particle_refractive_index      = 8.72e+00 + -7.02e-01i
+particle_sigma_hh              = 2.30e-06
+particle_sigma_hv              = 0.00e+00
+particle_sigma_vv              = 8.51e-13
+particle_attenuation           = 0.00e+00
+dewolf1990_shapefactor_biglambda12 = 3.01e-02
+dewolf1990_shapefactor_biglambda3 = 9.03e-02
+dewolf1990_fct                 = 2.55e-03
+radar_wavelength_m             = 9.09e-02

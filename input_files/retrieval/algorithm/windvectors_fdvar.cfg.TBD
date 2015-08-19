@@ -1,0 +1,40 @@
+# configuration file for Zephyros
+# '# ' #-sign + blank space at the beginning of a line means a comment and these lines are skipped
+# comments can also be put in parentheses (comment)
+
+section general
+subsection overall
+version_number       0.4    ( version number of the tool that corresponds to this configuration file)
+
+section retrieval
+subsection algorithm
+# A series of wind retrievals is be applied.
+# The results of the first run are used for the second run. And so on.
+# Typically the first run helps the second run to find a good a priori solution.
+run						1		(counter from 1 ... max 100)
+type					2		(0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+
+xvec_m					3   -30.e3  30.e3  1.e3		( minimum value, maximum value, difference)
+yvec_m					3   -30.e3  30.e3  1.e3		( minimum value, maximum value, difference)
+zvec_m					3   0.  0.  1.e10		( minimum value, maximum value, difference)
+tvec_s					3   0.  0.  1.e10		( minimum value, maximum value, difference)
+
+fit_u0					1
+fit_u_x					1
+fit_u_z					1
+fit_v0					1
+fit_v_y					1
+fit_v_z					1
+fit_u_y_plus_v_x		1
+fit_w0					0
+fit_w_x					0
+fit_w_y					0
+fit_w_z					0
+fit_u_t_plus_v_t_plus_w_t      0   
+apply_weights                  1
+fit_maximum_time_s             1
+extra_points_n			50
+extra_points_dx			10.e3
+extra_points_dy			10.e3
+extra_points_dz			10.e3
+extra_points_dt			1.e10

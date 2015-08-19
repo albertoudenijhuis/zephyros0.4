@@ -1,0 +1,2 @@
+double
+ltqnorm(double p);
