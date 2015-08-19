@@ -121,6 +121,8 @@ void radarfilter_exec(
 	double traj_xyzt[100][4];
 	double traj_delta_u, traj_delta_v, traj_delta_w;
 
+	double tmpdu, tmpdv, tmpdw, sgndu, sgndv, sgndw;
+
 	//int debug = 0;
 	//clock_t start, diff;
 	
@@ -613,7 +615,6 @@ void radarfilter_exec(
 								traj_delta_v = 0.;
 								traj_delta_w = 0.;									
 								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {
-									double tmpdu, tmpdv, tmpdw, sgndu, sgndv, sgndw;
 									
 									tmpdu = traj_delta_u + traj_u[i_traj] - traj_u[i_traj+1];
 									tmpdv = traj_delta_v + traj_v[i_traj] - traj_v[i_traj+1];
