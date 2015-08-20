@@ -634,6 +634,7 @@ void radarfilter_exec(
 								res_vol->subvolume_particle_w[i_res][i_psd][i_par][0] += traj_delta_w;		
 
 								//debugging
+								/*
 								if (i_par == (res_vol->n_diameters[i_psd] - 1)) {
 									particle_print_widget(res_vol->subvolume_scat[i_psd][i_par]);
 									for ( i_traj = 0; i_traj < traj_n; i_traj++ ) {
@@ -651,6 +652,7 @@ void radarfilter_exec(
 									printf("\n\n\n");
 									exit(0);
 								}
+								*/
 							}
 						}
 						
