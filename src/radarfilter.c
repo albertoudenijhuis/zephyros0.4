@@ -616,13 +616,16 @@ void radarfilter_exec(
 								traj_delta_w = 0.;									
 								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {
 									tmpdu = traj_u[i_traj+1] - (traj_delta_u + traj_u[i_traj]);
-									tmpdv = traj_v[i_traj+1] - (traj_delta_v + traj_v[i_traj]) ;
+									tmpdv = traj_v[i_traj+1] - (traj_delta_v + traj_v[i_traj]);
 									tmpdw = traj_w[i_traj+1] - (traj_delta_w + traj_w[i_traj]);
+									sgndu = tmpdu / fabs(tmpdu);
+									sgndv = tmpdv / fabs(tmpdv);
+									sgndw = tmpdw / fabs(tmpdw);
 									traj_dt = (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
-									traj_delta_u = 1. / ((1./tmpdu) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
-									traj_delta_v = 1. / ((1./tmpdv) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
+									traj_delta_u = sgndu * 1. / ((1./fabs(tmpdu)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
+									traj_delta_v = sgndv * 1. / ((1./fabs(tmpdv)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
 									if (res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed < fabs(tmpdw)) {
-										traj_delta_w = 1. / ((1./tmpdw) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt));
+										traj_delta_w = sgndw * 1. / ((1./fabs(tmpdw)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt));
 									} else {
 										traj_delta_w = tmpdw * exp(-1. * traj_dt / (2. / ( res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed)));
 									}
