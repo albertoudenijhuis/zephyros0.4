@@ -585,9 +585,9 @@ void radarfilter_exec(
 							
 								//solve for atrajectorie
 								//1. define the trajectorie
-								traj_n 		= 15;
-								traj_dxy 	= 0.2 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_xy;
-								traj_dz 	= 0.2 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z;
+								traj_n 		= 5;
+								traj_dxy 	= 0.5 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_xy;
+								traj_dz 	= 0.5 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z;
 								traj_d 		= sqrt(2. * pow(traj_dxy,2.) + pow(traj_dz, 2.));
 
 								i_traj = traj_n - 1;
@@ -615,23 +615,17 @@ void radarfilter_exec(
 								traj_delta_v = 0.;
 								traj_delta_w = 0.;									
 								for ( i_traj = 0; i_traj < traj_n - 1; i_traj++ ) {
-									
 									tmpdu = traj_u[i_traj+1] - (traj_delta_u + traj_u[i_traj]);
 									tmpdv = traj_v[i_traj+1] - (traj_delta_v + traj_v[i_traj]) ;
-									tmpdw = traj_w[i_traj+1] - ((-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed) + traj_delta_w + traj_w[i_traj]);
-									sgndu = tmpdu / fabs(tmpdu);
-									sgndv = tmpdv / fabs(tmpdv);
-									sgndw = tmpdw / fabs(tmpdw);
-									
-									traj_delta_u += 
-										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy *
-										sgndu * pow(tmpdu, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
-									traj_delta_v += 
-										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * 
-										sgndv * pow(tmpdv, 2.) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
-									traj_delta_w += 
-										res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * 
-										 ((-1. * pow(res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed, 2.)) + (sgndw * pow(tmpdw , 2.))) * (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]); 
+									tmpdw = traj_w[i_traj+1] - (traj_delta_w + traj_w[i_traj]);
+									traj_dt = (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
+									traj_delta_u = 1. / ((1./tmpdu) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
+									traj_delta_v = 1. / ((1./tmpdv) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
+									if (res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed < fabs(tmpdw)) {
+										traj_delta_w = 1. / ((1./tmpdw) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt));
+									} else {
+										traj_delta_w = tmpdw * exp(-1. * traj_dt / (2. / ( res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed)));
+									}
 								}
 								
 								//add to the solution
@@ -639,22 +633,24 @@ void radarfilter_exec(
 								res_vol->subvolume_particle_v[i_res][i_psd][i_par][0] += traj_delta_v;
 								res_vol->subvolume_particle_w[i_res][i_psd][i_par][0] += traj_delta_w;		
 
-								/*debugging
-								particle_print_widget(res_vol->subvolume_scat[i_psd][i_par]);
-								for ( i_traj = 0; i_traj < traj_n; i_traj++ ) {
-									printf("traj_xyzt[%i][0] = %.2e\n",i_traj, traj_xyzt[i_traj][0]);
-									printf("traj_xyzt[%i][1] = %.2e\n",i_traj, traj_xyzt[i_traj][1]);
-									printf("traj_xyzt[%i][2] = %.2e\n",i_traj, traj_xyzt[i_traj][2]);
-									printf("traj_xyzt[%i][3] = %.2e\n",i_traj, traj_xyzt[i_traj][3]);
-									printf("traj_u[%i] = %.2e\n",i_traj, traj_u[i_traj]);
-									printf("traj_v[%i] = %.2e\n",i_traj, traj_v[i_traj]);
-									printf("traj_w[%i] = %.2e\n",i_traj, traj_w[i_traj]);
-								}								
-								printf("traj_delta_u = %.2e\n", traj_delta_u);
-								printf("traj_delta_v = %.2e\n", traj_delta_v);
-								printf("traj_delta_w = %.2e\n", traj_delta_w);
-								exit(0);
-								*/
+								//debugging
+								if (i_par == (res_vol->n_diameters[i_psd] - 1)) {
+									particle_print_widget(res_vol->subvolume_scat[i_psd][i_par]);
+									for ( i_traj = 0; i_traj < traj_n; i_traj++ ) {
+										printf("traj_xyzt[%i][0] = %.2e\n",i_traj, traj_xyzt[i_traj][0]);
+										printf("traj_xyzt[%i][1] = %.2e\n",i_traj, traj_xyzt[i_traj][1]);
+										printf("traj_xyzt[%i][2] = %.2e\n",i_traj, traj_xyzt[i_traj][2]);
+										printf("traj_xyzt[%i][3] = %.2e\n",i_traj, traj_xyzt[i_traj][3]);
+										printf("traj_u[%i] = %.2e\n",i_traj, traj_u[i_traj]);
+										printf("traj_v[%i] = %.2e\n",i_traj, traj_v[i_traj]);
+										printf("traj_w[%i] = %.2e\n",i_traj, traj_w[i_traj]);
+									}								
+									printf("traj_delta_u = %.2e\n", traj_delta_u);
+									printf("traj_delta_v = %.2e\n", traj_delta_v);
+									printf("traj_delta_w = %.2e\n", traj_delta_w);
+									printf("\n\n\n");
+									exit(0);
+								}
 							}
 						}
 						
@@ -695,7 +691,6 @@ void radarfilter_exec(
 				}
 			}
 		}
-
 
 
 		//calculate particle direction
