@@ -585,9 +585,9 @@ void radarfilter_exec(
 							
 								//solve for atrajectorie
 								//1. define the trajectorie
-								traj_n 		= 5;
-								traj_dxy 	= 0.5 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_xy;
-								traj_dz 	= 0.5 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z;
+								traj_n 		= 20;
+								traj_dxy 	= 0.25 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_xy;
+								traj_dz 	= 0.25 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z;
 								traj_d 		= sqrt(2. * pow(traj_dxy,2.) + pow(traj_dz, 2.));
 
 								i_traj = traj_n - 1;

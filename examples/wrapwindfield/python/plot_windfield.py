@@ -13,14 +13,14 @@ rc('text',usetex=True)
 from matplotlib.mlab import griddata
 
 myplotdcts = {}
-myplotdcts['vector'] 							= {'windfield': 'vector', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-myplotdcts['grid'] 								= {'windfield': 'grid', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-myplotdcts['wave'] 								= {'windfield': 'wave', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-myplotdcts['rankine_vortex'] 					= {'windfield': 'rankine_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-myplotdcts['lamb_oseen_vortex'] 				= {'windfield': 'lamb_oseen_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-myplotdcts['turbulence_mann1998_small_scales'] 	= {'windfield': 'turbulence_mann1998_small_scales', 'plane':'xz', 'scale':50., 'unit':'m'}
-myplotdcts['turbulence_pinsky2006_xyplane'] 	= {'windfield': 'turbulence_pinsky2006_xyplane', 'plane':'xy', 'scale':100., 'unit':'m'}
-myplotdcts['profile_turbulence_stochastic'] 	= {'windfield': 'profile_turbulence_stochastic', 'plane':'xz', 'scale':50., 'unit':'m'}
+#myplotdcts['vector'] 							= {'windfield': 'vector', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
+#myplotdcts['grid'] 								= {'windfield': 'grid', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
+#myplotdcts['wave'] 								= {'windfield': 'wave', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
+#myplotdcts['rankine_vortex'] 					= {'windfield': 'rankine_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
+#myplotdcts['lamb_oseen_vortex'] 				= {'windfield': 'lamb_oseen_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
+myplotdcts['turbulence_mann1998_small_scales'] 	= {'windfield': 'turbulence_mann1998_small_scales', 'plane':'xz', 'scale':40., 'unit':'m'}
+#myplotdcts['turbulence_pinsky2006_xyplane'] 	= {'windfield': 'turbulence_pinsky2006_xyplane', 'plane':'xy', 'scale':100., 'unit':'m'}
+#myplotdcts['profile_turbulence_stochastic'] 	= {'windfield': 'profile_turbulence_stochastic', 'plane':'xz', 'scale':50., 'unit':'m'}
 
 
 for myplotname in myplotdcts.keys():
@@ -114,7 +114,7 @@ for myplotname in myplotdcts.keys():
 			wind['w'],)
 		ax.set_xlabel('x ['+myplotdct['unit']+']', fontsize=fontsize0)
 		ax.set_ylabel('z ['+myplotdct['unit']+']', fontsize=fontsize0)
-		extralab = 'y=0'
+		extralab = '@y=0'
 		ax.set_xbound(sc * xmin, sc * xmax)
 		ax.set_ybound(sc * zmin, sc * zmax)
 		
@@ -134,7 +134,7 @@ for myplotname in myplotdcts.keys():
 						labelpos='W',
 						fontproperties={'weight': 'bold', 'size':fontsize0})
 		
-	ax.set_title('wind field, '+extralab, fontsize=fontsize0)
+	ax.set_title('wind field '+extralab, fontsize=fontsize0)
 
 	plt.tight_layout()
 	
