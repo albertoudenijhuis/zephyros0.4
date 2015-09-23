@@ -8,43 +8,44 @@
 #include "func.h"
 
 //uncomment next statement for debug mode
-//#define _ZEPHYROS_UTIL_DEBUG
+#define _ZEPHYROS_UTIL_DEBUG
 
 void util_field2lut(t_zephyros_field *field, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut)
 {
-	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
+	t_zephyros_interpolation_bilint_lut *lut;
 	int i;
-	int tmpsum;
+	
+	interpolation_initialize_lut(&lut);
 	
 	//LUT interpolation stuff
 	lut->n_dim 	= 4;
 	lut->n		= field->n;
-	lut->shape 	= malloc(4 * sizeof(int));	
+	lut->shape 	= malloc(lut->n_dim * sizeof(int));	
 	lut->mesy_y_allocated = 0;
+	lut->periodic = 0;
 	
 	lut->shape[0] = field->n_x;
 	lut->shape[1] = field->n_y;
 	lut->shape[2] = field->n_z;
 	lut->shape[3] = field->n_t;
-
-	tmpsum =	lut->shape[0] +
-				lut->shape[1] +
-				lut->shape[2] +
-				lut->shape[3];
 				
-	lut->ax_values = malloc(tmpsum * sizeof(double));
-	
+	lut->ax_values = malloc(lut->n_dim * sizeof(double*));
+	lut->ax_values[0] = malloc(lut->shape[0] * sizeof(double));
+	lut->ax_values[1] = malloc(lut->shape[1] * sizeof(double));
+	lut->ax_values[2] = malloc(lut->shape[2] * sizeof(double));
+	lut->ax_values[3] = malloc(lut->shape[3] * sizeof(double));
+
 	for ( i = 0; i < field->n_x; i++ ) {
-		lut->ax_values[i] = field->vec_x[i];
+		lut->ax_values[0][i] = field->vec_x[i];
 	}
 	for ( i = 0; i < field->n_y; i++ ) {
-		lut->ax_values[field->n_x+i] = field->vec_y[i];
+		lut->ax_values[1][i] = field->vec_y[i];
 	}
 	for ( i = 0; i < field->n_z; i++ ) {
-		lut->ax_values[field->n_x+field->n_y+i] = field->vec_z[i];
+		lut->ax_values[2][i] = field->vec_z[i];
 	}
 	for ( i = 0; i < field->n_t; i++ ) {
-		lut->ax_values[field->n_x+field->n_y+field->n_z+i] = field->vec_t[i];
+		lut->ax_values[3][i] = field->vec_t[i];
 	}
 	
 	lut->special = special;
@@ -75,7 +76,7 @@ void util_field2lut(t_zephyros_field *field, double *variable, int special, t_ze
 
 void util_initialize_windfield(t_zephyros_windfield **pwindfield)
 {
-	t_zephyros_windfield *windfield = malloc(sizeof(t_zephyros_windfield));
+	t_zephyros_windfield *windfield = calloc(1, sizeof(t_zephyros_windfield));
 	int i;
 
 	*pwindfield = windfield;	
@@ -83,7 +84,8 @@ void util_initialize_windfield(t_zephyros_windfield **pwindfield)
 		windfield->type 	= 0;
 		windfield->field[i] 				= NULL;
 		
-		
+		windfield->grid_hspeed[i] 			= NULL;
+		windfield->grid_hdir[i] 			= NULL;
 		windfield->grid_u[i] 				= NULL;
 		windfield->grid_v[i] 				= NULL;
 		windfield->grid_w[i] 				= NULL;
@@ -91,6 +93,8 @@ void util_initialize_windfield(t_zephyros_windfield **pwindfield)
 		windfield->wave[i] 					= NULL;
 		windfield->turbulence[i] 			= NULL;
 		
+		windfield->grid_hspeed_err[i] 		= NULL;
+		windfield->grid_hdir_err[i] 		= NULL;
 		windfield->grid_u_err[i] 			= NULL;
 		windfield->grid_v_err[i] 			= NULL;
 		windfield->grid_w_err[i] 			= NULL;
@@ -114,6 +118,13 @@ void util_initialize_windfield(t_zephyros_windfield **pwindfield)
 		windfield->w_ecm[i].mat 		= NULL;
 		windfield->w_ecm[i].mat_S		= NULL;
 		windfield->w_ecm[i].mat_N		= NULL;
+		
+		windfield->fit_hspeed[i]		= 0;
+		windfield->fit_hdir[i]		= 0;
+		windfield->fit_u[i]		= 0;
+		windfield->fit_v[i]		= 0;
+		windfield->fit_w[i]		= 0;
+			
 	}
 	windfield->nfields = 0;
 	windfield->nvortices = 0;
@@ -127,13 +138,39 @@ void util_prepare_windfield(t_zephyros_windfield *windfield)
 	int i;
 	double tmp;
 	
+	#ifdef _ZEPHYROS_UTIL_DEBUG
+		printf("windfield\n"); fflush(stdout);
+	#endif	
 	//wind field
 	for ( i = 0; i < windfield->nfields; i++ ) {
 		if (windfield->field[i] != NULL) {
 			fields_prepare(windfield->field[i]);
-			util_field2lut(windfield->field[i], windfield->grid_u[i], 0, windfield->lut_u + i);
-			util_field2lut(windfield->field[i], windfield->grid_v[i], 0, windfield->lut_v + i);
-			util_field2lut(windfield->field[i], windfield->grid_w[i], 0, windfield->lut_w + i);
+			if (windfield->grid_hspeed[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_hspeed[i], 0, windfield->lut_hspeed + i);
+			if (windfield->grid_hdir[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_hdir[i], 0, windfield->lut_hdir + i);
+			
+			//TBD: override grid_u and grid_v if hspeed and hdir is set
+			if (windfield->grid_u[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_u[i], 0, windfield->lut_u + i);
+			if (windfield->grid_v[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_v[i], 0, windfield->lut_v + i);
+			if (windfield->grid_w[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_w[i], 0, windfield->lut_w + i);
+
+			if (windfield->grid_hspeed_err[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_hspeed_err[i], 0, windfield->lut_hspeed_err + i);
+			if (windfield->grid_hdir_err[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_hdir_err[i], 0, windfield->lut_hdir_err + i);
+			if (windfield->grid_u_err[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_u_err[i], 0, windfield->lut_u_err + i);
+			if (windfield->grid_v_err[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_v_err[i], 0, windfield->lut_v_err + i);
+			if (windfield->grid_w_err[i] != NULL) util_field2lut(windfield->field[i], windfield->grid_w_err[i], 0, windfield->lut_w_err + i);
+
+			if (windfield->fit_hspeed[i]) 
+				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_hspeed_err[i], &(windfield->hspeed_ecm[i]));
+			if (windfield->fit_hdir[i]) 
+				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_hdir_err[i], &(windfield->hdir_ecm[i]));
+			if (windfield->fit_u[i]) 
+				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_u_err[i], &(windfield->u_ecm[i]));
+			if (windfield->fit_v[i]) 
+				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_v_err[i], &(windfield->v_ecm[i]));
+
+			printf("windfield->grid_w_err[%i][0] = %.2e\n", i, windfield->grid_w_err[i][0]); 
+			if (windfield->fit_w[i]) 
+				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_w_err[i], &(windfield->w_ecm[i]));
 		}
 	}
 	for ( i = 0; i < windfield->nvortices; i++ ) {
@@ -148,6 +185,10 @@ void util_prepare_windfield(t_zephyros_windfield *windfield)
 			windfield->vortex[i]->rotation_direction[2] /= tmp;
 		}
 	}
+	
+	#ifdef _ZEPHYROS_UTIL_DEBUG
+		printf("turbulence\n"); fflush(stdout);
+	#endif	
 	for ( i = 0; i < windfield->nturbulences; i++ ) {
 		if (windfield->turbulence[i] != NULL) {
 			fields_prepare(windfield->turbulence[i]->field);
@@ -174,37 +215,69 @@ void util_prepare_post_windfield(t_zephyros_windfield **pdst, t_zephyros_windfie
 		for ( i = 0; i < 101; i++ ) {
 			fields_copy(&(dst->field[i]), src->field[i]);
 
+			dst->lut_hspeed[i] = NULL;
+			dst->lut_hdir[i] = NULL;
 			dst->lut_u[i] = NULL;
 			dst->lut_v[i] = NULL;
 			dst->lut_w[i] = NULL;
 
+			dst->lut_hspeed_err[i] = NULL;
+			dst->lut_hdir_err[i] = NULL;
 			dst->lut_u_err[i] = NULL;
 			dst->lut_v_err[i] = NULL;
 			dst->lut_w_err[i] = NULL;
 						
 			if (src->field[i] != NULL) {
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_hspeed[i]), src->grid_hspeed[i]);
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_hdir[i]), src->grid_hdir[i]);
 				util_copy_dbl_array(src->field[i]->n, &(dst->grid_u[i]), src->grid_u[i]);
-				util_copy_dbl_array(src->field[i]->n, &(dst->grid_v[i]), src->grid_w[i]);
-				util_copy_dbl_array(src->field[i]->n, &(dst->grid_w[i]), src->grid_v[i]);
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_v[i]), src->grid_v[i]);
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_w[i]), src->grid_w[i]);
 
+				if (dst->grid_hspeed[i] != NULL) util_field2lut(dst->field[i], dst->grid_hspeed[i], 0, dst->lut_hspeed + i);
+				if (dst->grid_hdir[i] != NULL) util_field2lut(dst->field[i], dst->grid_hdir[i], 0, dst->lut_hdir + i);
 				if (dst->grid_u[i] != NULL) util_field2lut(dst->field[i], dst->grid_u[i], 0, dst->lut_u + i);
 				if (dst->grid_v[i] != NULL) util_field2lut(dst->field[i], dst->grid_v[i], 0, dst->lut_v + i);
 				if (dst->grid_w[i] != NULL) util_field2lut(dst->field[i], dst->grid_w[i], 0, dst->lut_w + i);
 
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_hspeed_err[i]), src->grid_hspeed_err[i]);
+				util_copy_dbl_array(src->field[i]->n, &(dst->grid_hdir_err[i]), src->grid_hdir_err[i]);
 				util_copy_dbl_array(src->field[i]->n, &(dst->grid_u_err[i]), src->grid_u_err[i]);
 				util_copy_dbl_array(src->field[i]->n, &(dst->grid_v_err[i]), src->grid_v_err[i]);
 				util_copy_dbl_array(src->field[i]->n, &(dst->grid_w_err[i]), src->grid_w_err[i]);
 
+				if (dst->grid_hspeed_err[i] != NULL) util_field2lut(dst->field[i], dst->grid_hspeed[i], 0, dst->lut_hspeed_err + i);
+				if (dst->grid_hdir_err[i] != NULL) util_field2lut(dst->field[i], dst->grid_hdir[i], 0, dst->lut_hdir_err + i);
 				if (dst->grid_u_err[i] != NULL) util_field2lut(dst->field[i], dst->grid_u[i], 0, dst->lut_u_err + i);
 				if (dst->grid_v_err[i] != NULL) util_field2lut(dst->field[i], dst->grid_v[i], 0, dst->lut_v_err + i);
 				if (dst->grid_w_err[i] != NULL) util_field2lut(dst->field[i], dst->grid_w[i], 0, dst->lut_w_err + i);
 			}
 
-			//TBD
 			dst->vortex[i] = NULL;
 			dst->wave[i] = NULL;
-			dst->turbulence[i] = NULL;
-			//TBD
+			
+			
+			if (src->turbulence[i] != NULL) {
+				if (src->turbulence[i]->type == 5) {
+					turbulence_initialize_widget(&(dst->turbulence[i]));
+					dst->turbulence[i]->type = src->turbulence[i]->type;
+					fields_copy(&(dst->turbulence[i]->field), src->turbulence[i]->field);
+
+					util_copy_dbl_array(src->turbulence[i]->field->n, &(dst->turbulence[i]->grid_edr), src->turbulence[i]->grid_edr);
+					util_copy_dbl_array(src->turbulence[i]->field->n, &(dst->turbulence[i]->grid_edr13), src->turbulence[i]->grid_edr13);
+					util_copy_dbl_array(src->turbulence[i]->field->n, &(dst->turbulence[i]->grid_edr13_err), src->turbulence[i]->grid_edr13_err);
+					if (dst->turbulence[i]->grid_edr13 != NULL) util_field2lut(dst->turbulence[i]->field, dst->turbulence[i]->grid_edr13, 0, &(dst->turbulence[i]->lut_edr13));
+					
+					util_copy_dbl_array(src->turbulence[i]->field->n, &(dst->turbulence[i]->grid_kolmogorov_constant), src->turbulence[i]->grid_kolmogorov_constant);
+					if (dst->turbulence[i]->grid_kolmogorov_constant != NULL) util_field2lut(dst->turbulence[i]->field, dst->turbulence[i]->grid_kolmogorov_constant, 0, &(dst->turbulence[i]->lut_kolmogorov_constant));
+					dst->turbulence[i]->fit_edr13 = src->turbulence[i]->fit_edr13;
+					dst->turbulence[i]->edr13_ecm.mat = NULL;
+					dst->turbulence[i]->edr13_ecm.mat_N = NULL;
+					dst->turbulence[i]->edr13_ecm.mat_S = NULL;
+				}
+			} else {
+				dst->turbulence[i] = NULL;
+			}
 
 			//not used in post object
 			dst->hdir_ecm[i].mat = NULL;
@@ -447,7 +520,6 @@ void util_free_windfield(t_zephyros_windfield **pwindfield)
 			if (windfield->wave[i] != NULL) free(windfield->wave[i]);
 			if (windfield->vortex[i] != NULL) free(windfield->vortex[i]); 
 			if (windfield->turbulence[i] != NULL) {
-				fields_free(&windfield->turbulence[i]->field); 
 				turbulence_free_widget(windfield->turbulence + i);
 			}
 
@@ -455,25 +527,25 @@ void util_free_windfield(t_zephyros_windfield **pwindfield)
 			if (windfield->grid_v_err[i] != NULL) free(windfield->grid_v_err[i]);
 			if (windfield->grid_w_err[i] != NULL) free(windfield->grid_w_err[i]);
 
-			util_safe_free(&(windfield->hdir_ecm[i].mat));
-			util_safe_free(&(windfield->hdir_ecm[i].mat_S));
-			util_safe_free(&(windfield->hdir_ecm[i].mat_N));
+			if (windfield->hdir_ecm[i].mat != NULL) cs_spfree(windfield->hdir_ecm[i].mat);
+			if (windfield->hdir_ecm[i].mat_S != NULL) cs_sfree(windfield->hdir_ecm[i].mat_S);
+			if (windfield->hdir_ecm[i].mat_N != NULL) cs_nfree(windfield->hdir_ecm[i].mat_N);
 
-			util_safe_free(&(windfield->hspeed_ecm[i].mat));
-			util_safe_free(&(windfield->hspeed_ecm[i].mat_S));
-			util_safe_free(&(windfield->hspeed_ecm[i].mat_N));
+			if (windfield->hspeed_ecm[i].mat != NULL) cs_spfree(windfield->hspeed_ecm[i].mat);
+			if (windfield->hspeed_ecm[i].mat_S != NULL) cs_sfree(windfield->hspeed_ecm[i].mat_S);
+			if (windfield->hspeed_ecm[i].mat_N != NULL) cs_nfree(windfield->hspeed_ecm[i].mat_N);
 
-			util_safe_free(&(windfield->u_ecm[i].mat));
-			util_safe_free(&(windfield->u_ecm[i].mat_S));
-			util_safe_free(&(windfield->u_ecm[i].mat_N));
+			if (windfield->u_ecm[i].mat != NULL) cs_spfree(windfield->u_ecm[i].mat);
+			if (windfield->u_ecm[i].mat_S != NULL) cs_sfree(windfield->u_ecm[i].mat_S);
+			if (windfield->u_ecm[i].mat_N != NULL) cs_nfree(windfield->u_ecm[i].mat_N);
 
-			util_safe_free(&(windfield->v_ecm[i].mat));
-			util_safe_free(&(windfield->v_ecm[i].mat_S));
-			util_safe_free(&(windfield->v_ecm[i].mat_N));
+			if (windfield->v_ecm[i].mat != NULL) cs_spfree(windfield->v_ecm[i].mat);
+			if (windfield->v_ecm[i].mat_S != NULL) cs_sfree(windfield->v_ecm[i].mat_S);
+			if (windfield->v_ecm[i].mat_N != NULL) cs_nfree(windfield->v_ecm[i].mat_N);
 
-			util_safe_free(&(windfield->w_ecm[i].mat));
-			util_safe_free(&(windfield->w_ecm[i].mat_S));
-			util_safe_free(&(windfield->w_ecm[i].mat_N));
+			if (windfield->w_ecm[i].mat != NULL) cs_spfree(windfield->w_ecm[i].mat);
+			if (windfield->w_ecm[i].mat_S != NULL) cs_sfree(windfield->w_ecm[i].mat_S);
+			if (windfield->w_ecm[i].mat_N != NULL) cs_nfree(windfield->w_ecm[i].mat_N);
 		}
 		free(windfield);
 		windfield = NULL;
@@ -711,7 +783,7 @@ void util_initialize_psd(t_zephyros_psd **pthepsd)
 	thepsd->n_diameters = 0;
 	
 	thepsd->fit_dBlwc = 0;
-	thepsd->fit_dBlwc_Knr = 0;
+	thepsd->fit_dBN = 0;
 
 	*pthepsd = thepsd;
 }
@@ -756,10 +828,11 @@ void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_scattererfield *scatter
 			if (thepsd->grid_number_density_m3[i] = NULL);
 	}
 	for (i = 0; i < thepsd->n_diameters; i++ ) {
-		if (thepsd->grid_number_density_m3[i] == NULL)
+		if (thepsd->grid_number_density_m3[i] == NULL) {
 			thepsd->grid_number_density_m3[i] = malloc(thepsd->field->n * sizeof(double));
-		for (j = 0; j < thepsd->field->n; j++ )
-			thepsd->grid_number_density_m3[i][j] = 1.;
+			for (j = 0; j < thepsd->field->n; j++ )
+				thepsd->grid_number_density_m3[i][j] = 1.;
+		}
 	}
 
 	//3. Update the discrete probability density function
@@ -838,7 +911,7 @@ void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_scattererfield *scatter
 		if (thepsd->grid_dBnumber_density_err_m3[i] == NULL)
 			thepsd->grid_dBnumber_density_err_m3[i] = malloc(thepsd->field->n * sizeof(double));
 		for (j = 0; j < thepsd->field->n; j++ )
-			thepsd->grid_dBnumber_density_err_m3[i][j] = 1.;
+			thepsd->grid_dBnumber_density_err_m3[i][j] = 40.;
 	}
 
 	//6. Update grid_dBnumber_density_err_m3
@@ -1122,18 +1195,12 @@ double util_gamma_integral(double N0, double mu, double D0, double D1, double D2
 	tmp = N0 * (	(specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D2)
 				- specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D1)) / 
 				pow((3.67 + mu) / D0 , mu+1.));
-	if (tmp < 0.) {
-		printf("D0 = %.2e\n", D0);
-		printf("D1 = %.2e\n", D1);
-		printf("D2 = %.2e\n", D2);
-		printf("mu = %.2e\n", mu);
-		printf("specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D2) = %.e\n", specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D2));
-		printf("specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D1) = %.2e \n", specialfunctions_incompletegamma(mu + 1., ((3.67 + mu) / D0) * D1));
-		printf("euh???\n");
-		exit(0);
+
+	if (tmp == 0.) {
+		return N0 * 1.e-50;
+	} else {
+		return tmp;
 	}
-				
-	return tmp;
 }
 
 
@@ -1149,7 +1216,8 @@ void util_initialize_field_err_cov_matrix(t_zephyros_field *field, double *err, 
 	double myval;
 	int i, j;
 	
-	ecm->n = field->n;	
+	ecm->n = field->n;
+	
     //Allocate empty matrices    
     errcovmattriplet 		= cs_spalloc (ecm->n, ecm->n, 1, 1, 1) ;
 
@@ -1164,9 +1232,8 @@ void util_initialize_field_err_cov_matrix(t_zephyros_field *field, double *err, 
 					 + 	pow((field->z((void*)field, i) - field->z((void*)field, j))/ ecm->cl_z_m ,2.)
 					 + 	pow((field->t((void*)field, i) - field->t((void*)field, j))/ ecm->cl_t_s ,2.))
 					);
-				
 					
-			if (myval > ecm->c_threshold) {							
+			if (myval > ecm->c_threshold) {											
 				myval *= err[i] * err[j];
 					
 				if (!cs_entry (errcovmattriplet, i, j, myval)) {
@@ -1185,7 +1252,7 @@ void util_initialize_field_err_cov_matrix(t_zephyros_field *field, double *err, 
 	
 	//clear triplet matrices
     cs_spfree (errcovmattriplet) ; 
-
+	
     ecm->mat_S = cs_sqr( 1, ecm->mat, 1);            	 				
     ecm->mat_N = cs_qr (ecm->mat, ecm->mat_S); 		
 

@@ -10,7 +10,7 @@ void wrapwindfield(char cfg_filename[8192], char additional_output_filename[8192
 	{
 	int i;
 	double *dummy;
-	double xyzt[4];
+	double *xyzt = malloc(4 * sizeof(double));
 
 	t_zephyros_config *cfg = NULL;
 
@@ -23,11 +23,12 @@ void wrapwindfield(char cfg_filename[8192], char additional_output_filename[8192
 		xyzt[1] = y[i];
 		xyzt[2] = z[i];
 		xyzt[3] = t[i];
-
+		
 		util_windfield_fuvw(cfg->simulation->windfield, xyzt, 0, u + i, 0, dummy);
 		util_windfield_fuvw(cfg->simulation->windfield, xyzt, 1, v + i, 0, dummy);
 		util_windfield_fuvw(cfg->simulation->windfield, xyzt, 2, w + i, 0, dummy);
 	}
 
 	zephyros_config_free(&cfg);
+	free(xyzt);
 }

@@ -56,6 +56,8 @@ void retrieval_lwm_apply(t_lwm_opc *opc)
 	t_lwm_p *p = opc->p;
 	t_lwm_o *o = opc->o;
 
+	retrieval_lwm_initialize_p(opc);
+
 	retrieval_lwm_calculate_xyz(opc);
 
 	//walk through grid

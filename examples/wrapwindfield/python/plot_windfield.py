@@ -18,7 +18,7 @@ myplotdcts = {}
 #myplotdcts['wave'] 								= {'windfield': 'wave', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
 #myplotdcts['rankine_vortex'] 					= {'windfield': 'rankine_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
 #myplotdcts['lamb_oseen_vortex'] 				= {'windfield': 'lamb_oseen_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-myplotdcts['turbulence_mann1998_small_scales'] 	= {'windfield': 'turbulence_mann1998_small_scales', 'plane':'xz', 'scale':40., 'unit':'m'}
+myplotdcts['turbulence_mann1998_small_scales'] 	= {'windfield': 'turbulence_mann1998_small_scales', 'plane':'xz', 'scale':100., 'unit':'m'}
 #myplotdcts['turbulence_pinsky2006_xyplane'] 	= {'windfield': 'turbulence_pinsky2006_xyplane', 'plane':'xy', 'scale':100., 'unit':'m'}
 #myplotdcts['profile_turbulence_stochastic'] 	= {'windfield': 'profile_turbulence_stochastic', 'plane':'xz', 'scale':50., 'unit':'m'}
 

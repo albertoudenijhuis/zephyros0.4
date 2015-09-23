@@ -41,15 +41,16 @@ Note:
 
 #include "interpolation.h"
 
-
+//uncomment next statement for debug mode
+//#define _ZEPHYROS_INTERPOLATION_DEBUG
 
 void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int n3, double *vec3, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut)
 {
-	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
-	
-	int nsum = n1 + n2 + n3;
+	t_zephyros_interpolation_bilint_lut *lut;
 	int i;
-	
+
+	interpolation_initialize_lut(&lut);
+
 	//LUT interpolation stuff
 	lut->n_dim 	= 3;
 	lut->n		= n1 * n2 * n3;
@@ -57,17 +58,20 @@ void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int 
 	lut->shape[0] = n1;
 	lut->shape[1] = n2;
 	lut->shape[2] = n3;
-	lut->mesy_y_allocated = 0;
 	
-	lut->ax_values = malloc(nsum * sizeof(double));
+	lut->ax_values = malloc(lut->n_dim * sizeof(double*));
+	lut->ax_values[0] = malloc(n1 * sizeof(double));
+	lut->ax_values[1] = malloc(n2 * sizeof(double));
+	lut->ax_values[2] = malloc(n3 * sizeof(double));
+	
 	for ( i = 0; i < n1; i++ ) {
-		lut->ax_values[i] = vec1[i];
+		lut->ax_values[0][i] = vec1[i];
 	}
 	for ( i = 0; i < n2; i++ ) {
-		lut->ax_values[n1+i] = vec2[i];
+		lut->ax_values[1][i] = vec2[i];
 	}
 	for ( i = 0; i < n3; i++ ) {
-		lut->ax_values[n1+n2+i] = vec3[i];
+		lut->ax_values[2][i] = vec3[i];
 	}
 	
 	lut->special = special;
@@ -98,23 +102,23 @@ void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int 
 
 void interpolation_linearinterpolation2lut(int n, double *x, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut)
 {
-	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
+	t_zephyros_interpolation_bilint_lut *lut;
 	int i;
-	int tmpsum;
+	
+	interpolation_initialize_lut(&lut);
 	
 	//LUT interpolation stuff
 	lut->n_dim 	= 1;
 	lut->n		= n;
 	lut->shape 	= malloc(1 * sizeof(int));	
-	lut->mesy_y_allocated = 0;
 	
 	lut->shape[0] = n;
 	
-	tmpsum =	lut->shape[0];
-	lut->ax_values = malloc(tmpsum * sizeof(double));
+	lut->ax_values = malloc(lut->n_dim * sizeof(double*));
+	lut->ax_values[0] = malloc(lut->shape[0] * sizeof(double));
 	
 	for ( i = 0; i < n; i++ ) {
-		lut->ax_values[i] = x[i];
+		lut->ax_values[0][i] = x[i];
 	}
 	
 	lut->special = special;
@@ -154,14 +158,37 @@ can e.g. be used to calculate:
 sum i (dPrK_i / dK1, dPrK_i / dK2, ..., dPrK_i / dKn) * 2 (v_r_i - PrK_i) / si_v_r_i**2
 */
 
+void interpolation_initialize_lut(t_zephyros_interpolation_bilint_lut **plut)
+{
+	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
+	lut->shape = NULL;
+	lut->ax_values = NULL;
+	lut->mesh_y = NULL;
+	lut->periodic_L = NULL;
+	lut->n_dim = 0;
+	lut->n = 0;
+	lut->special = 0;
+	lut->mesy_y_allocated = 0;
+	lut->periodic = 0;
+
+	*plut = lut;
+}
+
+
 void interpolation_free_lut(t_zephyros_interpolation_bilint_lut **plut)
 {
+	int i_axis;
 	t_zephyros_interpolation_bilint_lut *lut = *plut;
 	
 	if (lut != NULL) {
-		if (lut->shape != NULL) {free(lut->shape); lut->shape = NULL;}
-		if (lut->ax_values != NULL) {free(lut->ax_values); lut->ax_values = NULL;}
-		if ((lut->mesy_y_allocated == 1) & (lut->mesh_y != NULL)) {free(lut->mesh_y); lut->mesh_y = NULL;}		
+		if (lut->ax_values != NULL) {
+			for ( i_axis = 0; i_axis < lut->n_dim; i_axis++ ) {			
+				free(lut->ax_values[i_axis]);
+			}
+			free(lut->ax_values);
+		}
+		if (lut->shape != NULL) free(lut->shape);
+		if ((lut->mesy_y_allocated == 1) & (lut->mesh_y != NULL)) {free(lut->mesh_y);}		
 		free(lut);
 		lut = NULL;
 	}
@@ -206,6 +233,11 @@ void interpolation_bilint(
 		exit(0);
 	}
 
+	#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
+		printf("interpolation_bilint\n"); fflush(stdout);
+	#endif 
+	
+	
 	//memory allocation
 	myslice_i0 										= malloc(lut->n_dim * sizeof(int));
 	myslice_i1 										= malloc(lut->n_dim * sizeof(int));
@@ -245,13 +277,14 @@ void interpolation_bilint(
 	//loop over parameters and calculate indices
 	j = 0;
 	for ( i = 0; i < lut->n_dim; i++ ) {
-		interpolation_calcindices(	lut->shape + i,
-						lut->ax_values + j,
-						outx + i,
+		interpolation_calcindices(
+						lut,
+						i,
+						outx[i],
 						myslice_i0 + i,
 						myslice_i1 + i,
 						myslice_di + i
-					);
+						);
 
 		//debugging
 		//~ if ((myslice_di[i] > 1.) | (myslice_di[i] < 0.)) {
@@ -260,9 +293,8 @@ void interpolation_bilint(
 
 		if (calc_derivatives == 1) {
 			//if derivatives are requested, also calculate this one.
-			myslice_dval[i] = lut->ax_values[j + myslice_i1[i]] - lut->ax_values[j + myslice_i0[i]];				
+			myslice_dval[i] = lut->ax_values[i][myslice_i1[i]] - lut->ax_values[i][myslice_i0[i]];				
 		}
-		j = j + lut->shape[i];	
 	}
 
 	//make a template tuple, represting the edges of the interpolation lut
@@ -387,6 +419,10 @@ void interpolation_bilint(
 			free(derivativesminsin);
 		}
 	}
+
+	#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
+		printf("interpolation_bilint: end\n"); fflush(stdout);
+	#endif 
 }
 
 void interpolation_bilint_griddep(
@@ -424,17 +460,14 @@ void interpolation_bilint_griddep(
 	//loop over parameters and calculate indices
 	j = 0;
 	for ( i = 0; i < lut->n_dim; i++ ) {
-		interpolation_calcindices(	
-						lut->shape + i,
-						lut->ax_values + j,
-						outx + i,
+		interpolation_calcindices(
+						lut,
+						i,
+						outx[i],
 						myslice_i0 + i,
 						myslice_i1 + i,
 						myslice_di + i
 					);
-
-		
-		j = j + lut->shape[i];	
 	}
 	
 	//make a template tuple, represting the edges of the interpolation lut
@@ -479,47 +512,90 @@ void interpolation_bilint_griddep(
 }
 
 void interpolation_calcindices(
-	int			*n,
-	double		*ax_values,
-	double		*val,
+	t_zephyros_interpolation_bilint_lut	*lut,
+	int i_axis,	
+	double		val,
 	int			*i0,
 	int			*i1,
 	double		*di
 	)
 {
 	int i, foundvalue;
+	double val2;
 	
-	if (*n == 1) {
+	#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
+		printf("interpolation_calcindices\n"); fflush(stdout);
+	#endif 
+	
+	if (lut->shape[i_axis] == 1) {
 		/* only one value on the axis */
 		*i0 = 0;
 		*i1 = 0;
 		*di = 0.;
 	} else {
 		/* multiple values on the axis */
-		foundvalue = 0;
-		/* walk through axis */
-		for ( i = 0; i < (*n - 1); i++ ) {
-			if ((ax_values[i] < *val) & (*val <= ax_values[i+1])) {
-				*i0 = i;
-				*i1 = i + 1;
-				foundvalue = 1;
-				break;
-			}
-		}
+		if (lut->periodic) {
+			//assumption, ax_values are modulo periodic_L
 
-		if (foundvalue == 0) {
-			/* out of range, extrapolate */
-			if (fabs(ax_values[0] - *val) < fabs(ax_values[*n-1] - *val)) {
-				*i0 = 0;
-				*i1 = 1;
+			//scale of the domain
+			val2 = interpolation_modulo(val, lut->periodic_L[i_axis]);
+			
+			if (val2 < 0.) {
+				printf("val = %.2e\n; val2 = %.2e; L = %.2e\n", val, val2, lut->periodic_L[i_axis]);
+				printf("i0 = %i; i1 = %i\n", *i0, *i1);
+				printf("di = %.2e\n", *di);
+			}
+			
+			foundvalue = 0;
+			/* walk through axis */
+			for ( i = 0; i < (lut->shape[i_axis] - 1); i++ ) {
+				if ((lut->ax_values[i_axis][i] <= val2) & (val2 <= lut->ax_values[i_axis][i+1])) {
+					*i0 = i;
+					*i1 = i + 1;
+					foundvalue = 1;
+					break;
+				}
+			}
+
+			if (foundvalue) {
+				*di = (val2 - lut->ax_values[i_axis][*i0]) / (lut->ax_values[i_axis][*i1] - lut->ax_values[i_axis][*i0]);
 			} else {
-				*i0 = *n-2;
-				*i1 = *n-1;
+				/* value in the last interval */
+				*i0 = lut->shape[i_axis] - 1;
+				*i1 = 0;
+				*di = (val2 - lut->ax_values[i_axis][*i0]) / (lut->periodic_L[i_axis] - lut->ax_values[i_axis][*i0]);
 			}
-		}
 
-		*di = (*val - ax_values[*i0]) / (ax_values[*i1] - ax_values[*i0]);
+		} else {
+			foundvalue = 0;
+			/* walk through axis */
+			for ( i = 0; i < (lut->shape[i_axis] - 1); i++ ) {
+				if ((lut->ax_values[i_axis][i] <= val) & (val <= lut->ax_values[i_axis][i+1])) {
+					*i0 = i;
+					*i1 = i + 1;
+					foundvalue = 1;
+					break;
+				}
+			}
+			
+			if (foundvalue == 0) {
+				/* out of range, extrapolate */
+				if (fabs(lut->ax_values[i_axis][0] - val) < fabs(lut->ax_values[i_axis][lut->shape[i_axis]-1] - val)) {
+					*i0 = 0;
+					*i1 = 1;
+				} else {
+					*i0 = lut->shape[i_axis]-2;
+					*i1 = lut->shape[i_axis]-1;
+				}
+			}
+			
+			*di = (val - lut->ax_values[i_axis][*i0]) / (lut->ax_values[i_axis][*i1] - lut->ax_values[i_axis][*i0]);
+		}
 	}
+
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("interpolation_calcindices:end\n"); fflush(stdout);
+	#endif 
 }
 
 // Calculate nr in 1d-array, corresponding to index tuple tup for an n-dimensional array with the shape arr_shape
@@ -552,7 +628,7 @@ out, 	tup:			indices of the tuple
 void interpolation_nr2tup(
 	int	*n,
 	int	*arr_shape,
-	int	*nr,
+	int	*nr,	
 	int	*tup)
 {
 	int i, j, tmp, tmp2;
@@ -568,6 +644,7 @@ void interpolation_nr2tup(
 	}
 }
 
+/*
 void interpolation_piecewise_int(
 	int		*n,
 	double	*xin,
@@ -578,9 +655,10 @@ void interpolation_piecewise_int(
 	int	i0, i1;
 	double di;
 
-	interpolation_calcindices(n, xin, xout, &i0, &i1, &di);
+	interpolation_calcindices(n, xin, xout, &i0, &i1, &di, 0);
 	*yout = (1. - di) * yin[i0] + di * yin[i1];
 }
+*/
 
 /* product of an integer array */
 void interpolation_intprod(
@@ -728,5 +806,17 @@ double interpolation_nq_sh_f_xi(
 								+ specialfunctions_digamma(b + *q + 1.0)
 								- specialfunctions_digamma(b + kb) )
 				);
+	}
+}
+
+double interpolation_modulo(double x, double y)
+{
+	int i;
+	
+	if (x < 0) {
+		i = abs(x / y);
+		return fmod(x + ((1 + i) * y), y);
+	} else {
+		return fmod(x,y);
 	}
 }

@@ -49,7 +49,8 @@ vec_x                          1               0.000e+00
 vec_y                          1               0.000e+00      
 vec_z                          5               0.000e+00       5.000e+02       1.000e+03       1.500e+03       2.000e+03      
 vec_t                          1               0.000e+00      
-psd_grid_lwc_gm3               5               4.548e-07       4.548e-07       4.548e-07       4.548e-07       4.548e-07      
+psd_grid_lwc_gm3               5               3.146e-07       3.146e-07       3.146e-07       3.146e-07       3.146e-07      
+psd_grid_dBlwc_err_gm3         5               1.900e+01       1.900e+01       1.900e+01       1.900e+01       1.900e+01      
 psd_grid_gammadistribution_N0  5               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
 psd_gammadistribution_mu       5.000e+00      
 psd_gammadistribution_mu_err   5.000e+00      
@@ -59,37 +60,37 @@ psd_gammadistribution_dmin_mm  1.000e-02
 psd_gammadistribution_dmax_mm  8.500e+00      
 #
 psd_n_diameters                10             
-fit_dBlwc                      0              
-fit_dBN                        1              
-cl_x_m_dBN                     1.000e-04      
-cl_y_m_dBN                     1.000e-04      
-cl_z_m_dBN                     1.000e-04      
-cl_t_s_dBN                     1.000e-04      
-c_threshold_dBN                1.000e-01      
+fit_dBlwc                      1              
+cl_x_m_dBlwc                   1.000e-04      
+cl_y_m_dBlwc                   1.000e-04      
+cl_z_m_dBlwc                   1.000e-04      
+cl_t_s_dBlwc                   1.000e-04      
+c_threshold_dBlwc              1.000e-01      
+fit_dBN                        0              
 #    Equivalent representation of the gamma distribution in discrete pdf
 #    
 #    psd_distribution_type          0              
-#    psd_discrete_D_equiv_mm        10              1.597e+00       1.957e+00       2.196e+00       2.400e+00       2.594e+00       2.792e+00       3.006e+00       3.257e+00       3.591e+00       4.200e+00      
-#    psd_grid_number_density_m3     5               1.181e-04       1.181e-04       1.181e-04       1.181e-04       1.181e-04      
-#    psd_grid_dBnumber_density_err_m3 5               -2.878e+01      -2.878e+01      -2.878e+01      -2.878e+01      -2.878e+01     
-#    psd_grid_number_density_m3     5               1.410e-05       1.410e-05       1.410e-05       1.410e-05       1.410e-05      
-#    psd_grid_dBnumber_density_err_m3 5               -3.813e+01      -3.813e+01      -3.813e+01      -3.813e+01      -3.813e+01     
-#    psd_grid_number_density_m3     5               6.880e-06       6.880e-06       6.880e-06       6.880e-06       6.880e-06      
-#    psd_grid_dBnumber_density_err_m3 5               -4.115e+01      -4.115e+01      -4.115e+01      -4.115e+01      -4.115e+01     
-#    psd_grid_number_density_m3     5               4.003e-06       4.003e-06       4.003e-06       4.003e-06       4.003e-06      
-#    psd_grid_dBnumber_density_err_m3 5               -4.341e+01      -4.341e+01      -4.341e+01      -4.341e+01      -4.341e+01     
-#    psd_grid_number_density_m3     5               2.502e-06       2.502e-06       2.502e-06       2.502e-06       2.502e-06      
-#    psd_grid_dBnumber_density_err_m3 5               -4.534e+01      -4.534e+01      -4.534e+01      -4.534e+01      -4.534e+01     
-#    psd_grid_number_density_m3     5               1.608e-06       1.608e-06       1.608e-06       1.608e-06       1.608e-06      
-#    psd_grid_dBnumber_density_err_m3 5               -4.714e+01      -4.714e+01      -4.714e+01      -4.714e+01      -4.714e+01     
-#    psd_grid_number_density_m3     5               1.031e-06       1.031e-06       1.031e-06       1.031e-06       1.031e-06      
-#    psd_grid_dBnumber_density_err_m3 5               -4.894e+01      -4.894e+01      -4.894e+01      -4.894e+01      -4.894e+01     
-#    psd_grid_number_density_m3     5               6.369e-07       6.369e-07       6.369e-07       6.369e-07       6.369e-07      
-#    psd_grid_dBnumber_density_err_m3 5               -5.086e+01      -5.086e+01      -5.086e+01      -5.086e+01      -5.086e+01     
-#    psd_grid_number_density_m3     5               3.551e-07       3.551e-07       3.551e-07       3.551e-07       3.551e-07      
-#    psd_grid_dBnumber_density_err_m3 5               -5.318e+01      -5.318e+01      -5.318e+01      -5.318e+01      -5.318e+01     
-#    psd_grid_number_density_m3     5               1.359e-07       1.359e-07       1.359e-07       1.359e-07       1.359e-07      
-#    psd_grid_dBnumber_density_err_m3 5               -5.696e+01      -5.696e+01      -5.696e+01      -5.696e+01      -5.696e+01     
+#    psd_discrete_D_equiv_mm        10              7.579e-01       1.003e+00       1.172e+00       1.321e+00       1.465e+00       1.614e+00       1.779e+00       1.974e+00       2.238e+00       2.732e+00      
+#    psd_grid_number_density_m3     5               2.993e-05       2.993e-05       2.993e-05       2.993e-05       2.993e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.433e+01      -3.433e+01      -3.433e+01      -3.433e+01      -3.433e+01     
+#    psd_grid_number_density_m3     5               2.091e-05       2.091e-05       2.091e-05       2.091e-05       2.091e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.628e+01      -3.628e+01      -3.628e+01      -3.628e+01      -3.628e+01     
+#    psd_grid_number_density_m3     5               1.783e-05       1.783e-05       1.783e-05       1.783e-05       1.783e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.709e+01      -3.709e+01      -3.709e+01      -3.709e+01      -3.709e+01     
+#    psd_grid_number_density_m3     5               1.580e-05       1.580e-05       1.580e-05       1.580e-05       1.580e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.766e+01      -3.766e+01      -3.766e+01      -3.766e+01      -3.766e+01     
+#    psd_grid_number_density_m3     5               1.424e-05       1.424e-05       1.424e-05       1.424e-05       1.424e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.814e+01      -3.814e+01      -3.814e+01      -3.814e+01      -3.814e+01     
+#    psd_grid_number_density_m3     5               1.292e-05       1.292e-05       1.292e-05       1.292e-05       1.292e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.857e+01      -3.857e+01      -3.857e+01      -3.857e+01      -3.857e+01     
+#    psd_grid_number_density_m3     5               1.173e-05       1.173e-05       1.173e-05       1.173e-05       1.173e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.897e+01      -3.897e+01      -3.897e+01      -3.897e+01      -3.897e+01     
+#    psd_grid_number_density_m3     5               1.056e-05       1.056e-05       1.056e-05       1.056e-05       1.056e-05      
+#    psd_grid_dBnumber_density_err_m3 5               -3.937e+01      -3.937e+01      -3.937e+01      -3.937e+01      -3.937e+01     
+#    psd_grid_number_density_m3     5               9.303e-06       9.303e-06       9.303e-06       9.303e-06       9.303e-06      
+#    psd_grid_dBnumber_density_err_m3 5               -3.982e+01      -3.982e+01      -3.982e+01      -3.982e+01      -3.982e+01     
+#    psd_grid_number_density_m3     5               7.451e-06       7.451e-06       7.451e-06       7.451e-06       7.451e-06      
+#    psd_grid_dBnumber_density_err_m3 5               -4.046e+01      -4.046e+01      -4.046e+01      -4.046e+01      -4.046e+01     
 
 
 
@@ -97,11 +98,35 @@ subsection prior_windfield
 grid                           0              
 vec_x                          1               0.000e+00      
 vec_y                          1               0.000e+00      
-vec_z                          1               0.000e+00      
+vec_z                          10              0.000e+00       2.500e+02       5.000e+02       7.500e+02       1.000e+03       1.250e+03       1.500e+03       1.750e+03       2.000e+03       2.250e+03      
 vec_t                          1               0.000e+00      
-grid_u                         1               1.000e+00      
-grid_v                         1               1.000e+00      
-grid_w                         1               1.000e-01      
+grid_w                         10              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
+grid_w_err                     10              5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01      
+fit_hspeed                     0              
+fit_hdir                       0              
+fit_u                          0              
+fit_v                          0              
+fit_w                          1              
+cl_x_m_w                       1.000e-04      
+cl_y_m_w                       1.000e-04      
+cl_z_m_w                       1.000e-04      
+cl_t_s_w                       1.000e-04      
+c_threshold_w                  1.000e-01      
+turbulence                     0              
+turbulence_type                5              
+turbulence_vec_x               1               0.000e+00      
+turbulence_vec_y               1               0.000e+00      
+turbulence_vec_z               5               0.000e+00       5.000e+02       1.000e+03       1.500e+03       2.000e+03      
+turbulence_vec_t               1               0.000e+00      
+turbulence_grid_edr            5               1.000e-02       1.000e-02       1.000e-02       1.000e-02       1.000e-02      
+turbulence_grid_kolmogorov_constant 5               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
+turbulence_grid_edr13_err      5               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
+turbulence_fit_edr13           1              
+turbulence_cl_x_m_edr13        1.000e-04      
+turbulence_cl_y_m_edr13        1.000e-04      
+turbulence_cl_z_m_edr13        1.000e-04      
+turbulence_cl_t_s_edr13        1.000e-04      
+turbulence_c_threshold_edr13   1.000e-01      
 
 
 
@@ -118,8 +143,8 @@ filter_dBZ_hh                  1
 filter_dBZ_hv                  0              
 filter_dBZ_vh                  0              
 filter_dBZ_vv                  0              
-filter_dBZdr                   1              
-filter_dBLdr                   1              
+filter_dBZdr                   0              
+filter_dBLdr                   0              
 filter_rho_co                  0              
 filter_rho_cxh                 0              
 filter_rho_cxv                 0              
@@ -144,6 +169,7 @@ filter_specific_rho_cxv        0
 filter_errors                  1              
 additive_noise                 0              
 multiplicative_noise           0              
+inertia_effect                 0              
 effective_earth_correction     1              
 
 
@@ -153,10 +179,10 @@ subsection algorithm
 run                            1              
 type                           2              
 costfunction_dBZ_hh            1              
-costfunction_dBZdr             1              
-costfunction_dBLdr             1              
-costfunction_Doppler_velocity_hh_ms 0              
-costfunction_Doppler_spectral_width_hh_ms 0              
+costfunction_dBZdr             0              
+costfunction_dBLdr             0              
+costfunction_Doppler_velocity_hh_ms 1              
+costfunction_Doppler_spectral_width_hh_ms 1              
 costfunction_Doppler_spectrum_dBZ_hh 0              
 costfunction_specific_dBZdr    0              
 costfunction_specific_dBLdr    0              
@@ -181,31 +207,31 @@ vec_x                          1               0.000e+00
 vec_y                          1               0.000e+00      
 vec_z                          5               0.000e+00       5.000e+02       1.000e+03       1.500e+03       2.000e+03      
 vec_t                          1               0.000e+00      
-psd_grid_lwc_gm3               5               4.548e-07       4.548e-07       4.548e-07       4.548e-07       4.548e-07      
+psd_grid_lwc_gm3               5               7.885e-11       1.664e-01       1.692e-02       4.550e-02       1.076e-02      
 psd_n_diameters                10             
-fit_dBlwc                      0              
-fit_dBN                        1              
-psd_discrete_D_equiv_mm        10              1.597e+00       1.957e+00       2.196e+00       2.400e+00       2.594e+00       2.792e+00       3.006e+00       3.257e+00       3.591e+00       4.200e+00      
-psd_grid_number_density_m3     5               7.481e-01       1.511e+00       3.427e+00       9.198e-01       1.181e-04      
-psd_grid_dBnumber_density_err_m3 5               -2.878e+01      -2.878e+01      -2.878e+01      -2.878e+01      -2.878e+01     
-psd_grid_number_density_m3     5               3.346e-09       3.806e-17       3.138e-16       5.508e-07       1.410e-05      
-psd_grid_dBnumber_density_err_m3 5               -3.813e+01      -3.813e+01      -3.813e+01      -3.813e+01      -3.813e+01     
-psd_grid_number_density_m3     5               5.207e-13       2.379e-22       2.379e-22       5.202e-09       6.880e-06      
-psd_grid_dBnumber_density_err_m3 5               -4.115e+01      -4.115e+01      -4.115e+01      -4.115e+01      -4.115e+01     
-psd_grid_number_density_m3     5               4.279e-16       1.737e-23       1.737e-23       6.579e-11       4.003e-06      
-psd_grid_dBnumber_density_err_m3 5               -4.341e+01      -4.341e+01      -4.341e+01      -4.341e+01      -4.341e+01     
-psd_grid_number_density_m3     5               3.082e-18       1.828e-24       1.828e-24       1.716e-12       2.502e-06      
-psd_grid_dBnumber_density_err_m3 5               -4.534e+01      -4.534e+01      -4.534e+01      -4.534e+01      -4.534e+01     
-psd_grid_number_density_m3     5               1.353e-19       2.235e-25       2.235e-25       9.655e-14       1.608e-06      
-psd_grid_dBnumber_density_err_m3 5               -4.714e+01      -4.714e+01      -4.714e+01      -4.714e+01      -4.714e+01     
-psd_grid_number_density_m3     5               2.133e-20       2.741e-26       2.741e-26       1.041e-14       1.031e-06      
-psd_grid_dBnumber_density_err_m3 5               -4.894e+01      -4.894e+01      -4.894e+01      -4.894e+01      -4.894e+01     
-psd_grid_number_density_m3     5               8.258e-21       2.872e-27       2.872e-27       2.181e-15       6.369e-07      
-psd_grid_dBnumber_density_err_m3 5               -5.086e+01      -5.086e+01      -5.086e+01      -5.086e+01      -5.086e+01     
-psd_grid_number_density_m3     5               1.820e-20       1.902e-28       1.902e-28       2.640e-15       3.551e-07      
-psd_grid_dBnumber_density_err_m3 5               -5.318e+01      -5.318e+01      -5.318e+01      -5.318e+01      -5.318e+01     
-psd_grid_number_density_m3     5               5.025e-15       3.230e-28       1.435e-22       2.170e-11       1.359e-07      
-psd_grid_dBnumber_density_err_m3 5               -5.696e+01      -5.696e+01      -5.696e+01      -5.696e+01      -5.696e+01     
+fit_dBlwc                      1              
+fit_dBN                        0              
+psd_discrete_D_equiv_mm        10              7.579e-01       1.003e+00       1.172e+00       1.321e+00       1.465e+00       1.614e+00       1.779e+00       1.974e+00       2.238e+00       2.732e+00      
+psd_grid_number_density_m3     5               7.502e-09       1.583e+01       1.610e+00       4.329e+00       1.024e+00      
+psd_grid_dBnumber_density_err_m3 5               -3.433e+01      -3.433e+01      -3.433e+01      -3.433e+01      -3.433e+01     
+psd_grid_number_density_m3     5               5.241e-09       1.106e+01       1.125e+00       3.024e+00       7.154e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.628e+01      -3.628e+01      -3.628e+01      -3.628e+01      -3.628e+01     
+psd_grid_number_density_m3     5               4.468e-09       9.427e+00       9.588e-01       2.578e+00       6.099e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.709e+01      -3.709e+01      -3.709e+01      -3.709e+01      -3.709e+01     
+psd_grid_number_density_m3     5               3.961e-09       8.357e+00       8.500e-01       2.286e+00       5.407e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.766e+01      -3.766e+01      -3.766e+01      -3.766e+01      -3.766e+01     
+psd_grid_number_density_m3     5               3.570e-09       7.533e+00       7.661e-01       2.060e+00       4.873e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.814e+01      -3.814e+01      -3.814e+01      -3.814e+01      -3.814e+01     
+psd_grid_number_density_m3     5               3.239e-09       6.835e+00       6.951e-01       1.869e+00       4.422e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.857e+01      -3.857e+01      -3.857e+01      -3.857e+01      -3.857e+01     
+psd_grid_number_density_m3     5               2.939e-09       6.202e+00       6.308e-01       1.696e+00       4.012e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.897e+01      -3.897e+01      -3.897e+01      -3.897e+01      -3.897e+01     
+psd_grid_number_density_m3     5               2.647e-09       5.584e+00       5.680e-01       1.527e+00       3.613e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.937e+01      -3.937e+01      -3.937e+01      -3.937e+01      -3.937e+01     
+psd_grid_number_density_m3     5               2.332e-09       4.920e+00       5.004e-01       1.346e+00       3.183e-01      
+psd_grid_dBnumber_density_err_m3 5               -3.982e+01      -3.982e+01      -3.982e+01      -3.982e+01      -3.982e+01     
+psd_grid_number_density_m3     5               1.867e-09       3.940e+00       4.008e-01       1.078e+00       2.549e-01      
+psd_grid_dBnumber_density_err_m3 5               -4.046e+01      -4.046e+01      -4.046e+01      -4.046e+01      -4.046e+01     
 
 
 
@@ -213,38 +239,58 @@ subsection post_windfield
 grid                           0              
 vec_x                          1               0.000e+00      
 vec_y                          1               0.000e+00      
-vec_z                          1               0.000e+00      
+vec_z                          10              0.000e+00       2.500e+02       5.000e+02       7.500e+02       1.000e+03       1.250e+03       1.500e+03       1.750e+03       2.000e+03       2.250e+03      
 vec_t                          1               0.000e+00      
-grid_u                         1               1.000e+00      
-grid_v                         1               1.000e-01      
-grid_w                         1               1.000e+00      
+grid_w                         10              -5.828e-01      1.025e+01       1.125e+01       8.764e+00       4.604e+00       6.523e+00       6.755e+00       8.401e+00       3.936e+00       1.000e+00      
+grid_w_err                     10              5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01       5.000e+01      
+fit_hspeed                     0              
+fit_hdir                       0              
+fit_u                          0              
+fit_v                          0              
+fit_w                          1              
+cl_x_m_w                       1.000e-04      
+cl_y_m_w                       1.000e-04      
+cl_z_m_w                       1.000e-04      
+cl_t_s_w                       1.000e-04      
+c_threshold_w                  1.000e-01      
+turbulence                     0              
+turbulence_type                5              
+turbulence_vec_x               1               0.000e+00      
+turbulence_vec_y               1               0.000e+00      
+turbulence_vec_z               5               0.000e+00       5.000e+02       1.000e+03       1.500e+03       2.000e+03      
+turbulence_vec_t               1               0.000e+00      
+turbulence_grid_edr            5               2.020e+00       1.000e-30       6.668e-03       9.859e-03       1.351e-02      
+turbulence_grid_kolmogorov_constant 5               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
+turbulence_grid_edr13_err      5               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00      
+turbulence_fit_edr13           1              
+turbulence_cl_x_m_edr13        0.000e+00      
+turbulence_cl_y_m_edr13        0.000e+00      
+turbulence_cl_z_m_edr13        0.000e+00      
+turbulence_cl_t_s_edr13        0.000e+00      
+turbulence_c_threshold_edr13   0.000e+00      
 
 
 
 
 
-!! enu_radar_location_x           1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! enu_radar_location_y           1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! enu_radar_location_z           1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! enu_radar_time_t               1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! azel_r1_m                      1               14              0.000e+00       1.500e+02       3.000e+02       4.500e+02       6.000e+02       7.500e+02       9.000e+02       1.050e+03       1.200e+03       1.350e+03       1.500e+03       1.650e+03       1.800e+03       1.950e+03       
-!! azel_r2_m                      1               14              3.000e+01       1.800e+02       3.300e+02       4.800e+02       6.300e+02       7.800e+02       9.300e+02       1.080e+03       1.230e+03       1.380e+03       1.530e+03       1.680e+03       1.830e+03       1.980e+03       
-!! azel_alpha_rad                 1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! azel_gamma_rad                 1               14              7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       7.854e-01       
-!! beam_FWHM0_rad                 1               14              3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       
-!! beam_FWHM1_rad                 1               14              3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       
-!! dt                             1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! center_x                       1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! center_y                       1               14              4.243e-04       1.157e+02       2.222e+02       3.284e+02       4.346e+02       5.407e+02       6.468e+02       7.529e+02       8.589e+02       9.650e+02       1.071e+03       1.177e+03       1.283e+03       1.389e+03       
-!! center_z                       1               14              4.243e-04       1.157e+02       2.222e+02       3.285e+02       4.346e+02       5.408e+02       6.469e+02       7.530e+02       8.591e+02       9.652e+02       1.071e+03       1.177e+03       1.284e+03       1.390e+03       
-!! center_t                       1               14              0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
-!! dBZ_hh                         1               14              1.058e+01       1.137e+01       1.201e+01       1.266e+01       1.330e+01       1.400e+01       1.476e+01       1.551e+01       1.627e+01       1.702e+01       1.625e+01       1.504e+01       1.383e+01       1.262e+01       
-!! dBZ_hh_err                     1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! dBZdr                          1               14              2.169e-01       2.172e-01       2.175e-01       2.178e-01       2.181e-01       2.184e-01       2.187e-01       2.190e-01       2.192e-01       2.195e-01       2.198e-01       2.201e-01       2.203e-01       2.206e-01       
-!! dBZdr_err                      1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! dBLdr                          1               14              -4.130e+01      -4.135e+01      -4.139e+01      -4.144e+01      -4.148e+01      -4.153e+01      -4.157e+01      -4.162e+01      -4.166e+01      -4.171e+01      -4.176e+01      -4.180e+01      -4.185e+01      -4.189e+01      
-!! dBLdr_err                      1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_velocity_hh_ms         1               14              -3.102e+00      -3.122e+00      -3.140e+00      -3.159e+00      -3.177e+00      -3.195e+00      -3.214e+00      -3.233e+00      -3.251e+00      -3.270e+00      -3.289e+00      -3.307e+00      -3.326e+00      -3.345e+00      
-!! Doppler_velocity_hh_ms_err     1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectral_width_hh_ms   1               14              1.192e-02       1.211e-02       1.216e-02       1.222e-02       1.228e-02       1.236e-02       1.243e-02       1.249e-02       1.255e-02       1.261e-02       1.236e-02       1.243e-02       1.249e-02       1.256e-02       
-!! Doppler_spectral_width_hh_ms_err 1               14              1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! enu_radar_location_x           1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! enu_radar_location_y           1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! enu_radar_location_z           1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! enu_radar_time_t               1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! azel_r1_m                      1               9               1.800e+02       4.800e+02       7.800e+02       1.080e+03       1.380e+03       1.680e+03       1.980e+03       2.280e+03       2.580e+03       
+!! azel_r2_m                      1               9               2.100e+02       5.100e+02       8.100e+02       1.110e+03       1.410e+03       1.710e+03       2.010e+03       2.310e+03       2.610e+03       
+!! azel_alpha_rad                 1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! azel_gamma_rad                 1               9               7.852e-01       7.852e-01       7.852e-01       7.852e-01       7.852e-01       7.852e-01       7.852e-01       7.852e-01       7.852e-01       
+!! beam_FWHM0_rad                 1               9               3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       
+!! beam_FWHM1_rad                 1               9               3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       3.665e-02       
+!! dt                             1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! center_x                       1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! center_y                       1               9               1.371e+02       3.498e+02       5.620e+02       7.742e+02       9.864e+02       1.199e+03       1.411e+03       1.623e+03       1.835e+03       
+!! center_z                       1               9               1.370e+02       3.496e+02       5.619e+02       7.741e+02       9.862e+02       1.198e+03       1.411e+03       1.623e+03       1.835e+03       
+!! center_t                       1               9               0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       0.000e+00       
+!! dBZ_hh                         1               9               -3.332e+01      6.694e+00       3.342e+01       2.911e+01       2.495e+01       2.627e+01       2.801e+01       2.711e+01       2.453e+01       
+!! dBZ_hh_err                     1               9               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! Doppler_velocity_hh_ms         1               9               -1.062e-02      2.977e+00       2.443e+00       9.189e-01       -1.516e+00      -6.159e-01      -2.427e-01      3.920e-01       -1.273e-01      
+!! Doppler_velocity_hh_ms_err     1               9               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! Doppler_spectral_width_hh_ms   1               9               1.642e+00       8.864e-01       6.200e-01       6.584e-01       7.266e-01       7.595e-01       7.911e-01       8.248e-01       8.580e-01       
+!! Doppler_spectral_width_hh_ms_err 1               9               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       

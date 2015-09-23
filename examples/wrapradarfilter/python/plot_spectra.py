@@ -3,36 +3,14 @@
 import sys, os; sys.path.append(os.path.expanduser("~/tools/zephyros0.4/wrapradarfilter")); import radarfilter
 import sys, os; sys.path.append(os.path.expanduser("~/tools/zephyros0.4/additional_output")); import additional_output
 
+import calc_hr_spectrum
+
 import numpy as np
 from copy import deepcopy
 import pickle
 import gzip
 
 from scipy import stats
-
-from scipy.interpolate import interp1d
-def special_interpolate_via_integral(
-        lbound, ubound, values, newx
-        ):
-
-    #define interpolation points for the integral function
-    int_x = np.hstack((lbound,ubound[-1]))
-    tmp = np.hstack( (0., (ubound - lbound) * values))
-    int_y = np.cumsum(tmp)
-
-    nonans = False == (np.isnan(int_y) | np.isinf(int_y))
-    int_x = np.compress(nonans, int_x)
-    int_y = np.compress(nonans, int_y)
-
-    int_f = interp1d(int_x, int_y, kind='quadratic', bounds_error=False)
-    delta = 1.e-10
-    f = lambda x: (int_f(x + delta/2.) - int_f(x - delta/2.)) / delta
-    
-    newy = np.array(f(newx))
-    return newy
-
-dBinv = lambda x: 10. ** (x / 10.)
-dB = lambda x: 10. * np.log10(x)
 
 myplotdcts = {}
 
@@ -199,40 +177,7 @@ if True:
         for myplotname in sorted(myplotdcts.keys()):
             ao = myplotdcts[myplotname]['ao']
     
-            #do a recalculation with nicer resolution
-            recalc = {}
-            recalc['x'] = np.linspace(ao['spectrum_velocity_lbound'][0,0], ao['spectrum_velocity_ubound'][0,-1], 200)
-            for myvar in ['Doppler_spectrum_dBZ_hh', 'Doppler_spectrum_dBZ_hv', 'Doppler_spectrum_dBZ_vh', 'Doppler_spectrum_dBZ_vv']:
-                recalc[myvar] = dB(special_interpolate_via_integral(
-                                ao['spectrum_velocity_lbound'][0,:],
-                                ao['spectrum_velocity_ubound'][0,:],
-                                dBinv(ao[myvar][0,:]),
-                                recalc['x']))
-                #ignore low reflection
-                recalc[myvar] = np.where(recalc[myvar] > (np.nanmax(recalc[myvar]) - 10.), recalc[myvar], np.nan)
-                                
-            recalc['specific_rho_co'] = special_interpolate_via_integral(
-                            ao['spectrum_velocity_lbound'][0,:],
-                            ao['spectrum_velocity_ubound'][0,:],
-                            ao['specific_rho_co'][0,:] * np.sqrt(dBinv(ao['Doppler_spectrum_dBZ_hh'][0,:]) * dBinv(ao['Doppler_spectrum_dBZ_vv'][0,:])),
-                            recalc['x']) / np.sqrt(dBinv(recalc['Doppler_spectrum_dBZ_hh']) * dBinv(recalc['Doppler_spectrum_dBZ_vv']))
-            recalc['specific_rho_cxh'] = special_interpolate_via_integral(
-                            ao['spectrum_velocity_lbound'][0,:],
-                            ao['spectrum_velocity_ubound'][0,:],
-                            ao['specific_rho_cxh'][0,:] * np.sqrt(dBinv(ao['Doppler_spectrum_dBZ_hh'][0,:]) * dBinv(ao['Doppler_spectrum_dBZ_hv'][0,:])),
-                            recalc['x']) /  np.sqrt(dBinv(recalc['Doppler_spectrum_dBZ_hh']) * dBinv(recalc['Doppler_spectrum_dBZ_hv']))
-            recalc['specific_rho_cxv'] = special_interpolate_via_integral(
-                            ao['spectrum_velocity_lbound'][0,:],
-                            ao['spectrum_velocity_ubound'][0,:],
-                            ao['specific_rho_cxv'][0,:] * np.sqrt(dBinv(ao['Doppler_spectrum_dBZ_vv'][0,:]) * dBinv(ao['Doppler_spectrum_dBZ_vh'][0,:])),
-                            recalc['x']) /  np.sqrt(dBinv(recalc['Doppler_spectrum_dBZ_vv']) * dBinv(recalc['Doppler_spectrum_dBZ_vh']))
-                              
-
-
-                
-            recalc['specific_dBZdr'] = recalc['Doppler_spectrum_dBZ_hh'] - recalc['Doppler_spectrum_dBZ_vv']
-            recalc['specific_dBLdr'] = recalc['Doppler_spectrum_dBZ_hv'] - recalc['Doppler_spectrum_dBZ_vv']
-
+			recalc = calc_hr_spectrum.ao_to_recalc(ao)
             
             if plot in recalc.keys():
                 x2 = recalc['x']

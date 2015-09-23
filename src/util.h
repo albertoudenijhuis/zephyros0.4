@@ -1,9 +1,9 @@
 #ifndef _ZEPHYROS_UTIL
 #define _ZEPHYROS_UTIL
 
+#include <complex.h>
 #include "interpolation.h"
 #include "particles.h"
-#include "turbulence.h"
 #include "fields.h"
 #include "cs.h"
 
@@ -119,15 +119,100 @@ typedef struct st_zephyros_vortex
 } t_zephyros_vortex;
 
 
+typedef struct t_zephyros_turbulence_widget
+{
+	int			type;				//(1 = Mann1998, 2 = CTM, 3 = Careta1993, 4 = Pinsky2006, 5 = parametric)
+	t_zephyros_field 	*field;
+	double 		*grid_edr;
+	double 		*grid_edr13;
+	t_zephyros_interpolation_bilint_lut	*lut_edr13;
+
+	double 		Lx;							
+	double 		Ly;							
+	double 		Lz;							
+	int			Nx;							
+	int			Ny;							
+	int			Nz;							
+	double		*freqx;						
+	double		*freqy;						
+	double		*freqz;						
+		
+	double 		*grid_karman_L;						//mann1998, ctm
+	double 		*grid_kolmogorov_constant;			//mann1998, ctm
+	t_zephyros_interpolation_bilint_lut	*lut_karman_L;
+	t_zephyros_interpolation_bilint_lut	*lut_kolmogorov_constant;
+	
+	double complex		*random_fourier_cx;		//ctm
+	double complex		*random_fourier_cy;		//ctm
+	double complex		*random_fourier_cz;		//ctm
+	double 				*random_shift_x;		//ctm
+	double 				*random_shift_y;		//ctm
+	double 				*random_shift_z;		//ctm
+		
+	double complex		***random_fourier_c0;	//mann1998
+	double complex 		***random_fourier_c1;	//mann1998
+	double complex 		***random_fourier_c2;	//mann1998
+	double complex 		***u_fourier;	//mann1998
+	double complex 		***v_fourier;	//mann1998
+	double complex 		***w_fourier;	//mann1998
+	
+	double complex		**random_fourier_beta;	//careta1993
+	
+	char		pinsky2006_file[8192];					//pinsky2006
+	
+	double 		minL_div_maxL;						//ctm
+	
+	int			random_numbers;					//mann1998, ctm
+	char		rn_file[8192];					//mann1998, ctm
+
+	double 		lambdax; 						//careta1993
+	double 		lambday; 						//careta1993
+	
+	int			M;								//pinsky2006
+	int			K;								//pinsky2006
+	double 		**random_a;						//pinsky2006
+	double 		**random_b;						//pinsky2006
+	double 		*lambdak;						//pinsky2006
+	double 		*alphak;						//pinsky2006
+	
+	double		calibration_factor;
+	int			calibration_method;				
+	int			calibration_n;
+	double		calibration_C;
+	int			calibration_periodic;
+	int			calibration_nint;
+	int			calibration_dir;
+	double		calibration_L;
+	
+	//field representation
+	t_zephyros_field 	*turb_field;
+	double *turb_u;
+	double *turb_v;
+	double *turb_w;
+	t_zephyros_interpolation_bilint_lut	*turb_lut_u;
+	t_zephyros_interpolation_bilint_lut	*turb_lut_v;
+	t_zephyros_interpolation_bilint_lut	*turb_lut_w;
+	
+	//fitting
+	double 		*grid_edr13_err;
+	int fit_edr13;
+	int fit_edr13_Knr;
+	t_zephyros_field_errcovmat edr13_ecm;
+} t_zephyros_turbulence_widget;
+
 typedef struct t_zephyros_windfield
 {
 	int					type;		//0 = normal, 1 = prior, 2 = post
 	
     int			nfields;
 	t_zephyros_field 	*field[101];
+    double 		*grid_hspeed[101];
+    double 		*grid_hdir[101];
     double 		*grid_u[101];
     double	 	*grid_v[101];
     double	 	*grid_w[101];
+    t_zephyros_interpolation_bilint_lut	 	*lut_hspeed[101];
+    t_zephyros_interpolation_bilint_lut	 	*lut_hdir[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_u[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_v[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_w[101];
@@ -140,9 +225,13 @@ typedef struct t_zephyros_windfield
     t_zephyros_turbulence_widget 	*turbulence[101];
     
     //for retrieval mode, prior parameters
+    double 		*grid_hspeed_err[101];
+    double 		*grid_hdir_err[101];
     double 		*grid_u_err[101];
     double	 	*grid_v_err[101];
     double	 	*grid_w_err[101];
+    t_zephyros_interpolation_bilint_lut	 	*lut_hspeed_err[101];
+    t_zephyros_interpolation_bilint_lut	 	*lut_hdir_err[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_u_err[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_v_err[101];
     t_zephyros_interpolation_bilint_lut	 	*lut_w_err[101];
@@ -153,9 +242,15 @@ typedef struct t_zephyros_windfield
 	int fit_v[101];
 	int fit_w[101];
 	
+	int fit_hspeed_Knr[101];
+	int fit_hdir_Knr[101];
+	int fit_u_Knr[101];
+	int fit_v_Knr[101];
+	int fit_w_Knr[101];
+	
 	//error covariance matrices
-	t_zephyros_field_errcovmat hdir_ecm[101];
 	t_zephyros_field_errcovmat hspeed_ecm[101];
+	t_zephyros_field_errcovmat hdir_ecm[101];
 	t_zephyros_field_errcovmat u_ecm[101];
 	t_zephyros_field_errcovmat v_ecm[101];
 	t_zephyros_field_errcovmat w_ecm[101];

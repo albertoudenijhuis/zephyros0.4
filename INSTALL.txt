@@ -18,3 +18,11 @@ Installation instruction for Python
 
 bugs resolved:
 - Thanks to Kavish. (
+
+
+NLOPT: to obtain the latest version and correct installation of nlopt
+git clone git://github.com/stevengj/nlopt
+cd nlopt
+./configure --enable-shared
+make
+make install

@@ -24,22 +24,6 @@ typedef struct st_radarmeasurement
 	double		dt;					/* dt */
 	
 	t_zephyros_coordinates		*center_coor;	
-		
-	//needed for calculations
-	double		eta_hh;
-	double		eta_hv;
-	double		eta_vh;
-	double		eta_vv;
-	
-	double		eta_ShhSvvc;
-	double		eta_ShhShvc;
-	double		eta_SvvSvhc;
-	
-	double		n_Re_Shh_min_Svv;
-
-	double		*Doppler_spectrum_ShhSvvc;
-	double		*Doppler_spectrum_ShhShvc;
-	double		*Doppler_spectrum_SvvSvhc;
 			
 	//output
 	double		dBZ_hh;
@@ -119,6 +103,7 @@ typedef struct st_radarmeasurement
 	
 	
 	//additional variables, needed to calculate derivatives
+	double 		coef_eta2Z;
 	int 		n_psd;
 	int			*n_diameters;
 	double		**eta_i_hh; //(psd, particle)
@@ -137,6 +122,13 @@ typedef struct st_radarmeasurement
 	double		der_edr13_dBLdr;
 	double		der_edr13_Doppler_velocity_hh_ms;
 	double		der_edr13_Doppler_spectral_width_hh_ms;
+
+	double		*der_edr13_Doppler_spectrum_dBZ_hh;
+	double		*der_edr13_Doppler_spectrum_dBZ_hv;
+	double		*der_edr13_Doppler_spectrum_dBZ_vh;
+	double		*der_edr13_Doppler_spectrum_dBZ_vv;
+
+
 
 	/*
 	double		*Doppler_spectrum_dBZ_hh;
@@ -158,6 +150,7 @@ typedef struct st_radarfilter_res_vol			/* resolution volume */
 	int 		n_parmod_az;
 	int 		n_parmod_el;
 	int 		n_parmod;
+	int 		n_parmod_plus;
 
 	int			n_psd;
 	int			*n_diameters;
@@ -305,6 +298,8 @@ typedef struct st_radarfilter_todolist			/* resolution volume to do list */
 	int 		calc_spectrum_eta_i_hv;
 	int 		calc_spectrum_eta_i_vh;
 	int 		calc_spectrum_eta_i_vv;
+	
+	int			der_edr13;
 	
 	//int			apply_advection;
 	//int			apply_geostrophic_correction;

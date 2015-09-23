@@ -48,9 +48,6 @@ void wrapretrieval(char cfg_filename[8192], char additional_output_filename[8192
 			//set configuration
 			lwm_opc->c = cfg->retrieval->algorithm->lwm_cfg[iretr];
 					
-			//initialize
-			retrieval_lwm_initialize_p(lwm_opc);
-
 			//Cast previous solution (post) to current prior
 			if (lwm_opc_prev->p != NULL) {printf("not implemented yet..."); exit(0);}
 			if (fdvar_opc_prev->p != NULL) {printf("not implemented yet..."); exit(0);}
@@ -67,13 +64,11 @@ void wrapretrieval(char cfg_filename[8192], char additional_output_filename[8192
 		if (cfg->retrieval->algorithm->type[iretr] == 2) {
 			//set configuration
 			fdvar_opc->c = cfg->retrieval->algorithm->fdvar_cfg[iretr];
-
-			//initialize
-			retrieval_fdvar_initialize_p(fdvar_opc);
 			
 			//Cast previous solution (post) to current prior
 			if (lwm_opc_prev->p != NULL) {printf("not implemented yet..."); exit(0);}
-			if (fdvar_opc_prev->p != NULL) {retrieval_fdvar_cast_p(fdvar_opc_prev, fdvar_opc);}
+			if (fdvar_opc_prev->p != NULL) {printf("not implemented yet..."); exit(0);}
+			//if (fdvar_opc_prev->p != NULL) {retrieval_fdvar_cast_p(fdvar_opc_prev, fdvar_opc);}
 
 			//do the retrieval 
 			retrieval_fdvar_apply(fdvar_opc);

@@ -33,9 +33,9 @@ if True:
     #myway = 'vector'
     #measurements_filename = "../../wrapradarfilter/data/scanning_vector_additional_output.zout"
     
-    
     myway = 'staring'
-    measurements_filename = "../../wrapradarfilter/data/staring_parametric_additional_output.zout"
+    #measurements_filename = "../../wrapradarfilter/data_staring/staring_additional_output.zout"
+    measurements_filename = "/home/aoudenijhuis/Documenten/tu_delft/meetings/2015_RADARMET2015/tara_processing/tara_measurements.z"    
     additional_output_filename = "../fdvar_data/staring_dev.zout"
 
     

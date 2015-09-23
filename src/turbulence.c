@@ -48,6 +48,56 @@ Note:
 #    define M_PI 3.14159265358979323846
 #endif	
 	
+void turbulence_initialize_widget(t_zephyros_turbulence_widget **pcfg)
+{
+	t_zephyros_turbulence_widget *cfg = malloc(sizeof(t_zephyros_turbulence_widget));
+	
+	cfg->field = NULL;
+	cfg->grid_edr = NULL;
+	cfg->grid_edr13 = NULL;
+	cfg->lut_edr13 = NULL;
+	cfg->freqx = NULL;
+	cfg->freqy = NULL;
+	cfg->freqz = NULL;
+	cfg->grid_karman_L = NULL;
+	cfg->grid_kolmogorov_constant = NULL;
+	cfg->lut_karman_L = NULL;
+	cfg->lut_kolmogorov_constant = NULL;
+	cfg->random_fourier_cx = NULL;
+	cfg->random_fourier_cy = NULL;
+	cfg->random_fourier_cz = NULL;
+	cfg->random_shift_x = NULL;
+	cfg->random_shift_y = NULL;
+	cfg->random_shift_z = NULL;
+	cfg->random_fourier_c0 = NULL;
+	cfg->random_fourier_c1 = NULL;
+	cfg->random_fourier_c2 = NULL;
+	cfg->u_fourier = NULL;
+	cfg->v_fourier = NULL;
+	cfg->w_fourier = NULL;
+	cfg->random_fourier_beta = NULL;
+	cfg->random_a = NULL;
+	cfg->random_b = NULL;
+	cfg->lambdak = NULL;
+	cfg->alphak = NULL;
+	cfg->turb_field = NULL;
+	cfg->turb_u = NULL;
+	cfg->turb_v = NULL;
+	cfg->turb_w = NULL;
+	cfg->turb_lut_u = NULL;
+	cfg->turb_lut_v = NULL;
+	cfg->turb_lut_w = NULL;
+
+	cfg->fit_edr13 = 0;
+	cfg->grid_edr13_err = NULL;
+	cfg->edr13_ecm.mat 		= NULL;
+	cfg->edr13_ecm.mat_S 	= NULL;
+	cfg->edr13_ecm.mat_N 	= NULL;
+	*pcfg = cfg;
+}
+
+
+
 void turbulence_prepare_widget(t_zephyros_turbulence_widget *cfg)
 {
 	double RN1, RN2;
@@ -55,11 +105,15 @@ void turbulence_prepare_widget(t_zephyros_turbulence_widget *cfg)
 	int ix, iy, iz;
 	int ik, im;
 	int i;
+	int tmpi;
 	FILE *fp;
 	int *tau;
 	double deltax;
 	double deltay;
 	double deltaz;
+	double *dummy;
+	double *tmpxyzt;
+	
 	t_turbulence_karmanspec *karmanspec = malloc(sizeof(t_turbulence_karmanspec));
 	
 	cfg->calibration_factor = 1.;	
@@ -198,7 +252,91 @@ void turbulence_prepare_widget(t_zephyros_turbulence_widget *cfg)
 			}
 		}
 
+		//transfer to field
+		//reduces calculation time
+		if (1) {			
+			fields_initialize(&(cfg->turb_field));
+			strcpy(cfg->turb_field->name, "turb_field");		
+			
+			cfg->turb_field->n_x = cfg->Nx;
+			cfg->turb_field->n_y = cfg->Ny;
+			cfg->turb_field->n_z = cfg->Nz;
+			cfg->turb_field->n_t = 1;
+			cfg->turb_field->vec_x = malloc(cfg->turb_field->n_x*sizeof(double));
+			cfg->turb_field->vec_y = malloc(cfg->turb_field->n_y*sizeof(double));
+			cfg->turb_field->vec_z = malloc(cfg->turb_field->n_z*sizeof(double));
+			cfg->turb_field->vec_t = malloc(cfg->turb_field->n_t*sizeof(double));
+			
+			for (ix=0; ix<cfg->Nx; ix++) 
+				cfg->turb_field->vec_x[ix] = 1. * ix * cfg->Lx / cfg->Nx;
+			for (iy=0; iy<cfg->Ny; iy++) 
+				cfg->turb_field->vec_y[iy] = 1. * iy * cfg->Ly / cfg->Ny;
+			for (iz=0; iz<cfg->Nz; iz++) 
+				cfg->turb_field->vec_z[iz] = 1. * iz * cfg->Lz / cfg->Nz;
+			cfg->turb_field->vec_t[0] = 0.;
 
+			cfg->turb_field->n = cfg->turb_field->n_x * cfg->turb_field->n_y * cfg->turb_field->n_z * cfg->turb_field->n_t;
+			cfg->turb_u = malloc(cfg->turb_field->n * sizeof(double));
+			cfg->turb_v = malloc(cfg->turb_field->n * sizeof(double));
+			cfg->turb_w = malloc(cfg->turb_field->n * sizeof(double));
+			
+			tmpxyzt = malloc(4 * sizeof(double));
+			i= -1;
+
+			for (iz=0; iz<cfg->Nz; iz++) {
+				for (iy=0; iy<cfg->Ny; iy++) {
+					for (ix=0; ix<cfg->Nx; ix++) {						
+						i++;
+						
+						//print status
+						tmpi = (cfg->turb_field->n / 10); if (tmpi == 0) tmpi = 1;
+						if (	(i < 10) |
+								( (i % tmpi) == 0)) {
+							printf("prepare turbulence field %5i/%5i\n", i + 1, cfg->turb_field->n); fflush(stdout);
+						}
+						
+						tmpxyzt[0] = cfg->turb_field->vec_x[ix];
+						tmpxyzt[1] = cfg->turb_field->vec_y[iy];
+						tmpxyzt[2] = cfg->turb_field->vec_z[iz];
+						tmpxyzt[3] = 0.;
+						turbulence_mann1998_uvw(cfg, tmpxyzt, 0, cfg->turb_u + i, 0, dummy);
+						turbulence_mann1998_uvw(cfg, tmpxyzt, 1, cfg->turb_v + i, 0, dummy);
+						turbulence_mann1998_uvw(cfg, tmpxyzt, 2, cfg->turb_w + i, 0, dummy);
+					}
+				}
+			}
+			free(tmpxyzt);
+
+			//in principle memory can be safed by freeing mann variables that are not necessary anymore.
+						
+			util_field2lut(cfg->turb_field, cfg->turb_u, 0, &cfg->turb_lut_u);
+			util_field2lut(cfg->turb_field, cfg->turb_v, 0, &cfg->turb_lut_v);
+			util_field2lut(cfg->turb_field, cfg->turb_w, 0, &cfg->turb_lut_w);
+			
+			//make periodic
+			cfg->turb_lut_u->periodic_L = malloc(4 * sizeof(double));
+			cfg->turb_lut_u->periodic_L[0] = cfg->Lx;
+			cfg->turb_lut_u->periodic_L[1] = cfg->Ly;
+			cfg->turb_lut_u->periodic_L[2] = cfg->Lz;
+			cfg->turb_lut_u->periodic_L[3] = 1.;
+			cfg->turb_lut_u->periodic = 1;
+
+			cfg->turb_lut_v->periodic_L = malloc(4 * sizeof(double));
+			cfg->turb_lut_v->periodic_L[0] = cfg->Lx;
+			cfg->turb_lut_v->periodic_L[1] = cfg->Ly;
+			cfg->turb_lut_v->periodic_L[2] = cfg->Lz;
+			cfg->turb_lut_v->periodic_L[3] = 1.;
+			cfg->turb_lut_v->periodic = 1;
+			
+			cfg->turb_lut_w->periodic_L = malloc(4 * sizeof(double));
+			cfg->turb_lut_w->periodic_L[0] = cfg->Lx;
+			cfg->turb_lut_w->periodic_L[1] = cfg->Ly;
+			cfg->turb_lut_w->periodic_L[2] = cfg->Lz;
+			cfg->turb_lut_w->periodic_L[3] = 1.;
+			cfg->turb_lut_w->periodic = 1;
+			
+		}
+		
 		//make the coefficients for a real signal!
 		/*
 		for (ix=0; ix<cfg->Nx; ix++) {
@@ -415,6 +553,11 @@ void turbulence_prepare_widget(t_zephyros_turbulence_widget *cfg)
 	
 	if (cfg->type == 5) {	//parametric turbulence
 		util_field2lut(cfg->field, cfg->grid_kolmogorov_constant, 0, &cfg->lut_kolmogorov_constant);
+		
+		if (cfg->fit_edr13) {
+			//prepare error coviance matrix
+			util_initialize_field_err_cov_matrix(cfg->field, cfg->grid_edr13_err, &cfg->edr13_ecm);
+		}
 	}
 	
 	//calibrate turbulence
@@ -431,79 +574,117 @@ void turbulence_prepare_widget(t_zephyros_turbulence_widget *cfg)
 void turbulence_free_widget(t_zephyros_turbulence_widget **pcfg)
 {
 	int ix, iy;
+	int i;
 	t_zephyros_turbulence_widget *cfg = *pcfg;
 	
 	if (cfg != NULL) {
-		//free general stuff
-		free(cfg->grid_edr13);
+		fields_free(&cfg->field);
+		util_safe_free(&cfg->grid_edr);
+		util_safe_free(&cfg->grid_edr13);
+		interpolation_free_lut(&cfg->lut_edr13);
+		util_safe_free(&cfg->freqx);
+		util_safe_free(&cfg->freqy);
+		util_safe_free(&cfg->freqz);
+		util_safe_free(&cfg->grid_karman_L);
+		util_safe_free(&cfg->grid_kolmogorov_constant);
+		interpolation_free_lut(&cfg->lut_karman_L);
+		interpolation_free_lut(&cfg->lut_kolmogorov_constant);
+		util_safe_free(&cfg->random_fourier_cx);
+		util_safe_free(&cfg->random_fourier_cy);
+		util_safe_free(&cfg->random_fourier_cz);
 
-		//TBD: free luts
+		util_safe_free(&cfg->random_shift_x);
+		util_safe_free(&cfg->random_shift_y);
+		util_safe_free(&cfg->random_shift_z);
 		
-		if ((cfg->type == 1) |
-			(cfg->type == 2) |
-			(cfg->type == 3))
-		 {	
-			free(cfg->freqx);
-			free(cfg->freqy);
-		}
-		if ((cfg->type == 1) | (cfg->type == 2)) free(cfg->freqz);
-		
-		if (cfg->type == 1) {
-			//mann1998
+		if (cfg->random_fourier_c0 != NULL) {
 			for (ix=0; ix<cfg->Nx; ix++) {
 				for (iy=0; iy<cfg->Ny; iy++) {
 					free(cfg->random_fourier_c0[ix][iy]);
-					free(cfg->random_fourier_c1[ix][iy]);
-					free(cfg->random_fourier_c2[ix][iy]);
 				}
 				free(cfg->random_fourier_c0[ix]);
-				free(cfg->random_fourier_c1[ix]);
-				free(cfg->random_fourier_c2[ix]);
 			}
 			free(cfg->random_fourier_c0);
+		}
+		
+		if (cfg->random_fourier_c1 != NULL) {
+			for (ix=0; ix<cfg->Nx; ix++) {
+				for (iy=0; iy<cfg->Ny; iy++) {
+					free(cfg->random_fourier_c1[ix][iy]);
+				}
+				free(cfg->random_fourier_c1[ix]);
+			}
 			free(cfg->random_fourier_c1);
+		}
+		
+		if (cfg->random_fourier_c2 != NULL) {	
+			for (ix=0; ix<cfg->Nx; ix++) {
+				for (iy=0; iy<cfg->Ny; iy++) {
+					free(cfg->random_fourier_c2[ix][iy]);
+				}
+				free(cfg->random_fourier_c2[ix]);
+			}
 			free(cfg->random_fourier_c2);
+		}
 
+
+		if (cfg->u_fourier != NULL) {
 			for (ix=0; ix<cfg->Nx; ix++) {
 				for (iy=0; iy<cfg->Ny; iy++) {
 					free(cfg->u_fourier[ix][iy]);
-					free(cfg->v_fourier[ix][iy]);
-					free(cfg->w_fourier[ix][iy]);
 				}
 				free(cfg->u_fourier[ix]);
-				free(cfg->v_fourier[ix]);
-				free(cfg->w_fourier[ix]);
 			}
 			free(cfg->u_fourier);
+		}
+
+		if (cfg->v_fourier != NULL) {
+			for (ix=0; ix<cfg->Nx; ix++) {
+				for (iy=0; iy<cfg->Ny; iy++) {
+					free(cfg->v_fourier[ix][iy]);
+				}
+				free(cfg->v_fourier[ix]);
+			}
 			free(cfg->v_fourier);
+		}
+		if (cfg->w_fourier != NULL) {
+			for (ix=0; ix<cfg->Nx; ix++) {
+				for (iy=0; iy<cfg->Ny; iy++) {
+					free(cfg->w_fourier[ix][iy]);
+				}
+				free(cfg->w_fourier[ix]);
+			}
 			free(cfg->w_fourier);
+		}		
+		if (cfg->random_fourier_beta != NULL) {
+			for (i=0; i<cfg->Nx; i++) 
+				free(cfg->random_fourier_beta[i]);
+			free(cfg->random_fourier_beta);
 		}
-
-		if (cfg->type == 2) {
-			free(cfg->random_fourier_cx);	
-			free(cfg->random_fourier_cy);	
-			free(cfg->random_fourier_cz);
-			
-			free(cfg->random_shift_x);
-			free(cfg->random_shift_y);
-			free(cfg->random_shift_z);
-		}
-		
-		if (cfg->type == 3) {
-			free(cfg->random_fourier_beta);	
-		}
-
-		if (cfg->type == 4) {
+		if (cfg->random_a != NULL) {
+			for (i=0; i<cfg->K; i++) 
+				free(cfg->random_a[i]);
 			free(cfg->random_a);
+		}
+		if (cfg->random_b != NULL) {
+			for (i=0; i<cfg->K; i++) 
+				free(cfg->random_b[i]);
 			free(cfg->random_b);
-			free(cfg->alphak);
-			free(cfg->lambdak);
 		}
-		
-		if (cfg->type == 5) {
-			//...
-		}
-		
+						
+		util_safe_free(&cfg->lambdak);
+		util_safe_free(&cfg->alphak);
+		util_safe_free(&cfg->turb_u);
+		util_safe_free(&cfg->turb_v);
+		util_safe_free(&cfg->turb_w);		
+		interpolation_free_lut(&cfg->turb_lut_u);
+		interpolation_free_lut(&cfg->turb_lut_v);
+		interpolation_free_lut(&cfg->turb_lut_w);
+
+		if (cfg->edr13_ecm.mat != NULL) cs_spfree(cfg->edr13_ecm.mat);
+		if (cfg->edr13_ecm.mat_S != NULL) cs_sfree(cfg->edr13_ecm.mat_S);
+		if (cfg->edr13_ecm.mat_N != NULL) cs_nfree(cfg->edr13_ecm.mat_N);
+
 		free(cfg);
 		cfg = NULL;
 	}
@@ -515,7 +696,7 @@ void turbulence_uvw(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4])
+	double *uvw_derivatives)
 {
 	double edr13;
 	double *dummy;
@@ -527,7 +708,7 @@ void turbulence_uvw(
 			&edr13,
 			0, //no derivatives
 			dummy);
-				
+	
 	if (cfg->type == 1) {
 		//mann1998
 		turbulence_mann1998_uvw(cfg, xyzt, i, ans, uvw_calcderivatives, uvw_derivatives);
@@ -547,10 +728,12 @@ void turbulence_uvw(
 
 	//calibration factor
 	*ans *= edr13 * cfg->calibration_factor;
-	uvw_derivatives[0] *= edr13 * cfg->calibration_factor;
-	uvw_derivatives[1] *= edr13 * cfg->calibration_factor;
-	uvw_derivatives[2] *= edr13 * cfg->calibration_factor;
-	uvw_derivatives[3] *= edr13 * cfg->calibration_factor;
+	if (uvw_calcderivatives) {
+		uvw_derivatives[0] *= edr13 * cfg->calibration_factor;
+		uvw_derivatives[1] *= edr13 * cfg->calibration_factor;
+		uvw_derivatives[2] *= edr13 * cfg->calibration_factor;
+		uvw_derivatives[3] *= edr13 * cfg->calibration_factor;
+	}
 }
 
 /*
@@ -560,7 +743,7 @@ void turbulence_mann1998_uvw_particle(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4],
+	double *uvw_derivatives,
 	double 	*D_maj_mm)
 {
 	//test modus
@@ -573,7 +756,6 @@ void turbulence_mann1998_uvw_particle(
 	double complex *amp;
 	t_turbulence_karmanspec *karmanspec = malloc(sizeof(t_turbulence_karmanspec));
 	int calcderivatives, bilint_special;
-	double tmpderivatives[4];
 	double x = xyzt[0];
 	double y = xyzt[1];
 	double z = xyzt[2];
@@ -688,69 +870,99 @@ void turbulence_mann1998_uvw(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4])
+	double *uvw_derivatives)
 {
 	int ix, iy, iz;
 	double complex phase;
 	double complex *amp;
-	t_turbulence_karmanspec *karmanspec = malloc(sizeof(t_turbulence_karmanspec));
+	t_turbulence_karmanspec *karmanspec; 
 	int calcderivatives, bilint_special;
-	double tmpderivatives[4];
 	double x = xyzt[0];
 	double y = xyzt[1];
 	double z = xyzt[2];
 	double t = xyzt[3];
 	double *dummy;
+	int done;
 	
-	interpolation_bilint(cfg->lut_kolmogorov_constant,
-			xyzt,
-			&karmanspec->a,
-			0, //no derivatives
-			dummy);
-	interpolation_bilint(cfg->lut_karman_L,
-			xyzt,
-			&karmanspec->L,
-			0, //no derivatives
-			dummy);			
-	karmanspec->edr = 1.;
-
-	//TBD account for spectrum derivatives
-
-	*ans = 0.;
-	if (uvw_calcderivatives) {
-		uvw_derivatives[0] = 0.;
-		uvw_derivatives[1] = 0.;
-		uvw_derivatives[2] = 0.;
-		uvw_derivatives[3] = 0.;
+	done = 0;
+	
+	//fast interpolation
+	if ((i == 0) & (cfg->turb_lut_u != NULL)) {
+		interpolation_bilint(cfg->turb_lut_u,
+				xyzt,
+				ans,
+				uvw_calcderivatives, 
+				uvw_derivatives);
+		done = 1;
 	}
-	for (ix=0; ix<cfg->Nx; ix++) {
-		for (iy=0; iy<cfg->Ny; iy++) {
-			for (iz=0; iz<cfg->Nz; iz++) {
-				phase = I * ((cfg->freqx[ix] * x) + (cfg->freqy[iy] * y) + (cfg->freqz[iz] * z));
-				if (i == 0) {
-					//u
-					amp = &(cfg->u_fourier[ix][iy][iz]);
-				}
-				if (i == 1) {
-					//v
-					amp = &(cfg->v_fourier[ix][iy][iz]);
-				}
-				if (i == 2) {
-					//w
-					amp = &(cfg->w_fourier[ix][iy][iz]);
-				}
+	if ((i == 1) & (cfg->turb_lut_v != NULL)) {
+		interpolation_bilint(cfg->turb_lut_v,
+				xyzt,
+				ans,
+				uvw_calcderivatives, 
+				uvw_derivatives);
+		done = 1;
+	}
+	if ((i == 2) & (cfg->turb_lut_w != NULL)) {
+		interpolation_bilint(cfg->turb_lut_w,
+				xyzt,
+				ans,
+				uvw_calcderivatives, 
+				uvw_derivatives);
+		done = 1;
+	}
+	
+	if (done == 0) {
+		karmanspec= malloc(sizeof(t_turbulence_karmanspec));	
+		interpolation_bilint(cfg->lut_kolmogorov_constant,
+				xyzt,
+				&karmanspec->a,
+				0, //no derivatives
+				dummy);
+		interpolation_bilint(cfg->lut_karman_L,
+				xyzt,
+				&karmanspec->L,
+				0, //no derivatives
+				dummy);			
+		karmanspec->edr = 1.;
 
-				*ans += creal(*amp * cexp(phase));
-				
-				if (uvw_calcderivatives) {
-					uvw_derivatives[0] = creal((I * cfg->freqx[ix]) * *amp * cexp(phase));
-					uvw_derivatives[1] = creal((I * cfg->freqy[iy]) * *amp * cexp(phase));
-					uvw_derivatives[2] = creal((I * cfg->freqz[iz]) * *amp * cexp(phase));
+
+		*ans = 0.;
+		if (uvw_calcderivatives) {
+			uvw_derivatives[0] = 0.;
+			uvw_derivatives[1] = 0.;
+			uvw_derivatives[2] = 0.;
+			uvw_derivatives[3] = 0.;
+		}
+		for (ix=0; ix<cfg->Nx; ix++) {
+			for (iy=0; iy<cfg->Ny; iy++) {
+				for (iz=0; iz<cfg->Nz; iz++) {
+					phase = I * ((cfg->freqx[ix] * x) + (cfg->freqy[iy] * y) + (cfg->freqz[iz] * z));
+					if (i == 0) {
+						//u
+						amp = &(cfg->u_fourier[ix][iy][iz]);
+					}
+					if (i == 1) {
+						//v
+						amp = &(cfg->v_fourier[ix][iy][iz]);
+					}
+					if (i == 2) {
+						//w
+						amp = &(cfg->w_fourier[ix][iy][iz]);
+					}
+
+					*ans += creal(*amp * cexp(phase));
+					
+					if (uvw_calcderivatives) {
+						uvw_derivatives[0] = creal((I * cfg->freqx[ix]) * *amp * cexp(phase));
+						uvw_derivatives[1] = creal((I * cfg->freqy[iy]) * *amp * cexp(phase));
+						uvw_derivatives[2] = creal((I * cfg->freqz[iz]) * *amp * cexp(phase));
+					}
 				}
 			}
 		}
+		free(karmanspec);
 	}
-	free(karmanspec);
 }
 
 void turbulence_ctm_uvw(
@@ -759,11 +971,10 @@ void turbulence_ctm_uvw(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4])
+	double *uvw_derivatives)
 {
 	t_turbulence_karmanspec *karmanspec = malloc(sizeof(t_turbulence_karmanspec));
 	int calcderivatives, bilint_special;
-	double tmpderivatives[4];
 	
 	double x = xyzt[0];
 	double y = xyzt[1];
@@ -844,7 +1055,7 @@ void turbulence_careta93_uvw(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4])
+	double *uvw_derivatives)
 {
 	int ix, iy, iz;
 	double complex phase;
@@ -910,7 +1121,7 @@ void turbulence_pinsky2006_uvw(
 	int i,				//u (i=0), v (i=1), w (i=2)
 	double *ans,
 	int uvw_calcderivatives,
-	double uvw_derivatives[4])
+	double *uvw_derivatives)
 {
 	double x = xyzt[0];
 	double y = xyzt[1];
@@ -1076,9 +1287,9 @@ void turbulence_calibrate(t_zephyros_turbulence_widget *cfg)
 	t_zephyros_interpolation_bilint_lut *original_lut_edr13;
 	
 	double *xyzt = malloc(4 * sizeof(double));
-
+	double *dummy;
+	
 	int 	calcderivatives;
-	double 	tmpderivatives[4];
 	
 	//set calibration factor 1
 	cfg->calibration_factor = 1.;	
@@ -1094,7 +1305,6 @@ void turbulence_calibrate(t_zephyros_turbulence_widget *cfg)
 	util_field2lut(cfg->field, tmp_edr13, 0, &cfg->lut_edr13);
 
 	//generate l, and also u
-	calcderivatives = 0;
 	for (i = 0; i < n; i++) {
 		xyzt[0] = 0.;
 		xyzt[1] = 0.;
@@ -1114,7 +1324,7 @@ void turbulence_calibrate(t_zephyros_turbulence_widget *cfg)
 			xyzt[2] = l[i];
 		}
 	
-		turbulence_uvw(cfg, xyzt, cfg->calibration_dir, u + i, calcderivatives, tmpderivatives);
+		turbulence_uvw(cfg, xyzt, cfg->calibration_dir, u + i, 0, dummy);
 	}
 	
 	//apply retrieval and update edr

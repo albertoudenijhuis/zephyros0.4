@@ -40,7 +40,7 @@ Note:
 #include "specialfunctions.h"
 
 //uncomment next statement for debug mode
-//#define _ZEPHYROS_CONFIG_DEBUG
+#define _ZEPHYROS_CONFIG_DEBUG
 
 void zephyros_config_read(char file_name[8192], char additional_output_filename[8192], t_zephyros_config **pcfg)
 {
@@ -282,9 +282,52 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "vec_y", &mywindfield->field[myindices->windfield_grid]->n_y, &mywindfield->field[myindices->windfield_grid]->vec_y);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "vec_z", &mywindfield->field[myindices->windfield_grid]->n_z, &mywindfield->field[myindices->windfield_grid]->vec_z);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "vec_t", &mywindfield->field[myindices->windfield_grid]->n_t, &mywindfield->field[myindices->windfield_grid]->vec_t);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hspeed", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hspeed[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hdir", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hdir[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_u", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_u[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_v", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_v[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_w", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_w[myindices->windfield_grid]);
+
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hspeed_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hspeed_err[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hdir_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hdir_err[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_u_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_u_err[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_v_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_v_err[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_w_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_w_err[myindices->windfield_grid]);
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_hspeed", mywindfield->fit_hspeed + myindices->windfield_grid);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid].cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid].cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid].cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid].cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid].c_threshold);	
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_hdir", mywindfield->fit_hdir + myindices->windfield_grid);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_hdir", &mywindfield->hdir_ecm[myindices->windfield_grid].cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_hdir", &mywindfield->hdir_ecm[myindices->windfield_grid].cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_hdir", &mywindfield->hdir_ecm[myindices->windfield_grid].cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_hdir", &mywindfield->hdir_ecm[myindices->windfield_grid].cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_hdir", &mywindfield->hdir_ecm[myindices->windfield_grid].c_threshold);	
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_u", mywindfield->fit_u + myindices->windfield_grid);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_u", &mywindfield->u_ecm[myindices->windfield_grid].cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_u", &mywindfield->u_ecm[myindices->windfield_grid].cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_u", &mywindfield->u_ecm[myindices->windfield_grid].cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_u", &mywindfield->u_ecm[myindices->windfield_grid].cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_u", &mywindfield->u_ecm[myindices->windfield_grid].c_threshold);	
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_v", mywindfield->fit_v + myindices->windfield_grid);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_v", &mywindfield->v_ecm[myindices->windfield_grid].cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_v", &mywindfield->v_ecm[myindices->windfield_grid].cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_v", &mywindfield->v_ecm[myindices->windfield_grid].cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_v", &mywindfield->v_ecm[myindices->windfield_grid].cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_v", &mywindfield->v_ecm[myindices->windfield_grid].c_threshold);	
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_w", mywindfield->fit_w + myindices->windfield_grid);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_w", &mywindfield->w_ecm[myindices->windfield_grid].cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_w", &mywindfield->w_ecm[myindices->windfield_grid].cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_w", &mywindfield->w_ecm[myindices->windfield_grid].cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_w", &mywindfield->w_ecm[myindices->windfield_grid].cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_w", &mywindfield->w_ecm[myindices->windfield_grid].c_threshold);	
 							}
 							
 							//initialize the wind field wave
@@ -333,8 +376,8 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								if ((myindices->windfield_turbulence + 1) > mywindfield->nturbulences) {
 									mywindfield->nturbulences = myindices->windfield_turbulence + 1;
 								}
-								if (mywindfield->turbulence[myindices->windfield_turbulence] == NULL) {
-									mywindfield->turbulence[myindices->windfield_turbulence] = malloc(sizeof(t_zephyros_turbulence_widget));
+								if (mywindfield->turbulence[myindices->windfield_turbulence] == NULL) {									
+									turbulence_initialize_widget(&(mywindfield->turbulence[myindices->windfield_turbulence]));
 									fields_initialize(&(mywindfield->turbulence[myindices->windfield_turbulence]->field));
 									strcpy(mywindfield->turbulence[myindices->windfield_turbulence]->field->name, "turbulence");		
 
@@ -385,6 +428,16 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "turbulence_calibration_nint", &mywindfield->turbulence[myindices->windfield_turbulence]->calibration_nint);
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "turbulence_calibration_dir", &mywindfield->turbulence[myindices->windfield_turbulence]->calibration_dir);
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_calibration_L", &mywindfield->turbulence[myindices->windfield_turbulence]->calibration_L);
+
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "turbulence_grid_edr13_err", &mywindfield->turbulence[myindices->windfield_turbulence]->field->n, &mywindfield->turbulence[myindices->windfield_turbulence]->grid_edr13_err);
+
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "turbulence_fit_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->fit_edr13);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_cl_x_m_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->edr13_ecm.cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_cl_y_m_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->edr13_ecm.cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_cl_z_m_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->edr13_ecm.cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_cl_t_s_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->edr13_ecm.cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "turbulence_c_threshold_edr13", &mywindfield->turbulence[myindices->windfield_turbulence]->edr13_ecm.c_threshold);	
+
 							}
 						}
 						
@@ -622,13 +675,20 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 		util_prepare_scattererfield(cfg->simulation->scattererfield);
 	}
 
-#ifdef _ZEPHYROS_CONFIG_DEBUG
-	printf("initialize retrieval\n"); fflush(stdout);
-#endif 
+
 
 	//initialize retrieval
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("initialize retrieval\n"); fflush(stdout);
+	#endif 
 	if (cfg->retrieval != NULL) {		
+		#ifdef _ZEPHYROS_CONFIG_DEBUG
+			printf("util_prepare_windfield\n"); fflush(stdout);
+		#endif 
 		util_prepare_windfield(cfg->retrieval->prior_windfield);
+		#ifdef _ZEPHYROS_CONFIG_DEBUG
+			printf("util_prepare_scattererfield\n"); fflush(stdout);
+		#endif 
 		util_prepare_scattererfield(cfg->retrieval->prior_scattererfield);		
 
 		//logic: if something is fitted, it has to be in the filter.
@@ -654,24 +714,26 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 		}
 	}
 
-#ifdef _ZEPHYROS_CONFIG_DEBUG
-	printf("derive quantities\n"); fflush(stdout);
-#endif 
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("derive quantities\n"); fflush(stdout);
+	#endif 
 
 	//derive quantities
    zephyros_config_derive_quantities_zephyros_config(cfg);
 
 	//print configuration to additional output if aksed for
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("print configuration to additional output if aksed for\n"); fflush(stdout);
+	#endif 
 	if (cfg->general->additional_output->print_configuration) {
 		zephyros_config_print(cfg, cfg->fp_ao);
 	}
 
-#ifdef _ZEPHYROS_CONFIG_DEBUG
-	printf("prepare retrieval\n"); fflush(stdout);
-#endif 
-
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("prepare retrieval\n"); fflush(stdout);
+	#endif 
 	//prepare retrieval
-	if (cfg->retrieval != NULL) {		
+	if (cfg->retrieval != NULL) {	
 		util_prepare_post_windfield(&cfg->retrieval->post_windfield, cfg->retrieval->prior_windfield);
 		util_prepare_post_scattererfield(&cfg->retrieval->post_scattererfield, cfg->retrieval->prior_scattererfield);
 	}
@@ -783,6 +845,7 @@ void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg)
 
 	//interpolate water refractive index to radar wavelength
 	cfg->derived_quantities->radar_water_refractive_index = 0.;
+
 	interpolation_bilint(
 		cfg->general->water_refractive_index->lut_realindex,
 		&cfg->derived_quantities->central_wavelength_m,
@@ -1242,23 +1305,216 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 			fprintf_array(fp, mywindfield->field[i]->n_t, mywindfield->field[i]->vec_t);
 			fprintf(fp, "\n");
 			
-			fprintf(fp, "%-30s %-15i", 
-						"grid_u",
-						mywindfield->field[i]->n);
-			fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_u[i]);
-			fprintf(fp, "\n");
+			if (mywindfield->grid_hspeed[i] != NULL) {
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hspeed",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hspeed[i]);
+				fprintf(fp, "\n");
+			}
+
+			if (mywindfield->grid_hdir[i] != NULL) {			
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hdir",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hdir[i]);
+				fprintf(fp, "\n");
+			}
 			
-			fprintf(fp, "%-30s %-15i", 
-						"grid_v",
-						mywindfield->field[i]->n);
-			fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_v[i]);
-			fprintf(fp, "\n");
+			if (mywindfield->grid_u[i] != NULL) {
+				fprintf(fp, "%-30s %-15i", 
+							"grid_u",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_u[i]);
+				fprintf(fp, "\n");
+			}
+
+			if (mywindfield->grid_v[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_v",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_v[i]);
+				fprintf(fp, "\n");
+			}
+
+			if (mywindfield->grid_w[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_w",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_w[i]);
+				fprintf(fp, "\n");
+			}
 			
-			fprintf(fp, "%-30s %-15i", 
-						"grid_w",
-						mywindfield->field[i]->n);
-			fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_w[i]);
-			fprintf(fp, "\n");
+			if (mywindfield->grid_hspeed_err[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hspeed_err",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hspeed_err[i]);
+				fprintf(fp, "\n");
+			}
+			
+			if (mywindfield->grid_hdir_err[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hdir_err",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hdir_err[i]);
+				fprintf(fp, "\n");
+			}
+			
+			if (mywindfield->grid_u_err[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_u_err",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_u_err[i]);
+				fprintf(fp, "\n");
+			}
+			
+			if (mywindfield->grid_v_err[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_v_err",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_v_err[i]);
+				fprintf(fp, "\n");
+			}
+			
+			if (mywindfield->grid_w_err[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_w_err",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_w_err[i]);
+				fprintf(fp, "\n");
+			}
+
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_hspeed",
+						mywindfield->fit_hspeed[i]);
+			}
+			
+			if (mywindfield->type == 1) {
+				if (mywindfield->fit_hspeed[i]) {
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_x_m_hspeed",
+							mywindfield->hspeed_ecm[i].cl_x_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_y_m_hspeed",
+							mywindfield->hspeed_ecm[i].cl_y_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_z_m_hspeed",
+							mywindfield->hspeed_ecm[i].cl_z_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_t_s_hspeed",
+							mywindfield->hspeed_ecm[i].cl_t_s);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"c_threshold_hspeed",
+							mywindfield->hspeed_ecm[i].c_threshold);
+				}
+			}
+			
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_hdir",
+						mywindfield->fit_hdir[i]);
+			}
+			
+			if (mywindfield->type == 1) {
+				if (mywindfield->fit_hdir[i]) {
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_x_m_hdir",
+							mywindfield->hdir_ecm[i].cl_x_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_y_m_hdir",
+							mywindfield->hdir_ecm[i].cl_y_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_z_m_hdir",
+							mywindfield->hdir_ecm[i].cl_z_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_t_s_hdir",
+							mywindfield->hdir_ecm[i].cl_t_s);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"c_threshold_hdir",
+							mywindfield->hdir_ecm[i].c_threshold);
+				}
+			}
+			
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_u",
+						mywindfield->fit_u[i]);
+			}
+			
+			if (mywindfield->type == 1) {
+				if (mywindfield->fit_u[i]) {
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_x_m_u",
+							mywindfield->u_ecm[i].cl_x_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_y_m_u",
+							mywindfield->u_ecm[i].cl_y_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_z_m_u",
+							mywindfield->u_ecm[i].cl_z_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_t_s_u",
+							mywindfield->u_ecm[i].cl_t_s);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"c_threshold_u",
+							mywindfield->u_ecm[i].c_threshold);
+				}
+			}
+			
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_v",
+						mywindfield->fit_v[i]);
+			}
+			
+			if (mywindfield->type == 1) {
+				if (mywindfield->fit_v[i]) {
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_x_m_v",
+							mywindfield->v_ecm[i].cl_x_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_y_m_v",
+							mywindfield->v_ecm[i].cl_y_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_z_m_v",
+							mywindfield->v_ecm[i].cl_z_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_t_s_v",
+							mywindfield->v_ecm[i].cl_t_s);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"c_threshold_v",
+							mywindfield->v_ecm[i].c_threshold);
+				}
+			}
+			
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+					"fit_w",
+						mywindfield->fit_w[i]);
+			}
+			
+			if (mywindfield->type == 1) {
+				if (mywindfield->fit_w[i]) {
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_x_m_w",
+							mywindfield->w_ecm[i].cl_x_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_y_m_w",
+							mywindfield->w_ecm[i].cl_y_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_z_m_w",
+							mywindfield->w_ecm[i].cl_z_m);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"cl_t_s_w",
+							mywindfield->w_ecm[i].cl_t_s);
+					fprintf(fp, "%-30s %-15.3e\n",
+							"c_threshold_w",
+							mywindfield->w_ecm[i].c_threshold);
+				}
+			}
+			
 		}
 	}
 
@@ -1345,7 +1601,7 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 		if (mywindfield->turbulence[i] != NULL) {				
 			fprintf(fp, "%-30s %-15i\n", 
 					"turbulence",
-					i);
+					i); fflush(fp);
 					
 			fprintf(fp, "%-30s %-15i\n",
 					"turbulence_type",
@@ -1504,6 +1760,45 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 						"turbulence_calibration_L",
 						mywindfield->turbulence[i]->calibration_L);
 			}
+
+			//fit parameters
+			if (mywindfield->turbulence[i]->type == 5) {
+				if (mywindfield->turbulence[i]->fit_edr13) {
+					fprintf(fp, "%-30s %-15i", 
+								"turbulence_grid_edr13_err",
+								mywindfield->turbulence[i]->field->n); fflush(fp);
+					for (j=0; j<mywindfield->turbulence[i]->field->n; j++) {
+						fprintf(fp, " %-15.3e", mywindfield->turbulence[i]->grid_edr13_err[j]);					
+					}
+					fprintf(fp, "\n"); fflush(fp);
+				}
+
+				fprintf(fp, "%-30s %-15i\n",
+						"turbulence_fit_edr13",
+						mywindfield->turbulence[i]->fit_edr13); fflush(fp);
+
+				if (mywindfield->turbulence[i]->fit_edr13) {
+					if (mywindfield->type == 1) { 
+						fprintf(fp, "%-30s %-15.3e\n",
+								"turbulence_cl_x_m_edr13",
+								mywindfield->turbulence[i]->edr13_ecm.cl_x_m);
+						fprintf(fp, "%-30s %-15.3e\n",
+								"turbulence_cl_y_m_edr13",
+								mywindfield->turbulence[i]->edr13_ecm.cl_y_m);
+						fprintf(fp, "%-30s %-15.3e\n",
+								"turbulence_cl_z_m_edr13",
+								mywindfield->turbulence[i]->edr13_ecm.cl_z_m);
+						fprintf(fp, "%-30s %-15.3e\n",
+								"turbulence_cl_t_s_edr13",
+								mywindfield->turbulence[i]->edr13_ecm.cl_t_s);
+						fprintf(fp, "%-30s %-15.3e\n",
+								"turbulence_c_threshold_edr13",
+								mywindfield->turbulence[i]->edr13_ecm.c_threshold); fflush(fp);
+					}
+				}			
+			}
+			
+			
 		}
 	}
 	
@@ -1530,25 +1825,25 @@ void zephyros_config_print_scattererfield(t_zephyros_scattererfield *myscatterer
 					myscattererfield->psd[i]->particle_type);
 
 			fprintf(fp, "%-30s %-15i", 
-						"vec_x",
+						"psd_vec_x",
 						myscattererfield->psd[i]->field->n_x);
 			fprintf_array(fp, myscattererfield->psd[i]->field->n_x, myscattererfield->psd[i]->field->vec_x);
 			fprintf(fp, "\n");
 
 			fprintf(fp, "%-30s %-15i", 
-						"vec_y",
+						"psd_vec_y",
 						myscattererfield->psd[i]->field->n_y);
 			fprintf_array(fp, myscattererfield->psd[i]->field->n_y, myscattererfield->psd[i]->field->vec_y);
 			fprintf(fp, "\n");
 			
 			fprintf(fp, "%-30s %-15i", 
-						"vec_z",
+						"psd_vec_z",
 						myscattererfield->psd[i]->field->n_z);
 			fprintf_array(fp, myscattererfield->psd[i]->field->n_z, myscattererfield->psd[i]->field->vec_z);
 			fprintf(fp, "\n");
 
 			fprintf(fp, "%-30s %-15i", 
-						"vec_t",
+						"psd_vec_t",
 						myscattererfield->psd[i]->field->n_t);
 			fprintf_array(fp, myscattererfield->psd[i]->field->n_t, myscattererfield->psd[i]->field->vec_t);
 			fprintf(fp, "\n");

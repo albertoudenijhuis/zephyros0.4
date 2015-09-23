@@ -50,12 +50,20 @@ Note:
 //uncomment next statement for debug mode
 #define _ZEPHYROS_FDVAR_DEBUG
 
+
 void retrieval_fdvar_apply(t_fdvar_opc *opc)
 {
+	prev_costfunction = 0.;
 	//initialize p
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
+		printf("retrieval_fdvar_initialize_p\n"); fflush(stdout);
+	#endif 
 	retrieval_fdvar_initialize_p(opc);
 
 	//miminize cost function
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
+		printf("retrieval_fdvar_minimize_cost_function\n"); fflush(stdout);
+	#endif 
 	retrieval_fdvar_minimize_cost_function(opc);
 }
 
@@ -81,6 +89,9 @@ int retrieval_fdvar_minimize_cost_function(t_fdvar_opc *opc)
 	start = clock();
 
 	// Starting point
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
+		printf("retrieval_fdvar_init_x\n"); fflush(stdout);
+	#endif 
 	retrieval_fdvar_init_x(vd_opc, &x);
 
 	func_dbl_arr_calloc(p->Kn, &xu);
@@ -91,9 +102,14 @@ int retrieval_fdvar_minimize_cost_function(t_fdvar_opc *opc)
 		xu[i]	= 1.;
 	}
 
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
+		printf("nlopt_create\n"); fflush(stdout);
+	#endif 
+	
 	//best fit algorithm based on some tests.
 	opt = nlopt_create(NLOPT_LD_VAR1, p->Kn);
 	
+
 	//global optimizers, seem not really to work...
 	//NLOPT_GN_CRS2_LM
 	//NLOPT_G_MLSL_LDS
@@ -190,13 +206,16 @@ void retrieval_fdvar_cost_function(
 	
 	int io, ip, in, i_psd, i_par;
 	int i_int;	//i for spectral intervals
-
+	int i_w;
+	
 	t_fdvar_opc										*opc = ((t_fdvar_opc*)vd_opc);
 	t_fdvar_o 										*o = opc->o;
 	t_fdvar_p 										*p = opc->p;
 	t_zephyros_config_retrieval_fdvar_cfg 			*c = opc->c;
     t_zephyros_config 								*zc = opc->zc;
 	t_radarfilter_todolist							*todo;
+
+	double eta_hh, eta_hv, eta_vv;
 
 	//~ double sigma_vr;
 	//~ double drefl_dhspeed, drefl_dhdir, drefl_dw;
@@ -205,10 +224,21 @@ void retrieval_fdvar_cost_function(
 	
 	//Unpack K
 	#ifdef _ZEPHYROS_FDVAR_DEBUG
-		printf("Unpack K\n"); fflush(stdout);
+		printf("retrieval_fdvar_unpack_x\n"); fflush(stdout);
 	#endif 
 	retrieval_fdvar_unpack_x(opc,x);
 
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
+	/*
+	for (in=0; in < *n; in++) 
+		printf("K[%i] = %.2e\n", in, p->Klbound[in] + (p->Kubound[in] - p->Klbound[in]) * x[in]);
+	for (in=0; in < *n; in++) 
+		printf("Klbound[%i] = %.2e\n", in, p->Klbound[in]);
+	for (in=0; in < *n; in++) 
+		printf("Kubound[%i] = %.2e\n", in, p->Kubound[in]);
+	*/
+	#endif 
+	
 	//set values to zero
 	if (calc_costfunction) {
 		*f	= 0.;	
@@ -237,32 +267,41 @@ void retrieval_fdvar_cost_function(
 	#endif
 	radarfilter_initialize_todolist(zc, 1, &todo);
 
-	todo->calc_eta_i_hh = (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
+	//TBD, i_psd ??
+	todo->calc_eta_i_hh = (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
 							(c->costfunction_dBZ_hh | c->costfunction_dBZdr) & 
 							(calc_costfunction_derivatives)
 							);
-	todo->calc_eta_i_hv = (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
+	todo->calc_eta_i_hv = (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
 							(c->costfunction_dBLdr) & 
 							(calc_costfunction_derivatives)
 							);
-	todo->calc_eta_i_vv = (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
-							(c->costfunction_dBLdr) & 
+	todo->calc_eta_i_vv = (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
+							(c->costfunction_dBLdr | c->costfunction_dBZdr) & 
 							(calc_costfunction_derivatives)
 							);
 
-	todo->calc_spectrum_eta_i_hh 	= (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
+	todo->calc_spectrum_eta_i_hh 	= (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
 										(c->costfunction_Doppler_spectrum_dBZ_hh | c->costfunction_specific_dBZdr) & 
 										(calc_costfunction_derivatives)
 										);
-	todo->calc_spectrum_eta_i_hv 	= (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
+	todo->calc_spectrum_eta_i_hv 	= (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
 										(c->costfunction_specific_dBLdr) & 
 										(calc_costfunction_derivatives)
 										);
-	todo->calc_spectrum_eta_i_vv 	= (	(zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) &
-										(c->costfunction_specific_dBZdr) & 
+	todo->calc_spectrum_eta_i_vv 	= (	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
+										(c->costfunction_specific_dBLdr | c->costfunction_specific_dBZdr) & 
 										(calc_costfunction_derivatives)
 										);
 	
+	todo->der_edr13 =  (calc_costfunction_derivatives);
+	/*
+	(	(zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) &
+										(c->costfunction_) & 
+										(calc_costfunction_derivatives)
+										);
+	*/
+									
 	//update todo list with logic
 	radarfilter_prepare_todolist(zc, 1, todo);
 	
@@ -282,23 +321,43 @@ void retrieval_fdvar_cost_function(
 	{
 		//observation space of cost function
 		if (calc_costfunction) {			
-			if (c->costfunction_dBZ_hh) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / (o->radarmeasurement[io]->dBZ_hh_err), 2);
-			if (c->costfunction_dBZdr) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->dBZdr - o->radarmeasurement[io]->dBZdr) / (o->radarmeasurement[io]->dBZdr_err), 2);
-			if (c->costfunction_dBLdr) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->dBLdr - o->radarmeasurement[io]->dBLdr) / (o->radarmeasurement[io]->dBLdr_err), 2);
-			if (c->costfunction_Doppler_velocity_hh_ms) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->Doppler_velocity_hh_ms - o->radarmeasurement[io]->Doppler_velocity_hh_ms) / (o->radarmeasurement[io]->Doppler_velocity_hh_ms_err), 2);
-			if (c->costfunction_Doppler_spectral_width_hh_ms) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->Doppler_spectral_width_hh_ms - o->radarmeasurement[io]->Doppler_spectral_width_hh_ms) / (o->radarmeasurement[io]->Doppler_spectral_width_hh_ms_err), 2);
+			if (c->costfunction_dBZ_hh) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / (o->radarmeasurement[io]->dBZ_hh_err), 2);
+			if (c->costfunction_dBZdr) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->dBZdr - o->radarmeasurement[io]->dBZdr) / (o->radarmeasurement[io]->dBZdr_err), 2);
+			if (c->costfunction_dBLdr) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->dBLdr - o->radarmeasurement[io]->dBLdr) / (o->radarmeasurement[io]->dBLdr_err), 2);
+			if (c->costfunction_Doppler_velocity_hh_ms) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->Doppler_velocity_hh_ms - o->radarmeasurement[io]->Doppler_velocity_hh_ms) / (o->radarmeasurement[io]->Doppler_velocity_hh_ms_err), 2);
+			if (c->costfunction_Doppler_spectral_width_hh_ms) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->Doppler_spectral_width_hh_ms - o->radarmeasurement[io]->Doppler_spectral_width_hh_ms) / (o->radarmeasurement[io]->Doppler_spectral_width_hh_ms_err), 2);
 
+			/*
+			#ifdef _ZEPHYROS_FDVAR_DEBUG
+			if (c->costfunction_dBZ_hh) printf("o->model_radarmeasurement[%i]->dBZ_hh = %.2e\n", io, o->model_radarmeasurement[io]->dBZ_hh);
+			if (c->costfunction_dBZdr) printf("o->model_radarmeasurement[%i]->dBZdr = %.2e\n", io, o->model_radarmeasurement[io]->dBZdr);
+			if (c->costfunction_dBLdr) printf("o->model_radarmeasurement[%i]->dBLdr = %.2e\n", io, o->model_radarmeasurement[io]->dBLdr);
+			if (c->costfunction_Doppler_velocity_hh_ms) printf("o->model_radarmeasurement[%i]->Doppler_velocity_hh_ms = %.2e\n", io, o->model_radarmeasurement[io]->Doppler_velocity_hh_ms);
+			if (c->costfunction_Doppler_spectral_width_hh_ms) printf("o->model_radarmeasurement[%i]->Doppler_spectral_width_hh_ms = %.2e\n", io, o->model_radarmeasurement[io]->Doppler_spectral_width_hh_ms);
+			#endif
+			*/
+			
 			//spectra
 			for ( i_int = 0; i_int < o->radarmeasurement[io]->n_spectrum; i_int++ ) {
-				if (c->costfunction_Doppler_spectrum_dBZ_hh) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / (o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int]), 2);
-				if (c->costfunction_specific_dBZdr) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->specific_dBZdr[i_int] - o->radarmeasurement[io]->specific_dBZdr[i_int]) / (o->radarmeasurement[io]->specific_dBZdr_err[i_int]), 2);
-				if (c->costfunction_specific_dBLdr) *f += (1./ o->n) * pow( (o->model_radarmeasurement[io]->specific_dBLdr[i_int] - o->radarmeasurement[io]->specific_dBLdr[i_int]) / (o->radarmeasurement[io]->specific_dBLdr_err[i_int]), 2);
+				if (c->costfunction_Doppler_spectrum_dBZ_hh) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / (o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int]), 2);
+				if (c->costfunction_specific_dBZdr) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->specific_dBZdr[i_int] - o->radarmeasurement[io]->specific_dBZdr[i_int]) / (o->radarmeasurement[io]->specific_dBZdr_err[i_int]), 2);
+				if (c->costfunction_specific_dBLdr) *f += (1./ p->cost_no) * pow( (o->model_radarmeasurement[io]->specific_dBLdr[i_int] - o->radarmeasurement[io]->specific_dBLdr[i_int]) / (o->radarmeasurement[io]->specific_dBLdr_err[i_int]), 2);
+
+				/*
+				#ifdef _ZEPHYROS_FDVAR_DEBUG
+				if (c->costfunction_Doppler_spectrum_dBZ_hh) printf("o->model_radarmeasurement[%i]->Doppler_spectrum_dBZ_hh[%i] = %.2e\n", io, i_int, o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]);
+				if (c->costfunction_specific_dBZdr) printf("o->model_radarmeasurement[%i]->specific_dBZdr[%i] = %.2e\n", io, i_int, o->model_radarmeasurement[io]->specific_dBZdr[i_int]);
+				if (c->costfunction_specific_dBLdr) printf("o->model_radarmeasurement[%i]->specific_dBLdr[%i] = %.2e\n", io, i_int, o->model_radarmeasurement[io]->specific_dBLdr[i_int]);
+				#endif
+				*/
 			}
+
 
 
 
 			//TBD: all other variables that are in the cost function
 		}
+
 		
 		//printf("o->model_radarmeasurement[%i]->dBZ_hh = %.2e\n", io, o->model_radarmeasurement[io]->dBZ_hh);
 		//~ if (calc_costfunction) {
@@ -309,31 +368,32 @@ void retrieval_fdvar_cost_function(
 		if (calc_costfunction_derivatives) {
 			//observation space of jacobian
 
-			for ( i_psd = 0; i_psd < zc->retrieval->post_scattererfield->npsd; i_psd++ ) {
+			//loop over scatterers
+			for ( i_psd = 0; i_psd < zc->retrieval->prior_scattererfield->npsd; i_psd++ ) {
 				if (zc->retrieval->post_scattererfield->psd[i_psd] != NULL) {
 					//dBlwc
-					if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc) {
-						griddep = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
+					if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc) {
+						griddep = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
 						interpolation_bilint_griddep(
-							zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3[0],
+							zc->retrieval->prior_scattererfield->psd[i_psd]->lut_ln_number_density_m3[0],
 							o->model_radarmeasurement[io]->center_coor->enu_xyzt,
 							griddep);
 
 						//dBZ_hh
 						if (c->costfunction_dBZ_hh) {
-							alpha = (1./o->n) * 2. * (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / pow(o->radarmeasurement[io]->dBZ_hh_err, 2);
-							for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-								fd[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
+							alpha = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / pow(o->radarmeasurement[io]->dBZ_hh_err, 2);
+							for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+								fd[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
 									 alpha * griddep[ip];
 							}
 						}
 
-						//spectral variables
+						//Doppler_spectrum_dBZ_hh
 						for ( i_int = 0; i_int < o->radarmeasurement[io]->n_spectrum; i_int++ ) {
 							if (c->costfunction_Doppler_spectrum_dBZ_hh) {
-								alpha = (1./ o->n) * 2. * (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / pow(o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int], 2.);
-								for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-									fd[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
+								alpha = (1./ p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / pow(o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int], 2.);
+								for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+									fd[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
 										 alpha * griddep[ip];
 								}
 							}
@@ -344,101 +404,123 @@ void retrieval_fdvar_cost_function(
 					}
 					
 					//dBN
-					if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) {
-						griddep = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
+					if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) {
+						griddep = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
 						interpolation_bilint_griddep(
-							zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3[0],
+							zc->retrieval->prior_scattererfield->psd[i_psd]->lut_ln_number_density_m3[0],
 							o->model_radarmeasurement[io]->center_coor->enu_xyzt,
 							griddep);
 
 						//dBZ_hh
 						if (c->costfunction_dBZ_hh) {
-							alpha0 = (1./o->n) * 2. * (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / pow(o->radarmeasurement[io]->dBZ_hh_err, 2);
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / pow(o->radarmeasurement[io]->dBZ_hh_err, 2);
+							eta_hh = func_dB_inv(o->model_radarmeasurement[io]->dBZ_hh) / o->model_radarmeasurement[io]->coef_eta2Z;
 
-							for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-								alpha = alpha0 * (o->model_radarmeasurement[io]->eta_i_hh[i_psd][i_par] / o->model_radarmeasurement[io]->eta_hh);								
-								for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-									fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-										+ zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-										+ ip] += 
-										 alpha * griddep[ip];
+							for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+								alpha = alpha0 * (o->model_radarmeasurement[io]->eta_i_hh[i_psd][i_par] / eta_hh);								
+								if (isnanorinf(&alpha) == 0) {
+									for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+										fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+											+ (zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+											+ ip] += 
+											 alpha * griddep[ip];
+									}
 								}
 							}
 						}
 						
 						//dBZdr
 						if (c->costfunction_dBZdr) {
-							alpha0 = (1./o->n) * 2. * (o->model_radarmeasurement[io]->dBZdr - o->radarmeasurement[io]->dBZdr) / pow(o->radarmeasurement[io]->dBZdr_err, 2);
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBZdr - o->radarmeasurement[io]->dBZdr) / pow(o->radarmeasurement[io]->dBZdr_err, 2);
+							eta_hh = func_dB_inv(o->model_radarmeasurement[io]->dBZ_hh) / o->model_radarmeasurement[io]->coef_eta2Z;
+							eta_vv = func_dB_inv(o->model_radarmeasurement[io]->dBZ_vv) / o->model_radarmeasurement[io]->coef_eta2Z;
 
-							for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-								alpha = alpha0 * ((o->model_radarmeasurement[io]->eta_i_hh[i_psd][i_par] / o->model_radarmeasurement[io]->eta_hh) - (o->model_radarmeasurement[io]->eta_i_hv[i_psd][i_par] / o->model_radarmeasurement[io]->eta_hv));								
-								for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-									fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-										+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-										+ip] += 
-										 alpha * griddep[ip];
+							for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+								alpha = alpha0 * ((o->model_radarmeasurement[io]->eta_i_hh[i_psd][i_par] / eta_hh) - (o->model_radarmeasurement[io]->eta_i_vv[i_psd][i_par] / eta_vv));								
+
+								if (isnanorinf(&alpha) == 0) {
+									for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+										fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+											+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+											+ip] += 
+											 alpha * griddep[ip];
+									}
 								}
 							}
 						}
 						//dBLdr
-						if (c->costfunction_dBZdr) {
-							alpha0 = (1./o->n) * 2. * (o->model_radarmeasurement[io]->dBLdr - o->radarmeasurement[io]->dBLdr) / pow(o->radarmeasurement[io]->dBLdr_err, 2);
+						if (c->costfunction_dBLdr) {
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBLdr - o->radarmeasurement[io]->dBLdr) / pow(o->radarmeasurement[io]->dBLdr_err, 2);
+							eta_hv = func_dB_inv(o->model_radarmeasurement[io]->dBZ_hv) / o->model_radarmeasurement[io]->coef_eta2Z;
+							eta_vv = func_dB_inv(o->model_radarmeasurement[io]->dBZ_vv) / o->model_radarmeasurement[io]->coef_eta2Z;
 
-							for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-								alpha = alpha0 * ((o->model_radarmeasurement[io]->eta_i_hv[i_psd][i_par] / o->model_radarmeasurement[io]->eta_hv) - (o->model_radarmeasurement[io]->eta_i_vv[i_psd][i_par] / o->model_radarmeasurement[io]->eta_vv));								
-								for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-									fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-										+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-										+ip] += 
-										 alpha * griddep[ip];
+							for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+								alpha = alpha0 * ((o->model_radarmeasurement[io]->eta_i_hv[i_psd][i_par] / eta_hv) - (o->model_radarmeasurement[io]->eta_i_vv[i_psd][i_par] / eta_vv));								
+								
+								if (isnanorinf(&alpha) == 0) {
+									for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+										fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+											+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+											+ip] += 
+											 alpha * griddep[ip];
+									}
 								}
 							}
 						}
 						
 						//spectral variables
 						for ( i_int = 0; i_int < o->radarmeasurement[io]->n_spectrum; i_int++ ) {
-							if (c->costfunction_Doppler_spectrum_dBZ_hh) {								
-								alpha0 = (1./ o->n) * 2. * (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / pow(o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int], 2.);
-								for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-									myfactor 	= func_dB_inv(o->radarmeasurement[io]->dBZ_hh) / o->radarmeasurement[io]->eta_hh; 
-									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / myfactor;
+							if (c->costfunction_Doppler_spectrum_dBZ_hh) {							
+								alpha0 = (1./ p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int] - o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / pow(o->radarmeasurement[io]->Doppler_spectrum_dBZ_hh_err[i_int], 2.);
+								for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / o->model_radarmeasurement[io]->coef_eta2Z;
 									alpha = alpha0 * (o->model_radarmeasurement[io]->spectrum_eta_i_hh[i_psd][i_par][i_int] / mytmp);								
-									for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-										fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-											+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-											+ip] += alpha * griddep[ip];
+									if (isnanorinf(&alpha) == 0) {
+										for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+											fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+												+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+												+ip] += alpha * griddep[ip];
+										}
 									}
 								}
 							}
 							
-							if (c->costfunction_specific_dBZdr) {								
-								alpha0 = (1./ o->n) * 2. * (o->model_radarmeasurement[io]->specific_dBZdr[i_int] - o->radarmeasurement[io]->specific_dBZdr[i_int]) / pow(o->radarmeasurement[io]->specific_dBZdr_err[i_int], 2.);
-								for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-									myfactor 	= func_dB_inv(o->radarmeasurement[io]->dBZ_hh) / o->radarmeasurement[io]->eta_hh; 
-									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / myfactor;
-									mytmp2 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_vv[i_int]) / myfactor;
+							if (c->costfunction_specific_dBZdr) {							
+								alpha0 = (1./ p->cost_no) * 2. * (o->model_radarmeasurement[io]->specific_dBZdr[i_int] - o->radarmeasurement[io]->specific_dBZdr[i_int]) / pow(o->radarmeasurement[io]->specific_dBZdr_err[i_int], 2.);
+								for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hh[i_int]) / o->model_radarmeasurement[io]->coef_eta2Z;
+									mytmp2 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_vv[i_int]) / o->model_radarmeasurement[io]->coef_eta2Z;
 									
-									alpha = alpha0 * ((o->model_radarmeasurement[io]->spectrum_eta_i_hh[i_psd][i_par][i_int] / mytmp) - (o->model_radarmeasurement[io]->spectrum_eta_i_vv[i_psd][i_par][i_int] / mytmp2));								
-									for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-										fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-											+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-											+ip] += alpha * griddep[ip];
+									if ((mytmp != 0.) & (mytmp2 != 0.)) {
+										alpha = alpha0 * ((o->model_radarmeasurement[io]->spectrum_eta_i_hh[i_psd][i_par][i_int] / mytmp) - (o->model_radarmeasurement[io]->spectrum_eta_i_vv[i_psd][i_par][i_int] / mytmp2));								
+										
+										if (isnanorinf(&alpha) == 0) {
+											for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+												fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+													+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+													+ip] += alpha * griddep[ip];
+											}
+										}
 									}
 								}
 							}
 
 							if (c->costfunction_specific_dBLdr) {								
-								alpha0 = (1./ o->n) * 2. * (o->model_radarmeasurement[io]->specific_dBLdr[i_int] - o->radarmeasurement[io]->specific_dBLdr[i_int]) / pow(o->radarmeasurement[io]->specific_dBLdr_err[i_int], 2.);
-								for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-									myfactor 	= func_dB_inv(o->radarmeasurement[io]->dBZ_hh) / o->radarmeasurement[io]->eta_hh; 
-									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hv[i_int]) / myfactor;
-									mytmp2 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_vv[i_int]) / myfactor;
+								alpha0 = (1./ p->cost_no) * 2. * (o->model_radarmeasurement[io]->specific_dBLdr[i_int] - o->radarmeasurement[io]->specific_dBLdr[i_int]) / pow(o->radarmeasurement[io]->specific_dBLdr_err[i_int], 2.);
+								for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+									mytmp 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_hv[i_int]) / o->model_radarmeasurement[io]->coef_eta2Z;
+									mytmp2 		= func_dB_inv(o->model_radarmeasurement[io]->Doppler_spectrum_dBZ_vv[i_int]) / o->model_radarmeasurement[io]->coef_eta2Z;
 									
-									alpha = alpha0 * ((o->model_radarmeasurement[io]->spectrum_eta_i_hv[i_psd][i_par][i_int] / mytmp) - (o->model_radarmeasurement[io]->spectrum_eta_i_vv[i_psd][i_par][i_int] / mytmp2));								
-									for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-										fd[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-											+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
-											+ip] += alpha * griddep[ip];
+									if ((mytmp != 0.) & (mytmp2 != 0.)) {
+										alpha = alpha0 * ((o->model_radarmeasurement[io]->spectrum_eta_i_hv[i_psd][i_par][i_int] / mytmp) - (o->model_radarmeasurement[io]->spectrum_eta_i_vv[i_psd][i_par][i_int] / mytmp2));								
+
+										if (isnanorinf(&alpha) == 0) {
+											for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+												fd[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+													+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
+													+ip] += alpha * griddep[ip];
+											}
+										}
 									}
 								}
 							}
@@ -452,7 +534,151 @@ void retrieval_fdvar_cost_function(
 				}
 			}
 		
+			//loop over wind fields
+			for ( i_w = 0; i_w <= 100; i_w++ ) {
+				//TBD
+				//hspeed, hdir
+				
+				if (zc->retrieval->prior_windfield->fit_u[i_w]) {
+					griddep = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+					interpolation_bilint_griddep(
+						zc->retrieval->prior_windfield->lut_u[i_w],
+						o->model_radarmeasurement[io]->center_coor->enu_xyzt,
+						griddep);
 
+					//grid_u
+					if (c->costfunction_Doppler_velocity_hh_ms) {
+						alpha = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_velocity_hh_ms - o->radarmeasurement[io]->Doppler_velocity_hh_ms) / pow(o->radarmeasurement[io]->Doppler_velocity_hh_ms_err, 2);
+						alpha *= o->model_radarmeasurement[io]->center_coor->radar_enu_dir[0];
+						//TBD
+						//it would be better to use reflectivity weighted coordinates
+						for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+							fd[
+								zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip] += 
+								 alpha * griddep[ip];
+						}
+					}
+					
+					free(griddep);
+				}
+				
+				if (zc->retrieval->prior_windfield->fit_v[i_w]) {
+					griddep = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+					interpolation_bilint_griddep(
+						zc->retrieval->prior_windfield->lut_v[i_w],
+						o->model_radarmeasurement[io]->center_coor->enu_xyzt,
+						griddep);
+
+					//grid_v
+					if (c->costfunction_Doppler_velocity_hh_ms) {
+						alpha = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_velocity_hh_ms - o->radarmeasurement[io]->Doppler_velocity_hh_ms) / pow(o->radarmeasurement[io]->Doppler_velocity_hh_ms_err, 2);
+						alpha *= o->model_radarmeasurement[io]->center_coor->radar_enu_dir[1];
+						//TBD
+						//it would be better to use reflectivity weighted coordinates
+						for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+							fd[
+								zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip] += 
+								 alpha * griddep[ip];
+						}
+					}
+					
+					free(griddep);
+				}
+				
+				if (zc->retrieval->prior_windfield->fit_w[i_w]) {
+					griddep = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+					interpolation_bilint_griddep(
+						zc->retrieval->prior_windfield->lut_w[i_w],
+						o->model_radarmeasurement[io]->center_coor->enu_xyzt,
+						griddep);
+
+					//grid_w
+					if (c->costfunction_Doppler_velocity_hh_ms) {
+						alpha = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_velocity_hh_ms - o->radarmeasurement[io]->Doppler_velocity_hh_ms) / pow(o->radarmeasurement[io]->Doppler_velocity_hh_ms_err, 2);
+						alpha *= o->model_radarmeasurement[io]->center_coor->radar_enu_dir[2];
+						//TBD
+						//it would be better to use reflectivity weighted coordinates
+						for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+							fd[
+								zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip] += 
+								 alpha * griddep[ip];
+						}
+					}
+					
+					free(griddep);
+				}
+			}
+			
+			//loop over turbulence fields
+			for ( i_w = 0; i_w <= 100; i_w++ ) {
+				if (zc->retrieval->post_windfield->turbulence[i_w] != NULL) {
+					if (zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13) {
+						griddep = malloc(zc->retrieval->prior_windfield->turbulence[i_w]->field->n * sizeof(double));
+						interpolation_bilint_griddep(
+							zc->retrieval->prior_windfield->turbulence[i_w]->lut_edr13,
+							o->model_radarmeasurement[io]->center_coor->enu_xyzt,
+							griddep);
+
+						//grid_edr13
+						if (c->costfunction_Doppler_spectral_width_hh_ms) {
+							alpha = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->Doppler_spectral_width_hh_ms - o->radarmeasurement[io]->Doppler_spectral_width_hh_ms) / pow(o->radarmeasurement[io]->Doppler_spectral_width_hh_ms_err, 2);
+							alpha *= o->model_radarmeasurement[io]->der_edr13_Doppler_spectral_width_hh_ms;
+							
+							for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+								fd[
+									zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] += 
+									 alpha * griddep[ip];
+							}
+						}
+
+						/*
+						if (c->costfunction_dBZ_hh) {
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBZ_hh - o->radarmeasurement[io]->dBZ_hh) / pow(o->radarmeasurement[io]->dBZ_hh_err, 2);
+							alpha = alpha0 * o->model_radarmeasurement[io]->der_edr13_dBZ_hh;
+							
+							for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+								fd[
+									zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] += 
+									 alpha * griddep[ip];
+							}
+						}
+						*/
+						
+						if (c->costfunction_dBZdr) {
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBZdr - o->radarmeasurement[io]->dBZdr) / pow(o->radarmeasurement[io]->dBZdr_err, 2);
+							alpha = alpha0 * o->model_radarmeasurement[io]->der_edr13_dBZdr;
+							
+							for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+								fd[
+									zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] += 
+									 alpha * griddep[ip];
+							}
+
+						}
+						
+						if (c->costfunction_dBLdr) {
+							alpha0 = (1./p->cost_no) * 2. * (o->model_radarmeasurement[io]->dBLdr - o->radarmeasurement[io]->dBLdr) / pow(o->radarmeasurement[io]->dBLdr_err, 2);
+							alpha = alpha0 * o->model_radarmeasurement[io]->der_edr13_dBLdr;
+
+							for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+								fd[
+									zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] += 
+									 alpha * griddep[ip];
+							}
+						}
+
+						
+						//TBD, other variables that depends on edr13
+						free(griddep);						
+						
+					}
+				}
+
+			}
+
+
+			
+			
 			//~ if (c->fit_refl) {
 				//~ for (ip = 0; ip < p->field->n; ip++) {
 
@@ -516,7 +742,7 @@ void retrieval_fdvar_cost_function(
 			//~ }
 		}
 
-		
+
 		//copy resolution volume integration parameters to parameter container.
 		//~ o->windvector_u[io]	= res_vol->integrated_u;
 		//~ o->windvector_v[io]	= res_vol->integrated_v;
@@ -535,18 +761,6 @@ void retrieval_fdvar_cost_function(
     //***
 
 
-	#ifdef _ZEPHYROS_FDVAR_DEBUG
-	//debugging
-	printf("middle \n");
-	if ((*iflag == 0) | (*iflag == 2)) {
-		printf("*f = %f \n", *f);
-	}
-	//if ((*iflag == 1) | (*iflag == 2)) {
-	//	for (in=0; in < *n; in++) {
-	//		printf("fd[%i] = %f \n", in, fd[in]);
-	//	}
-	//}	
-	#endif
 
 
 
@@ -561,16 +775,16 @@ void retrieval_fdvar_cost_function(
 	printf("Parameter space\n"); fflush(stdout);
 	#endif
 	
-
-	for ( i_psd = 0; i_psd < zc->retrieval->post_scattererfield->npsd; i_psd++ ) {
+	//loop over scatterers
+	for ( i_psd = 0; i_psd < zc->retrieval->prior_scattererfield->npsd; i_psd++ ) {
 		if (zc->retrieval->post_scattererfield->psd[i_psd] != NULL) {		
 			//dBlwc
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc) {
-				delta = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
-				Sinv_delta = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc) {
+				delta = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
+				Sinv_delta = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
 
 				//delta is post - prior value
-				for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
+				for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
 					delta[ip] = 
 						func_dB(zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3[ip]) -
 							func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_lwc_gm3[ip]);
@@ -578,18 +792,13 @@ void retrieval_fdvar_cost_function(
 
 				retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_scattererfield->psd[i_psd]->dBlwc_ecm, delta, Sinv_delta);							
 				
-				//crude solution to errors ???
-				//for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-				//	if (isnanorinf(Sinv_delta + ip)) Sinv_delta[ip] = 0.;
-				//}
-
 				dbldotprod(&zc->retrieval->prior_scattererfield->psd[i_psd]->field->n, delta, Sinv_delta, &tmp);
 											
 				if (calc_costfunction) *f += (tmp / p->Kn);
 				
 				if (calc_costfunction_derivatives) {
 					for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {						
-						fd[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
+						fd[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] += 
 							(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
 					}
 				}
@@ -597,9 +806,200 @@ void retrieval_fdvar_cost_function(
 				free(delta);
 				free(Sinv_delta);	
 			}
+			
+			//dBN: TBD
+			
+			
 		}
 	}
 
+	//loop over windfields
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		//grid_hspeed
+		if (zc->retrieval->prior_windfield->fit_hspeed[i_w]) {
+			delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+			Sinv_delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+
+			//delta is post - prior value
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				delta[ip] = 
+					zc->retrieval->post_windfield->grid_hspeed[i_w][ip]
+					-
+					zc->retrieval->prior_windfield->grid_hspeed[i_w][ip];						
+			}
+
+			retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->hspeed_ecm[i_w], delta, Sinv_delta);							
+			dbldotprod(&zc->retrieval->prior_windfield->field[i_w]->n, delta, Sinv_delta, &tmp);
+										
+			if (calc_costfunction) *f += (tmp / p->Kn);
+			
+			if (calc_costfunction_derivatives) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {					
+					fd[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] +ip] += 
+						(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+				}
+			}
+			
+			free(delta);
+			free(Sinv_delta);	
+		}
+		
+		//grid_hdir
+		if (zc->retrieval->prior_windfield->fit_hdir[i_w]) {
+			delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+			Sinv_delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+
+			//delta is post - prior value
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				delta[ip] = 
+					zc->retrieval->post_windfield->grid_hdir[i_w][ip]
+					-
+					zc->retrieval->prior_windfield->grid_hdir[i_w][ip];						
+			}
+
+			retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->hdir_ecm[i_w], delta, Sinv_delta);							
+			dbldotprod(&zc->retrieval->prior_windfield->field[i_w]->n, delta, Sinv_delta, &tmp);
+										
+			if (calc_costfunction) *f += (tmp / p->Kn);
+			
+			if (calc_costfunction_derivatives) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {					
+					fd[zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] +ip] += 
+						(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+				}
+			}
+			
+			free(delta);
+			free(Sinv_delta);	
+		}
+					
+		//grid_u
+		if (zc->retrieval->prior_windfield->fit_u[i_w]) {
+			delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+			Sinv_delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+
+			//delta is post - prior value
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				delta[ip] = 
+					zc->retrieval->post_windfield->grid_u[i_w][ip]
+					-
+					zc->retrieval->prior_windfield->grid_u[i_w][ip];						
+			}
+
+			retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->u_ecm[i_w], delta, Sinv_delta);							
+			dbldotprod(&zc->retrieval->prior_windfield->field[i_w]->n, delta, Sinv_delta, &tmp);
+										
+			if (calc_costfunction) *f += (tmp / p->Kn);
+			
+			if (calc_costfunction_derivatives) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {					
+					fd[zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip] += 
+						(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+				}
+			}
+			
+			free(delta);
+			free(Sinv_delta);	
+		}
+		
+		//grid_v
+		if (zc->retrieval->prior_windfield->fit_v[i_w]) {
+			delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+			Sinv_delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+
+			//delta is post - prior value
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				delta[ip] = 
+					zc->retrieval->post_windfield->grid_v[i_w][ip]
+					-
+					zc->retrieval->prior_windfield->grid_v[i_w][ip];						
+			}
+
+			retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->v_ecm[i_w], delta, Sinv_delta);							
+			dbldotprod(&zc->retrieval->prior_windfield->field[i_w]->n, delta, Sinv_delta, &tmp);
+										
+			if (calc_costfunction) *f += (tmp / p->Kn);
+			
+			if (calc_costfunction_derivatives) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {					
+					fd[zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip] += 
+						(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+				}
+			}
+			
+			free(delta);
+			free(Sinv_delta);	
+		}
+
+		//grid_w
+		if (zc->retrieval->prior_windfield->fit_w[i_w]) {
+			delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+			Sinv_delta = malloc(zc->retrieval->prior_windfield->field[i_w]->n * sizeof(double));
+
+			//delta is post - prior value
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				delta[ip] = 
+					zc->retrieval->post_windfield->grid_w[i_w][ip]
+					-
+					zc->retrieval->prior_windfield->grid_w[i_w][ip];						
+			}
+
+			retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->w_ecm[i_w], delta, Sinv_delta);							
+			dbldotprod(&zc->retrieval->prior_windfield->field[i_w]->n, delta, Sinv_delta, &tmp);
+										
+			if (calc_costfunction) *f += (tmp / p->Kn);
+			
+			if (calc_costfunction_derivatives) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {					
+					fd[zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip] += 
+						(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+				}
+			}
+			
+			free(delta);
+			free(Sinv_delta);	
+		}
+	}
+	
+
+	//turbulence, grid_edr13	
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		if (zc->retrieval->post_windfield->turbulence[i_w] != NULL) {
+			if (zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13) {
+				delta = malloc(zc->retrieval->prior_windfield->turbulence[i_w]->field->n * sizeof(double));
+				Sinv_delta = malloc(zc->retrieval->prior_windfield->turbulence[i_w]->field->n * sizeof(double));
+
+				//delta is post - prior value
+				for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+					
+					//#ifdef _ZEPHYROS_FDVAR_DEBUG
+					//printf("zc->retrieval->post_windfield->turbulence[i_w]->grid_edr13[%i] = %.2e\n", ip, zc->retrieval->post_windfield->turbulence[i_w]->grid_edr13[ip]);
+					//#endif
+
+					delta[ip] = 
+						zc->retrieval->post_windfield->turbulence[i_w]->grid_edr13[ip]
+						-
+						zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13[ip];						
+				}
+
+				retrieval_fdvar_cs_qrsol(&zc->retrieval->prior_windfield->turbulence[i_w]->edr13_ecm, delta, Sinv_delta);							
+				dbldotprod(&zc->retrieval->prior_windfield->turbulence[i_w]->field->n, delta, Sinv_delta, &tmp);
+											
+				if (calc_costfunction) *f += (tmp / p->Kn);
+
+				if (calc_costfunction_derivatives) {
+					for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {					
+						fd[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] += 
+							(1./ p->Kn) * 2. * delta[ip] * Sinv_delta[ip];
+					}
+				}
+				
+				free(delta);
+				free(Sinv_delta);
+			}
+		}
+	}
+	
     //End of parameter space
     //***
 	
@@ -683,8 +1083,8 @@ void retrieval_fdvar_cost_function(
 			//~ for (io=0; io < o->n; io++) {
 				//~ sigma_vr += pow( p->PvrK[io]  - o->vr[io] , 2.);
 			//~ }
-			//~ sigma_vr = sqrt((1. / o->n) * sigma_vr);		
-			//~ //sigma_vr = sqrt((1. / (o->n - DOF)) * sigma_vr); //TBD: update with right degrees of freedom
+			//~ sigma_vr = sqrt((1. / p->cost_no) * sigma_vr);		
+			//~ //sigma_vr = sqrt((1. / (p->cost_no - DOF)) * sigma_vr); //TBD: update with right degrees of freedom
 //~ 
 			//~ for (io=0; io < o->n; io++) {
 				//~ o->windvector_su[io] *= sigma_vr; //continued calculation
@@ -719,8 +1119,8 @@ void retrieval_fdvar_cost_function(
 		}
 	}
 	
-	if (calc_costfunction) {printf("current cost value: %.5e \n"   , *f);fflush(stdout);}
-	/*
+	if (calc_costfunction) {printf("current cost value: %.5e (%.2e%)\n"   , *f, 100.*(*f - prev_costfunction)/prev_costfunction);fflush(stdout);}
+	#ifdef _ZEPHYROS_FDVAR_DEBUG
 	if (calc_costfunction_derivatives) {
 		printf("current cost derivatives:\n");
 		for (in=0; in < *n; in++) {
@@ -730,8 +1130,10 @@ void retrieval_fdvar_cost_function(
 
 		}
 	}
-	*/
+	#endif
 	
+	prev_costfunction = *f;
+	 
 	radarfilter_free_todolist(&todo);
 	
 }
@@ -763,54 +1165,154 @@ void retrieval_fdvar_init_x(
 	double tmp;
 	double(*K2x)(t_fdvar_p *p, double *x, int Knr);
 	K2x = retrieval_fdvar_K2x; 
-
+	int i_w;
+	
 	func_dbl_arr_calloc(p->Kn, x);
 
 	//set Klbound, Kubound and x value
-	for ( i_psd = 0; i_psd < zc->retrieval->post_scattererfield->npsd; i_psd++ ) {
-		if (zc->retrieval->post_scattererfield->psd[i_psd] != NULL) {
+	
+	for ( i_psd = 0; i_psd < zc->retrieval->prior_scattererfield->npsd; i_psd++ ) {
+		if (zc->retrieval->prior_scattererfield->psd[i_psd] != NULL) {
 			//dBlwc
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc) {
-				for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-					p->Klbound[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] =
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc) {
+				for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+					p->Klbound[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] =
 						func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_lwc_gm3[ip]) -
 						(factor * zc->retrieval->prior_scattererfield->psd[i_psd]->grid_dBlwc_err_gm3[ip]);
-					p->Kubound[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] =
+					p->Kubound[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip] =
 						func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_lwc_gm3[ip]) +
 						(factor * zc->retrieval->prior_scattererfield->psd[i_psd]->grid_dBlwc_err_gm3[ip]);
 					tmp = func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_lwc_gm3[ip]);
-					(*x)[zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr	+ip] =
-						K2x(p, &tmp, zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip);
+					(*x)[zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr	+ip] =
+						K2x(p, &tmp, zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip);
 				}				
 			}
 			//dBN
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) {
-				for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
-					for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-
-						//another for loop for ndiameters
-						//TBD
-						p->Klbound[ zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-									+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) {
+				for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+					for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
+						p->Klbound[ zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+									+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
 									+ip] =
 							func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_number_density_m3[i_par][ip]) -
 							(factor * zc->retrieval->prior_scattererfield->psd[i_psd]->grid_dBnumber_density_err_m3[i_par][ip]);
-						p->Kubound[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr
-									+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
+								
+						p->Kubound[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr
+									+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
 									+ip] =
 							func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_number_density_m3[i_par][ip]) +
 							(factor * zc->retrieval->prior_scattererfield->psd[i_psd]->grid_dBnumber_density_err_m3[i_par][ip]);
 						tmp = func_dB(zc->retrieval->prior_scattererfield->psd[i_psd]->grid_number_density_m3[i_par][ip]);
-						(*x)[	zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr
-								+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
+						(*x)[	zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr
+								+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
 								+ip] =
-							K2x(p, &tmp, zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr +
-							+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par + ip);
+							K2x(p, &tmp, zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr +
+							+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par) + ip);
 					}
 				}
 			}
 		}
 	}
+		 
+	//walk through wind fields
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		//grid_hspeed
+		if (zc->retrieval->prior_windfield->fit_hspeed[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				p->Klbound[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_hspeed[i_w][ip] -
+					(factor * zc->retrieval->prior_windfield->grid_hspeed_err[i_w][ip]);
+					
+				if (p->Klbound[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] + ip] <= 0)
+					p->Klbound[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] + ip] = 
+						1.e-10 * zc->retrieval->prior_windfield->grid_hspeed_err[i_w][ip];
+					
+				p->Kubound[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_hspeed[i_w][ip] +
+					(factor * zc->retrieval->prior_windfield->grid_hspeed_err[i_w][ip]);				
+				(*x)[zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] +ip] =
+					K2x(p, &(zc->retrieval->prior_windfield->grid_hspeed[i_w][ip]), zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] +ip);
+			}
+		}
+		
+		//grid_hdir
+		if (zc->retrieval->prior_windfield->fit_hdir[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				p->Klbound[zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_hdir[i_w][ip] -
+					(factor * zc->retrieval->prior_windfield->grid_hdir_err[i_w][ip]);
+				p->Kubound[zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_hdir[i_w][ip] +
+					(factor * zc->retrieval->prior_windfield->grid_hdir_err[i_w][ip]);				
+				(*x)[zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] +ip] =
+					K2x(p, &(zc->retrieval->prior_windfield->grid_hdir[i_w][ip]), zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] +ip);
+			}
+		}
+					
+		//grid_u
+		if (zc->retrieval->prior_windfield->fit_u[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				p->Klbound[zc->retrieval->prior_windfield->fit_u_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_u[i_w][ip] -
+					(factor * zc->retrieval->prior_windfield->grid_u_err[i_w][ip]);
+				p->Kubound[zc->retrieval->prior_windfield->fit_u_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_u[i_w][ip] +
+					(factor * zc->retrieval->prior_windfield->grid_u_err[i_w][ip]);				
+				(*x)[zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip] =
+					K2x(p, &(zc->retrieval->prior_windfield->grid_u[i_w][ip]), zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip);
+			}
+		}
+		
+		//grid_v
+		if (zc->retrieval->prior_windfield->fit_v[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				p->Klbound[zc->retrieval->prior_windfield->fit_v_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_v[i_w][ip] -
+					(factor * zc->retrieval->prior_windfield->grid_v_err[i_w][ip]);
+				p->Kubound[zc->retrieval->prior_windfield->fit_v_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_v[i_w][ip] +
+					(factor * zc->retrieval->prior_windfield->grid_v_err[i_w][ip]);				
+				(*x)[zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip] =
+					K2x(p, &(zc->retrieval->prior_windfield->grid_v[i_w][ip]), zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip);
+			}
+		}
+
+		//grid_w
+		if (zc->retrieval->prior_windfield->fit_w[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				p->Klbound[zc->retrieval->prior_windfield->fit_w_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_w[i_w][ip] -
+					(factor * zc->retrieval->prior_windfield->grid_w_err[i_w][ip]);
+				p->Kubound[zc->retrieval->prior_windfield->fit_w_Knr[i_w] + ip] =
+					zc->retrieval->prior_windfield->grid_w[i_w][ip] +
+					(factor * zc->retrieval->prior_windfield->grid_w_err[i_w][ip]);				
+				(*x)[zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip] =
+					K2x(p, &(zc->retrieval->prior_windfield->grid_w[i_w][ip]), zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip);
+			}
+		}
+	}
+	
+	//turbulence, grid_edr13	
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		if (zc->retrieval->prior_windfield->turbulence[i_w] != NULL) {
+			if (zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+					p->Klbound[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr + ip] =
+						zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13[ip] -
+						(factor * zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13_err[ip]);
+					if (p->Klbound[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr + ip] <= 0)
+						p->Klbound[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr + ip] = 
+							1.e-10 * zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13_err[ip];
+						
+					p->Kubound[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr + ip] =
+						zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13[ip] +
+						(factor * zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13_err[ip]);				
+					(*x)[zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip] =
+						K2x(p, &(zc->retrieval->prior_windfield->turbulence[i_w]->grid_edr13[ip]), zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip);
+				}		
+			}
+		}
+	}	
 
 	//check bounds
 	for (in=0; in < p->Kn; in++) {	
@@ -829,63 +1331,66 @@ void retrieval_fdvar_unpack_x(t_fdvar_opc *opc, double *x)
 	int i_psd, i_par;
 	int ip;
 	int i, j;
+	int i_w;
 	t_fdvar_p *p = opc->p;
 	t_zephyros_config_retrieval_fdvar_cfg *c = opc->c;
 	t_zephyros_config *zc = opc->zc;
 
 	double(*x2K)(t_fdvar_p *p, double *K, int Knr); 
 	x2K = retrieval_fdvar_x2K;
+	int in;
 	
-	for ( i_psd = 0; i_psd < zc->retrieval->post_scattererfield->npsd; i_psd++ ) {
-		if (zc->retrieval->post_scattererfield->psd[i_psd] != NULL) {
+	//walk through scatterers
+	for ( i_psd = 0; i_psd < zc->retrieval->prior_scattererfield->npsd; i_psd++ ) {
+		if (zc->retrieval->prior_scattererfield->psd[i_psd] != NULL) {
 			//dBlwc
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc) {
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc) {
 				if (zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3 == NULL) 
-					zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3 = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
-				for (ip=0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++) {
+					zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3 = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
+				for (ip=0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++) {
 					zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3[ip] =
-						func_dB_inv(x2K(p, x + zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip, zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip));
+						func_dB_inv(x2K(p, x + zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip, zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr +ip));
  				}
 
  				//update number densities
-				for (i = 0; i < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i++ ) {
-					for (j = 0; j < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; j++ ) {		
+				for (i = 0; i < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i++ ) {
+					for (j = 0; j < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; j++ ) {		
 						zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i][j] =
 						(zc->retrieval->post_scattererfield->psd[i_psd]->grid_lwc_gm3[j] / zc->retrieval->prior_scattererfield->psd[i_psd]->grid_lwc_gm3[j])
 						*  zc->retrieval->prior_scattererfield->psd[i_psd]->grid_number_density_m3[i][j];
 				}}
 				
  				//update look-up table
-				for (i = 0; i < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i++ ) {
+				for (i = 0; i < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i++ ) {
 					//free lut
 					interpolation_free_lut(zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3 + i);
 					util_field2lut(zc->retrieval->post_scattererfield->psd[i_psd]->field, zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i], 3, zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3 + i);
 				}
 			}
 			//dBN
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) {
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) {
 				//assert grid_number_density_m3 is set
-				if (zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3 == NULL) {
-					zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3 = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters * sizeof(double*));
-					for ( i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ )
-						zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i_par] = malloc(zc->retrieval->post_scattererfield->psd[i_psd]->field->n * sizeof(double));
+				if (zc->retrieval->prior_scattererfield->psd[i_psd]->grid_number_density_m3 == NULL) {
+					zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3 = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters * sizeof(double*));
+					for ( i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ )
+						zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i_par] = malloc(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * sizeof(double));
 				}
 				
  				//update number densities
-				for (i_par = 0; i_par < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
-					for (ip = 0; ip < zc->retrieval->post_scattererfield->psd[i_psd]->field->n; ip++ ) {		
+				for (i_par = 0; i_par < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i_par++ ) {
+					for (ip = 0; ip < zc->retrieval->prior_scattererfield->psd[i_psd]->field->n; ip++ ) {		
 						zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i_par][ip] =
 						func_dB_inv(x2K(p, 
-									x + zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr
-									+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
+									x + zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr
+									+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
 									+ip,
-									zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr 
-									+zc->retrieval->post_scattererfield->psd[i_psd]->field->n * i_par
+									zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr 
+									+(zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * i_par)
 									+ip));
 				}}
 				
  				//update look-up table
-				for (i = 0; i < zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters; i++ ) {
+				for (i = 0; i < zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters; i++ ) {
 					//free lut
 					interpolation_free_lut(zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3 + i);
 					util_field2lut(zc->retrieval->post_scattererfield->psd[i_psd]->field, zc->retrieval->post_scattererfield->psd[i_psd]->grid_number_density_m3[i], 3, zc->retrieval->post_scattererfield->psd[i_psd]->lut_ln_number_density_m3 + i);
@@ -894,19 +1399,77 @@ void retrieval_fdvar_unpack_x(t_fdvar_opc *opc, double *x)
 		}
 	}
 	
-	
-	
-	//for (ip=0; ip < p->field->n; ip++) {
-	//	if (c->fit_refl)	p->post_refl[ip] 	= x2K(p, x + p->fit_Knr_refl	+ip, p->fit_Knr_refl	+ip);
-	//	if (c->fit_hspeed)	p->post_hspeed[ip]	= x2K(p, x + p->fit_Knr_hspeed	+ip, p->fit_Knr_hspeed	+ip);
-	//	if (c->fit_hdir)	p->post_hdir[ip]	= fmod(x2K(p, x + p->fit_Knr_hdir	+ip, p->fit_Knr_hdir+ip), 2. * M_PI);
-	//	if (c->fit_hdir)	p->post_hdir[ip]	= x2K(p, x + p->fit_Knr_hdir	+ip, p->fit_Knr_hdir+ip);
-	//	if (c->fit_w)		p->post_w[ip]		= x2K(p, x + p->fit_Knr_w		+ip, p->fit_Knr_w		+ip);
+	//walk trough wind fields
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		//grid_hspeed
+		if (zc->retrieval->prior_windfield->fit_hspeed[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				zc->retrieval->post_windfield->grid_hspeed[i_w][ip] =
+				x2K(p, 	x + zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] +ip,
+						zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] +ip);
+			}
+		}
+		
+		//grid_hdir
+		if (zc->retrieval->prior_windfield->fit_hdir[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				zc->retrieval->post_windfield->grid_hdir[i_w][ip] =
+				x2K(p, 	x + zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] +ip,
+						zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] +ip);
+			}
+		}
+					
+		//grid_u
+		if (zc->retrieval->prior_windfield->fit_u[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				zc->retrieval->post_windfield->grid_u[i_w][ip] =
+				x2K(p, 	x + zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip,
+						zc->retrieval->prior_windfield->fit_u_Knr[i_w] +ip);
+			}			
+		}
+		
+		//grid_v
+		if (zc->retrieval->prior_windfield->fit_v[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				zc->retrieval->post_windfield->grid_v[i_w][ip] =
+				x2K(p, 	x + zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip,
+						zc->retrieval->prior_windfield->fit_v_Knr[i_w] +ip);
+			}			
+		}
 
-		//update u and v
-	//	if ((c->fit_hspeed) | (c->fit_hdir)) 	p->post_u[ip] = -1. * p->post_hspeed[ip] * sin(p->post_hdir[ip]);
-	//	if ((c->fit_hspeed) | (c->fit_hdir)) 	p->post_v[ip] = -1. * p->post_hspeed[ip] * cos(p->post_hdir[ip]);		
-	//}
+		//grid_w
+		if (zc->retrieval->prior_windfield->fit_w[i_w]) {
+			for (ip=0; ip < zc->retrieval->prior_windfield->field[i_w]->n; ip++) {
+				zc->retrieval->post_windfield->grid_w[i_w][ip] =
+					x2K(p, 	x + zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip,
+								zc->retrieval->prior_windfield->fit_w_Knr[i_w] +ip);
+			}
+		}
+		
+		//TBD: if hspeed & hdir, then update u and v
+		//	if ((c->fit_hspeed) | (c->fit_hdir)) 	p->post_u[ip] = -1. * p->post_hspeed[ip] * sin(p->post_hdir[ip]);
+		//	if ((c->fit_hspeed) | (c->fit_hdir)) 	p->post_v[ip] = -1. * p->post_hspeed[ip] * cos(p->post_hdir[ip]);		
+		
+	}
+	
+
+	//turbulence, grid_edr13	
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		if (zc->retrieval->prior_windfield->turbulence[i_w] != NULL) {
+			if (zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13) {
+				for (ip=0; ip < zc->retrieval->prior_windfield->turbulence[i_w]->field->n; ip++) {
+					zc->retrieval->post_windfield->turbulence[i_w]->grid_edr13[ip] =
+						x2K(p, 	x + zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip,
+									zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr +ip);
+					
+					//update edr
+					zc->retrieval->post_windfield->turbulence[i_w]->grid_edr[ip] =
+						pow(zc->retrieval->post_windfield->turbulence[i_w]->grid_edr13[ip], 3.);
+				}
+			}
+		}
+	}
+	
 }
 	
 
@@ -965,12 +1528,12 @@ void retrieval_fdvar_additional_output(t_fdvar_opc *opc, FILE *fp)
     t_zephyros_config 								*zc = opc->zc;
 	t_fdvar_o *o = opc->o;
 
-	fprintf(fp, "section retrieval\n");
-	fprintf(fp, "subsection post_scattererfield\n");
-	zephyros_config_print_scattererfield(zc->retrieval->post_scattererfield, fp);
+	fprintf(fp, "section retrieval\n"); fflush(fp);
+	fprintf(fp, "subsection post_scattererfield\n"); fflush(fp);
+	zephyros_config_print_scattererfield(zc->retrieval->post_scattererfield, fp); fflush(fp);
 
-	fprintf(fp, "subsection post_windfield\n");
-	zephyros_config_print_windfield(zc->retrieval->post_windfield, fp);
+	fprintf(fp, "subsection post_windfield\n"); fflush(fp);
+	zephyros_config_print_windfield(zc->retrieval->post_windfield, fp); fflush(fp);
 	
 
 	radarfilter_write_measurements(zc, 1, o->n, o->model_radarmeasurement, fp);
@@ -1076,54 +1639,93 @@ void retrieval_fdvar_initialize_p(t_fdvar_opc *opc)
 	t_fdvar_p *p = malloc(sizeof(t_fdvar_p));
 	t_zephyros_config_retrieval_fdvar_cfg *c = opc->c;
 	t_zephyros_config *zc = opc->zc;
+	int i_w, io;
 	
 	opc->p = p; //forward memory allocation of p
     
 	p->Kn = 0;	//number of paremeters
-	p->on = 0;  //totale number of observations, e.g. 2 x o->n, reflection + vr
+	p->cost_no = 0;  //totale number of observations, e.g. 2 x o->n, reflection + vr
 
 	//walk through psds and assign Kn nr's.
-
-	//dBlwc
-	for ( i_psd = 0; i_psd < zc->retrieval->post_scattererfield->npsd; i_psd++ ) {
-		if (zc->retrieval->post_scattererfield->psd[i_psd] != NULL) {
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc) {
-				zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBlwc_Knr = p->Kn;
-				p->Kn += zc->retrieval->post_scattererfield->psd[i_psd]->field->n;
+	for ( i_psd = 0; i_psd < zc->retrieval->prior_scattererfield->npsd; i_psd++ ) {
+		if (zc->retrieval->prior_scattererfield->psd[i_psd] != NULL) {
+			//dBlwc
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc) {
+				zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBlwc_Knr = p->Kn;
+				p->Kn += zc->retrieval->prior_scattererfield->psd[i_psd]->field->n;
 			}
-			if (zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN) {
-				zc->retrieval->post_scattererfield->psd[i_psd]->fit_dBN_Knr = p->Kn;
-				p->Kn += zc->retrieval->post_scattererfield->psd[i_psd]->field->n * zc->retrieval->post_scattererfield->psd[i_psd]->n_diameters;
+			//dBN
+			if (zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN) {
+				zc->retrieval->prior_scattererfield->psd[i_psd]->fit_dBN_Knr = p->Kn;
+				p->Kn += zc->retrieval->prior_scattererfield->psd[i_psd]->field->n * zc->retrieval->prior_scattererfield->psd[i_psd]->n_diameters;
 			}
 		}
 	}
 	
-	//in case of fitting a drop sie distribution
-		//for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++) {
-		//TBD
+	//walk trough wind fields
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		//grid_hspeed
+		if (zc->retrieval->prior_windfield->fit_hspeed[i_w]) {
+			zc->retrieval->prior_windfield->fit_hspeed_Knr[i_w] = p->Kn;
+			p->Kn += zc->retrieval->prior_windfield->field[i_w]->n;
+		}
 		
-	//in case of wind fields
-		//TBD
-	
-	
-	/*
-	if (c->fit_hspeed) {
-		//p->fit_Knr_hspeed	= p->Kn;
-		p->Kn 				= p->Kn + p->field->n;
-	}
-	if (c->fit_hdir) {
-		//p->fit_Knr_hdir		= p->Kn;
-		p->Kn 				= p->Kn + p->field->n;
-	}
-	if (c->fit_w) {
-		//p->fit_Knr_w		= p->Kn;
-		p->Kn 				= p->Kn + p->field->n;
-	}
-	*/
+		//grid_hdir
+		if (zc->retrieval->prior_windfield->fit_hdir[i_w]) {
+			zc->retrieval->prior_windfield->fit_hdir_Knr[i_w] = p->Kn;
+			p->Kn += zc->retrieval->prior_windfield->field[i_w]->n;
+		}
+					
+		//grid_u
+		if (zc->retrieval->prior_windfield->fit_u[i_w]) {
+			zc->retrieval->prior_windfield->fit_u_Knr[i_w] = p->Kn;
+			p->Kn += zc->retrieval->prior_windfield->field[i_w]->n;
+		}
+		
+		//grid_v
+		if (zc->retrieval->prior_windfield->fit_v[i_w]) {
+			zc->retrieval->prior_windfield->fit_v_Knr[i_w] = p->Kn;
+			p->Kn += zc->retrieval->prior_windfield->field[i_w]->n;
+		}
 
-	if (c->costfunction_dBZ_hh) {
-		p->on += o->n;
+		//grid_w
+		if (zc->retrieval->prior_windfield->fit_w[i_w]) {
+			zc->retrieval->prior_windfield->fit_w_Knr[i_w] = p->Kn;
+			p->Kn += zc->retrieval->prior_windfield->field[i_w]->n;
+		}
 	}
+	
+
+	//turbulence, grid_edr13	
+	for ( i_w = 0; i_w <= 100; i_w++ ) {
+		if (zc->retrieval->prior_windfield->turbulence[i_w] != NULL) {
+			if (zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13) {
+				zc->retrieval->prior_windfield->turbulence[i_w]->fit_edr13_Knr = p->Kn;
+				p->Kn += zc->retrieval->prior_windfield->turbulence[i_w]->field->n;
+			}
+		}
+	}
+	
+	//***
+	if (c->costfunction_dBZ_hh) p->cost_no += o->n;
+	if (c->costfunction_dBZdr) p->cost_no += o->n;
+	if (c->costfunction_dBLdr) p->cost_no += o->n;
+	if (c->costfunction_Doppler_velocity_hh_ms) p->cost_no += o->n;
+	if (c->costfunction_Doppler_spectral_width_hh_ms) p->cost_no += o->n;
+
+    //spectra
+	if (c->costfunction_Doppler_spectrum_dBZ_hh) {
+		for (io=0; io < o->n; io++) p->cost_no += o->radarmeasurement[io]->n_spectrum;
+	}
+	if (c->costfunction_specific_dBZdr) {
+		for (io=0; io < o->n; io++) p->cost_no += o->radarmeasurement[io]->n_spectrum;
+	}
+	if (c->costfunction_specific_dBLdr) {
+		for (io=0; io < o->n; io++) p->cost_no += o->radarmeasurement[io]->n_spectrum;
+	}
+
+	//TBD: list incomplete
+		
 		
 	//initialize bounds
 	func_dbl_arr_calloc( p->Kn, &p->Klbound);

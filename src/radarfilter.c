@@ -75,13 +75,32 @@ void radarfilter_exec(
 	t_zephyros_radarfilter		*rcfg;
 	t_zephyros_windfield		*mywindfield;
 	t_zephyros_scattererfield	*myscattererfield;
+
+	//needed for calculations
+	double eta2Z;
 	
+	double eta_hh;
+	double eta_hv;
+	double eta_vh;
+	double eta_vv;
+
+	double eta_ShhSvvc;
+	double eta_ShhShvc;
+	double eta_SvvSvhc;
+	
+	double n_Re_Shh_min_Svv;
+
+	double *Doppler_spectrum_ShhSvvc = NULL;
+	double *Doppler_spectrum_ShhShvc = NULL;
+	double *Doppler_spectrum_SvvSvhc = NULL;
+
 	int 		remainder;
 	int			i_beam_range, i_beam_theta, i_beam_phi, i_t;
 	double 		myr1, myr2;
 	double 		FWHM_rad;
 	double 		mincdfP, maxcdfP, difcdfP, cdfP, sigma_gauss;
 
+	double tmpvar;
 	double tmp;
 	double *dummy;
 
@@ -94,7 +113,7 @@ void radarfilter_exec(
 	double tmp_total_w;
 
 	double tmpa, tmpb, tmpwindspeed, tmpL;
-	double tmpedr;
+	double tmpedr, tmpedrplus;
 	double tmpIsqrt;
 	double tmpkolmogorovconstant;
 	double tmparr[10];
@@ -107,7 +126,6 @@ void radarfilter_exec(
 	double epsilon_r = creal(cfg->derived_quantities->radar_water_refractive_index * cfg->derived_quantities->radar_water_refractive_index);
 	double kwsq = pow((epsilon_r - 1.) / (epsilon_r - 2.), 2.);
 	//translates eta to Z
-	double eta_factor = pow(cfg->derived_quantities->central_wavelength_m, 4.) / (pow(M_PI, 5.) * kwsq);
 
 	double lbound, ubound, center;
 
@@ -122,7 +140,22 @@ void radarfilter_exec(
 	double traj_delta_u, traj_delta_v, traj_delta_w;
 
 	double tmpdu, tmpdv, tmpdw, sgndu, sgndv, sgndw;
+	
+	//needed to calculate derivative to edr^(1/3)
+	double		eta_hh_plus;
+	double		eta_hv_plus;
+	double		eta_vh_plus;
+	double		eta_vv_plus;
+	
+	double		eta_ShhSvvc_plus;
+	double		eta_ShhShvc_plus;
+	double		eta_SvvSvhc_plus;
 
+	double		Doppler_velocity_hh_ms_plus;
+	double		Doppler_spectral_width_hh_ms_plus;
+	
+	
+	
 	//int debug = 0;
 	//clock_t start, diff;
 	
@@ -148,6 +181,11 @@ void radarfilter_exec(
 	//main loop over the measurements
 	printf("calculate measurement %5i/%5i\n", 0, 0); fflush(stdout);
 	for (i_m = 0; i_m < n_measurements; i_m++ ) {
+		
+		radarmeasurement[i_m]->coef_eta2Z = 
+			1.e18 * pow(cfg->derived_quantities->central_wavelength_m, 4.) / (pow(M_PI, 5.) * kwsq);
+		eta2Z = radarmeasurement[i_m]->coef_eta2Z;
+		
 		tmpi = (n_measurements / 10); if (tmpi == 0) tmpi = 1;
 		if (	(i_m < 10) |
 				( (i_m % tmpi) == 0)) {
@@ -191,9 +229,6 @@ void radarfilter_exec(
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
 			printf("free and allocate memory for spectra\n"); fflush(stdout);
 		#endif 
-		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc));
-		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_ShhShvc));
-		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc));
 		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh));
 		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh_err));
 		util_safe_free(&(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv));
@@ -212,6 +247,11 @@ void radarfilter_exec(
 		util_safe_free(&(radarmeasurement[i_m]->specific_rho_cxh_err));
 		util_safe_free(&(radarmeasurement[i_m]->specific_rho_cxv));
 		util_safe_free(&(radarmeasurement[i_m]->specific_rho_cxv_err));
+
+		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh));
+		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv));
+		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh));
+		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv));
 					
 		if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh);
 		if ((rcfg->filter_Doppler_spectrum_dBZ_hh) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh_err); 		
@@ -221,9 +261,9 @@ void radarfilter_exec(
 		if ((rcfg->filter_Doppler_spectrum_dBZ_vh) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh_err);
 		if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv);
 		if ((rcfg->filter_Doppler_spectrum_dBZ_vv) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv_err);
-		if (todo->calc_Doppler_spectrum_ShhSvvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc);
-		if (todo->calc_Doppler_spectrum_ShhShvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_ShhShvc);
-		if (todo->calc_Doppler_spectrum_SvvSvhc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc);		
+		if (todo->calc_Doppler_spectrum_ShhSvvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhSvvc);
+		if (todo->calc_Doppler_spectrum_ShhShvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhShvc);
+		if (todo->calc_Doppler_spectrum_SvvSvhc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_SvvSvhc);		
 		if (rcfg->filter_specific_dBZdr) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr);
 		if ((rcfg->filter_specific_dBZdr)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr_err);
 		if (rcfg->filter_specific_dBLdr) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBLdr);
@@ -234,6 +274,13 @@ void radarfilter_exec(
 		if ((rcfg->filter_specific_rho_cxh)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxh_err);
 		if (rcfg->filter_specific_rho_cxv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv);
 		if ((rcfg->filter_specific_rho_cxv)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv_err);
+		
+		if (todo->der_edr13) {
+			if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh);
+			if (rcfg->filter_Doppler_spectrum_dBZ_hv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv);
+			if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh);
+			if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv);
+		}
 		
 		//free and allocate memory for eta_i
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -521,6 +568,7 @@ void radarfilter_exec(
 		if (todo->calc_particle_velocity) {
 			if (res_vol->parametric_turbulence == 1) {
 				parametric_turbulence_sigmaT = 0.;
+				if (todo->der_edr13) parametric_turbulence_sigmaT_plus = 0.;
 				for ( i = 0; i < mywindfield->nturbulences; i++ ) {
 					if ((mywindfield->turbulence[i] != NULL) & (mywindfield->turbulence[i]->type == 5)) {						
 						//interpolate EDR
@@ -529,7 +577,9 @@ void radarfilter_exec(
 								&tmp,
 								0, //no derivatives
 								dummy);
-						tmpedr = pow(tmp, 3.);
+						if (tmp < 0.) tmp = 0.;
+						tmpedr 		= pow(tmp, 3.);
+						tmpedrplus  = pow(tmp * 1.001, 3.);
 						interpolation_bilint(mywindfield->turbulence[i]->lut_kolmogorov_constant,
 								radarmeasurement[i_m]->center_coor->enu_xyzt,
 								&tmpkolmogorovconstant,
@@ -556,13 +606,16 @@ void radarfilter_exec(
 						//calculate sigmaT, and add up
 						parametric_turbulence_sigmaT = sqrt(
 							pow(parametric_turbulence_sigmaT, 2.) + 
-							((tmpkolmogorovconstant * pow(tmpedr, 2./3.)) / (4. * M_PI))) * tmpIsqrt;
-							
+							(((tmpkolmogorovconstant * pow(tmpedr, 2./3.)) / (4. * M_PI)) * pow(tmpIsqrt,2.)));
+													
+						if (todo->der_edr13) {
+							parametric_turbulence_sigmaT_plus = sqrt(
+							pow(parametric_turbulence_sigmaT, 2.) + 
+							(((tmpkolmogorovconstant * pow(tmpedrplus, 2./3.)) / (4. * M_PI)) * pow(tmpIsqrt,2.)));
+						}
 							
 					}
 				}
-				
-				parametric_turbulence_sigmaT_plus = parametric_turbulence_sigmaT * 1.001;
 			}
 		}
 				
@@ -622,15 +675,34 @@ void radarfilter_exec(
 									sgndv = tmpdv / fabs(tmpdv);
 									sgndw = tmpdw / fabs(tmpdw);
 									traj_dt = (traj_xyzt[i_traj + 1][3] - traj_xyzt[i_traj][3]);
-									traj_delta_u = sgndu * 1. / ((1./fabs(tmpdu)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
-									traj_delta_v = sgndv * 1. / ((1./fabs(tmpdv)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
-									if (res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed < fabs(tmpdw)) {
-										traj_delta_w = sgndw * 1. / ((1./fabs(tmpdw)) + (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt));
-									} else {
-										traj_delta_w = tmpdw * exp(-1. * traj_dt / (2. / ( res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed)));
-									}
-								}
+									
+
+									tmpvar = (-1. / (2. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt));
+									traj_delta_u = 
+										sgndu * 
+										( tmpvar +
+											sqrt(pow(tmpvar,2.) + fabs(tmpdu) / (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt))
+										);
+									traj_delta_v = 
+										sgndv * 
+										( tmpvar +
+											sqrt(pow(tmpvar,2.) + fabs(tmpdv) / (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_xy * traj_dt))
+										);
 								
+									tmpvar = (-1. * res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed)
+											+ (-1. / (2. * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt));
+									traj_delta_w = 
+										sgndw * 
+										( tmpvar + 
+											sqrt(pow(tmpvar,2.) + (fabs(tmpdw) / (res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_eta_z * traj_dt)))
+										);									
+								}
+
+								//fix to zeros.
+								if (isnanorinf(&traj_delta_u)) traj_delta_u = 0.;								
+								if (isnanorinf(&traj_delta_v)) traj_delta_v = 0.;								
+								if (isnanorinf(&traj_delta_w)) traj_delta_w = 0.;	
+															
 								//add to the solution
 								res_vol->subvolume_particle_u[i_res][i_psd][i_par][0] += traj_delta_u;
 								res_vol->subvolume_particle_v[i_res][i_psd][i_par][0] += traj_delta_v;
@@ -656,6 +728,7 @@ void radarfilter_exec(
 									exit(0);
 								}
 								*/
+
 							}
 						}
 						
@@ -681,22 +754,23 @@ void radarfilter_exec(
 								res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_u[i_res] + tmp_turbulence_u;
 								res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_v[i_res] + tmp_turbulence_v;
 								res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] = res_vol->subvolume_air_w[i_res] - res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + tmp_turbulence_w;
-
+								
 								//calculate turbulence vector plus (for calculation of derivatives via finite difference)
-								tmp_turbulence_u 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_az) * sin(parmod_el);
-								tmp_turbulence_v 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * sin(parmod_az) * sin(parmod_el);
-								tmp_turbulence_w 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_el);
-							
-								res_vol->subvolume_particle_u[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_u[i_res] + tmp_turbulence_u;
-								res_vol->subvolume_particle_v[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_v[i_res] + tmp_turbulence_v;
-								res_vol->subvolume_particle_w[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_w[i_res] - res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + tmp_turbulence_w;
+								if (todo->der_edr13) {
+									tmp_turbulence_u 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_az) * sin(parmod_el);
+									tmp_turbulence_v 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * sin(parmod_az) * sin(parmod_el);
+									tmp_turbulence_w 	= parametric_turbulence_sigmaT_plus * sqrt(3.) * cos(parmod_el);
+								
+									res_vol->subvolume_particle_u[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_u[i_res] + tmp_turbulence_u;
+									res_vol->subvolume_particle_v[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_v[i_res] + tmp_turbulence_v;
+									res_vol->subvolume_particle_w[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] = res_vol->subvolume_air_w[i_res] - res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed + tmp_turbulence_w;
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-
 
 		//calculate particle direction
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -707,17 +781,24 @@ void radarfilter_exec(
 			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 				for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 					for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-						for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+						for ( i_parmod = 0; i_parmod < res_vol->n_parmod_plus; i_parmod++ ) {
 							//particle orientation of the minor axis
 							tmp = sqrt(
 									pow(res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod], 2.) +
 									pow(res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod], 2.) +
 									pow(res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod], 2.)
 									);
-							res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][0] = res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] / tmp;
-							res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][1] = res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod] / tmp;
-							res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][2] = res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] / tmp;
-							res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][3] = 0.;
+							if (tmp == 0.) {
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][0] = 0.;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][1] = 0.;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][2] = -1.;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][3] = 0.;
+							} else {
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][0] = res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] / tmp;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][1] = res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod] / tmp;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][2] = res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] / tmp;
+								res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][3] = 0.;
+							}
 						}
 					}
 				}
@@ -775,15 +856,15 @@ void radarfilter_exec(
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
 			printf("initialize everything that needs the cross sections\n"); fflush(stdout);
 		#endif
-		if (todo->calc_eta_hh) radarmeasurement[i_m]->eta_hh = 0.;
-		if (todo->calc_eta_hv) radarmeasurement[i_m]->eta_hv = 0.;
-		if (todo->calc_eta_vh) radarmeasurement[i_m]->eta_vh = 0.;
-		if (todo->calc_eta_vv) radarmeasurement[i_m]->eta_vv = 0.;
-		if (todo->calc_eta_ShhSvvc) radarmeasurement[i_m]->eta_ShhSvvc = 0.;
-		if (todo->calc_eta_ShhShvc) radarmeasurement[i_m]->eta_ShhShvc = 0.;
-		if (todo->calc_eta_SvvSvhc) radarmeasurement[i_m]->eta_SvvSvhc = 0.;
-		
-		if (rcfg->filter_KDP) radarmeasurement[i_m]->n_Re_Shh_min_Svv = 0.;
+		if (todo->calc_eta_hh) eta_hh = 0.;
+		if (todo->calc_eta_hv) eta_hv = 0.;
+		if (todo->calc_eta_vh) eta_vh = 0.;
+		if (todo->calc_eta_vv) eta_vv = 0.;
+		if (todo->calc_eta_ShhSvvc) eta_ShhSvvc = 0.;
+		if (todo->calc_eta_ShhShvc) eta_ShhShvc = 0.;
+		if (todo->calc_eta_SvvSvhc) eta_SvvSvhc = 0.;
+
+		if (rcfg->filter_KDP) n_Re_Shh_min_Svv = 0.;
 
 		if (rcfg->filter_Doppler_velocity_hh_ms) radarmeasurement[i_m]->Doppler_velocity_hh_ms = 0.;
 		if (rcfg->filter_Doppler_velocity_hv_ms) radarmeasurement[i_m]->Doppler_velocity_hv_ms = 0.;
@@ -794,6 +875,20 @@ void radarfilter_exec(
 		if (rcfg->filter_Doppler_spectralwidth_hv_ms) radarmeasurement[i_m]->Doppler_spectral_width_hv_ms = 0.;
 		if (rcfg->filter_Doppler_spectralwidth_vh_ms) radarmeasurement[i_m]->Doppler_spectral_width_vh_ms = 0.;
 		if (rcfg->filter_Doppler_spectralwidth_vv_ms) radarmeasurement[i_m]->Doppler_spectral_width_vv_ms = 0.;
+
+		if (todo->der_edr13) {
+			if (todo->calc_eta_hh) eta_hh_plus = 0.;
+			if (todo->calc_eta_hv) eta_hv_plus = 0.;
+			if (todo->calc_eta_vh) eta_vh_plus = 0.;
+			if (todo->calc_eta_vv) eta_vv_plus = 0.;
+			if (todo->calc_eta_ShhSvvc) eta_ShhSvvc_plus = 0.;
+			if (todo->calc_eta_ShhShvc) eta_ShhShvc_plus = 0.;
+			if (todo->calc_eta_SvvSvhc) eta_SvvSvhc_plus = 0.;
+			
+			if (rcfg->filter_Doppler_velocity_hh_ms) Doppler_velocity_hh_ms_plus = 0.;
+			if (rcfg->filter_Doppler_spectralwidth_hh_ms) Doppler_spectral_width_hh_ms_plus = 0.;
+		}
+
 				
 		//*****
 		//calculate eta
@@ -810,7 +905,7 @@ void radarfilter_exec(
 					if (todo->calc_eta_i_vv) radarmeasurement[i_m]->eta_i_vv[i_psd][i_par] = 0.;
 					
 					for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
-						for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+						for ( i_parmod = 0; i_parmod < res_vol->n_parmod_plus; i_parmod++ ) {
 							//forward particle direction to scattering widget
 							res_vol->subvolume_scat[i_psd][i_par]->particle_dir[0] = res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][0];
 							res_vol->subvolume_scat[i_psd][i_par]->particle_dir[1] = res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][1];
@@ -820,7 +915,7 @@ void radarfilter_exec(
 							//printf("debugging. using other cross sections...");
 	
 							particles_cross_sections_mischenko2000_update_coor(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 0);
-						
+
 							if (todo->calc_eta_hh) res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod] = 
 								res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_hh / res_vol->n_parmod;
 							if (todo->calc_eta_hv) res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod] = 
@@ -836,6 +931,7 @@ void radarfilter_exec(
 							if (todo->calc_eta_SvvSvhc) res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod] = 
 								res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_SvvSvhc / res_vol->n_parmod;
 
+
 							if (todo->calc_Doppler_mean_velocity == 1) {
 								res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][i_parmod] = 
 									(res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[0]) +
@@ -843,25 +939,35 @@ void radarfilter_exec(
 									(res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[2]);
 							}
 							
-							if (todo->calc_eta_hh) radarmeasurement[i_m]->eta_hh += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_hv) radarmeasurement[i_m]->eta_hv += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_vh) radarmeasurement[i_m]->eta_vh += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_vv) radarmeasurement[i_m]->eta_vv += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_ShhSvvc) radarmeasurement[i_m]->eta_ShhSvvc += res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_ShhShvc) radarmeasurement[i_m]->eta_ShhShvc += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_SvvSvhc) radarmeasurement[i_m]->eta_SvvSvhc += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];
-	
-							if (todo->calc_eta_i_hh) radarmeasurement[i_m]->eta_i_hh[i_psd][i_par] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_i_hv) radarmeasurement[i_m]->eta_i_hv[i_psd][i_par] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_i_vh) radarmeasurement[i_m]->eta_i_vh[i_psd][i_par] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
-							if (todo->calc_eta_i_vv) radarmeasurement[i_m]->eta_i_vv[i_psd][i_par] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
-							
+							if (i_parmod <  res_vol->n_parmod) {
+								if (todo->calc_eta_hh) eta_hh += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_hv) eta_hv += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_vh) eta_vh += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_vv) eta_vv += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_ShhSvvc) eta_ShhSvvc += res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_ShhShvc) eta_ShhShvc += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_SvvSvhc) eta_SvvSvhc += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];
+		
+								if (todo->calc_eta_i_hh) radarmeasurement[i_m]->eta_i_hh[i_psd][i_par] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_i_hv) radarmeasurement[i_m]->eta_i_hv[i_psd][i_par] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_i_vh) radarmeasurement[i_m]->eta_i_vh[i_psd][i_par] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_i_vv) radarmeasurement[i_m]->eta_i_vv[i_psd][i_par] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
+							} else {
+								if (todo->calc_eta_hh) eta_hh_plus += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_hv) eta_hv_plus += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_vh) eta_vh_plus += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_vv) eta_vv_plus += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_ShhSvvc) eta_ShhSvvc_plus += res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_ShhShvc) eta_ShhShvc_plus += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
+								if (todo->calc_eta_SvvSvhc) eta_SvvSvhc_plus += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];								
+							}
+
 							//for calculation of KdP, specific differential phase
 							//calculate forward scattering amplitude
 							if (rcfg->filter_KDP) {
 								particles_cross_sections_mischenko2000_update_coor(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 1);
 								tmp = res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_Re_Shh_min_Svv / res_vol->n_parmod;
-								radarmeasurement[i_m]->n_Re_Shh_min_Svv += tmp;
+								n_Re_Shh_min_Svv += tmp;
 							}
 						}
 					}
@@ -874,16 +980,27 @@ void radarfilter_exec(
 				}
 			}
 			
-			if (todo->calc_eta_hh) radarmeasurement[i_m]->eta_hh /= res_vol->n;
-			if (todo->calc_eta_hv) radarmeasurement[i_m]->eta_hv /= res_vol->n;
-			if (todo->calc_eta_vh) radarmeasurement[i_m]->eta_vh /= res_vol->n;
-			if (todo->calc_eta_vv) radarmeasurement[i_m]->eta_vv /= res_vol->n;
-			if (todo->calc_eta_ShhSvvc) radarmeasurement[i_m]->eta_ShhSvvc /= res_vol->n;
-			if (todo->calc_eta_ShhShvc) radarmeasurement[i_m]->eta_ShhShvc /= res_vol->n;
-			if (todo->calc_eta_SvvSvhc) radarmeasurement[i_m]->eta_SvvSvhc /= res_vol->n;
-			if (rcfg->filter_KDP) radarmeasurement[i_m]->n_Re_Shh_min_Svv /= res_vol->n;
-		}
+			if (todo->calc_eta_hh) eta_hh /= res_vol->n;
+			if (todo->calc_eta_hv) eta_hv /= res_vol->n;
+			if (todo->calc_eta_vh) eta_vh /= res_vol->n;
+			if (todo->calc_eta_vv) eta_vv /= res_vol->n;
+			if (todo->calc_eta_ShhSvvc) eta_ShhSvvc /= res_vol->n;
+			if (todo->calc_eta_ShhShvc) eta_ShhShvc /= res_vol->n;
+			if (todo->calc_eta_SvvSvhc) eta_SvvSvhc /= res_vol->n;
 
+			if (todo->der_edr13) {
+				if (todo->calc_eta_hh) eta_hh_plus /= res_vol->n;
+				if (todo->calc_eta_hv) eta_hv_plus /= res_vol->n;
+				if (todo->calc_eta_vh) eta_vh_plus /= res_vol->n;
+				if (todo->calc_eta_vv) eta_vv_plus /= res_vol->n;
+				if (todo->calc_eta_ShhSvvc) eta_ShhSvvc_plus /= res_vol->n;
+				if (todo->calc_eta_ShhShvc) eta_ShhShvc_plus /= res_vol->n;
+				if (todo->calc_eta_SvvSvhc) eta_SvvSvhc_plus /= res_vol->n;
+			}
+
+			if (rcfg->filter_KDP) n_Re_Shh_min_Svv /= res_vol->n;
+		}
+		
 		//*****
 		//calculate particle Doppler mean velocity
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -906,15 +1023,29 @@ void radarfilter_exec(
 							if (rcfg->filter_Doppler_velocity_vv_ms) radarmeasurement[i_m]->Doppler_velocity_vv_ms += 
 								(res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod] *
 								res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][i_parmod]);
-						}		
+
+							if (todo->der_edr13) {
+								if (rcfg->filter_Doppler_velocity_hh_ms)
+									Doppler_velocity_hh_ms_plus += 
+									(res_vol->subvolume_eta_hh[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] *
+									res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod]);									
+							}
+						}	
 					}	
 				}
 			}
 												
-			if (rcfg->filter_Doppler_velocity_hh_ms) radarmeasurement[i_m]->Doppler_velocity_hh_ms /= (res_vol->n * radarmeasurement[i_m]->eta_hh);
-			if (rcfg->filter_Doppler_velocity_hv_ms) radarmeasurement[i_m]->Doppler_velocity_hv_ms /= (res_vol->n * radarmeasurement[i_m]->eta_hv);
-			if (rcfg->filter_Doppler_velocity_vh_ms) radarmeasurement[i_m]->Doppler_velocity_vh_ms /= (res_vol->n * radarmeasurement[i_m]->eta_vh);
-			if (rcfg->filter_Doppler_velocity_vv_ms) radarmeasurement[i_m]->Doppler_velocity_vv_ms /= (res_vol->n * radarmeasurement[i_m]->eta_vv);		
+			if (rcfg->filter_Doppler_velocity_hh_ms) radarmeasurement[i_m]->Doppler_velocity_hh_ms /= (res_vol->n * eta_hh);
+			if (rcfg->filter_Doppler_velocity_hv_ms) radarmeasurement[i_m]->Doppler_velocity_hv_ms /= (res_vol->n * eta_hv);
+			if (rcfg->filter_Doppler_velocity_vh_ms) radarmeasurement[i_m]->Doppler_velocity_vh_ms /= (res_vol->n * eta_vh);
+			if (rcfg->filter_Doppler_velocity_vv_ms) radarmeasurement[i_m]->Doppler_velocity_vv_ms /= (res_vol->n * eta_vv);		
+
+			if (todo->der_edr13) {
+				if (rcfg->filter_Doppler_velocity_hh_ms) Doppler_velocity_hh_ms_plus /= (res_vol->n * eta_hh_plus);
+				radarmeasurement[i_m]->der_edr13_Doppler_velocity_hh_ms =
+					(Doppler_velocity_hh_ms_plus - radarmeasurement[i_m]->Doppler_velocity_hh_ms) / 0.001;
+				
+			}
 		}
 
 		//*****
@@ -939,20 +1070,34 @@ void radarfilter_exec(
 							if (rcfg->filter_Doppler_spectralwidth_vv_ms) radarmeasurement[i_m]->Doppler_spectral_width_vv_ms += 
 								(res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod] *
 								pow(res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][i_parmod] - radarmeasurement[i_m]->Doppler_velocity_vv_ms, 2.));
-						}	
+
+							if (todo->der_edr13) {
+								if (rcfg->filter_Doppler_spectralwidth_hh_ms)
+									Doppler_spectral_width_hh_ms_plus += 
+									(res_vol->subvolume_eta_hh[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] *
+									pow(res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod] - Doppler_velocity_hh_ms_plus, 2.));
+							}
+						}
 					}
 				}
 			}
 			
-			if (rcfg->filter_Doppler_spectralwidth_hh_ms) radarmeasurement[i_m]->Doppler_spectral_width_hh_ms /= (res_vol->n * radarmeasurement[i_m]->eta_hh);
-			if (rcfg->filter_Doppler_spectralwidth_hv_ms) radarmeasurement[i_m]->Doppler_spectral_width_hv_ms /= (res_vol->n * radarmeasurement[i_m]->eta_hv);
-			if (rcfg->filter_Doppler_spectralwidth_vh_ms) radarmeasurement[i_m]->Doppler_spectral_width_vh_ms /= (res_vol->n * radarmeasurement[i_m]->eta_vh);		
-			if (rcfg->filter_Doppler_spectralwidth_vv_ms) radarmeasurement[i_m]->Doppler_spectral_width_vv_ms /= (res_vol->n * radarmeasurement[i_m]->eta_vv);		
+			if (rcfg->filter_Doppler_spectralwidth_hh_ms) radarmeasurement[i_m]->Doppler_spectral_width_hh_ms /= (res_vol->n * eta_hh);
+			if (rcfg->filter_Doppler_spectralwidth_hv_ms) radarmeasurement[i_m]->Doppler_spectral_width_hv_ms /= (res_vol->n * eta_hv);
+			if (rcfg->filter_Doppler_spectralwidth_vh_ms) radarmeasurement[i_m]->Doppler_spectral_width_vh_ms /= (res_vol->n * eta_vh);		
+			if (rcfg->filter_Doppler_spectralwidth_vv_ms) radarmeasurement[i_m]->Doppler_spectral_width_vv_ms /= (res_vol->n * eta_vv);		
 			
 			if (rcfg->filter_Doppler_spectralwidth_hh_ms) radarmeasurement[i_m]->Doppler_spectral_width_hh_ms = sqrt(radarmeasurement[i_m]->Doppler_spectral_width_hh_ms);
 			if (rcfg->filter_Doppler_spectralwidth_hv_ms) radarmeasurement[i_m]->Doppler_spectral_width_hv_ms = sqrt(radarmeasurement[i_m]->Doppler_spectral_width_hv_ms);
 			if (rcfg->filter_Doppler_spectralwidth_vh_ms) radarmeasurement[i_m]->Doppler_spectral_width_vh_ms = sqrt(radarmeasurement[i_m]->Doppler_spectral_width_vh_ms);
 			if (rcfg->filter_Doppler_spectralwidth_hh_ms) radarmeasurement[i_m]->Doppler_spectral_width_vv_ms = sqrt(radarmeasurement[i_m]->Doppler_spectral_width_vv_ms);
+
+			if (todo->der_edr13) {
+				if (rcfg->filter_Doppler_spectralwidth_hh_ms) Doppler_spectral_width_hh_ms_plus /= (res_vol->n * eta_hh_plus);
+				if (rcfg->filter_Doppler_spectralwidth_hh_ms) Doppler_spectral_width_hh_ms_plus = sqrt(Doppler_spectral_width_hh_ms_plus);
+				radarmeasurement[i_m]->der_edr13_Doppler_spectral_width_hh_ms =
+					(Doppler_spectral_width_hh_ms_plus - radarmeasurement[i_m]->Doppler_spectral_width_hh_ms) / 0.001;
+			}
 		}
 		
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -1006,10 +1151,16 @@ void radarfilter_exec(
 				if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] = 0.;
 				if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int] = 0.;
 				if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int] = 0.;
-				if (todo->calc_Doppler_spectrum_ShhSvvc) radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc[i_int] = 0.;
-				if (todo->calc_Doppler_spectrum_ShhShvc) radarmeasurement[i_m]->Doppler_spectrum_ShhShvc[i_int] = 0.;
-				if (todo->calc_Doppler_spectrum_SvvSvhc) radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc[i_int] = 0.;
-					
+				if (todo->calc_Doppler_spectrum_ShhSvvc) Doppler_spectrum_ShhSvvc[i_int] = 0.;
+				if (todo->calc_Doppler_spectrum_ShhShvc) Doppler_spectrum_ShhShvc[i_int] = 0.;
+				if (todo->calc_Doppler_spectrum_SvvSvhc) Doppler_spectrum_SvvSvhc[i_int] = 0.;
+				
+				if (todo->der_edr13) {
+					if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh[i_int] = 0.;
+					if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv[i_int] = 0.;
+					if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh[i_int] = 0.;
+					if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv[i_int] = 0.;					
+				}
 					
 				for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 					for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
@@ -1024,16 +1175,23 @@ void radarfilter_exec(
 									if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
 									if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
 									if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
-									if (rcfg->filter_Doppler_spectrum_dBZ_vv)radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
+									if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
+
+									if (todo->der_edr13) {
+										if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh[i_int] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod];
+										if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv[i_int] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod];
+										if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh[i_int] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod];
+										if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv[i_int] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][res_vol->n_parmod + i_parmod];
+									}
 
 									if (todo->calc_spectrum_eta_i_hh) radarmeasurement[i_m]->spectrum_eta_i_hh[i_psd][i_par][i_int] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
 									if (todo->calc_spectrum_eta_i_hv) radarmeasurement[i_m]->spectrum_eta_i_hv[i_psd][i_par][i_int] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
 									if (todo->calc_spectrum_eta_i_vh) radarmeasurement[i_m]->spectrum_eta_i_vh[i_psd][i_par][i_int] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
 									if (todo->calc_spectrum_eta_i_vv) radarmeasurement[i_m]->spectrum_eta_i_vv[i_psd][i_par][i_int] += res_vol->subvolume_eta_vv[i_res][i_psd][i_par][i_parmod];
 
-									if (todo->calc_Doppler_spectrum_ShhSvvc) radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc[i_int] += res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par][i_parmod];
-									if (todo->calc_Doppler_spectrum_ShhShvc) radarmeasurement[i_m]->Doppler_spectrum_ShhShvc[i_int] += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
-									if (todo->calc_Doppler_spectrum_SvvSvhc) radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc[i_int] += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];
+									if (todo->calc_Doppler_spectrum_ShhSvvc) Doppler_spectrum_ShhSvvc[i_int] += res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par][i_parmod];
+									if (todo->calc_Doppler_spectrum_ShhShvc) Doppler_spectrum_ShhShvc[i_int] += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
+									if (todo->calc_Doppler_spectrum_SvvSvhc) Doppler_spectrum_SvvSvhc[i_int] += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];
 								}
 							}
 						}
@@ -1045,13 +1203,28 @@ void radarfilter_exec(
 				}
 				
 				//1.e18: conversion of m^3 to mm^6 m^-3
-				if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
-				if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
-				if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int] = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
-				if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int] = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
-				if (todo->calc_Doppler_spectrum_ShhSvvc) radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc[i_int] *= 1.e18 * eta_factor / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
-				if (todo->calc_Doppler_spectrum_ShhShvc) radarmeasurement[i_m]->Doppler_spectrum_ShhShvc[i_int] *= 1.e18 * eta_factor / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
-				if (todo->calc_Doppler_spectrum_SvvSvhc)radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc[i_int] *= 1.e18 * eta_factor / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
+				if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
+				if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
+				if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
+				if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
+
+				if (todo->der_edr13) {
+					//plus term is calculated
+					if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
+					if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int] / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));
+					if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
+					if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv[i_int] = func_dB(eta2Z * radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]/ ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n));				
+					//derivative to edr is calculated
+					if (rcfg->filter_Doppler_spectrum_dBZ_hh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh[i_int] = (radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh[i_int] - radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int]) / 0.001;
+					if (rcfg->filter_Doppler_spectrum_dBZ_hv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv[i_int] = (radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv[i_int] - radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int]) / 0.001;
+					if (rcfg->filter_Doppler_spectrum_dBZ_vh) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh[i_int] = (radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh[i_int] - radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]) / 0.001;
+					if (rcfg->filter_Doppler_spectrum_dBZ_vv) radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv[i_int] = (radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv[i_int] - radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]) / 0.001;
+					
+				}
+				
+				if (todo->calc_Doppler_spectrum_ShhSvvc) Doppler_spectrum_ShhSvvc[i_int] *= eta2Z / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
+				if (todo->calc_Doppler_spectrum_ShhShvc) Doppler_spectrum_ShhShvc[i_int] *= eta2Z / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
+				if (todo->calc_Doppler_spectrum_SvvSvhc) Doppler_spectrum_SvvSvhc[i_int] *= eta2Z / ((radarmeasurement[i_m]->spectrum_ubound[i_int] - radarmeasurement[i_m]->spectrum_lbound[i_int]) * res_vol->n);				
 			}
 		}
 
@@ -1063,14 +1236,14 @@ void radarfilter_exec(
 		#endif
 		
 		//1.e18: conversion of m^3 to mm^6 m^-3
-		if (rcfg->filter_dBZ_hh) radarmeasurement[i_m]->dBZ_hh = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->eta_hh);
-		if (rcfg->filter_dBZ_hv) radarmeasurement[i_m]->dBZ_hv = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->eta_hv);
-		if (rcfg->filter_dBZ_vh) radarmeasurement[i_m]->dBZ_vh = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->eta_vh);
-		if (rcfg->filter_dBZ_vv) radarmeasurement[i_m]->dBZ_vv = func_dB(1.e18 * eta_factor * radarmeasurement[i_m]->eta_vv);
+		if (rcfg->filter_dBZ_hh) radarmeasurement[i_m]->dBZ_hh = func_dB(eta2Z * eta_hh);
+		if (rcfg->filter_dBZ_hv) radarmeasurement[i_m]->dBZ_hv = func_dB(eta2Z * eta_hv);
+		if (rcfg->filter_dBZ_vh) radarmeasurement[i_m]->dBZ_vh = func_dB(eta2Z * eta_vh);
+		if (rcfg->filter_dBZ_vv) radarmeasurement[i_m]->dBZ_vv = func_dB(eta2Z * eta_vv);
 
 		//*****
-		if (rcfg->filter_dBZdr) radarmeasurement[i_m]->dBZdr = func_dB(radarmeasurement[i_m]->eta_hh / radarmeasurement[i_m]->eta_vv);
-		if (rcfg->filter_dBLdr) radarmeasurement[i_m]->dBLdr = func_dB(radarmeasurement[i_m]->eta_hv / radarmeasurement[i_m]->eta_vv);
+		if (rcfg->filter_dBZdr) radarmeasurement[i_m]->dBZdr = func_dB(eta_hh / eta_vv);
+		if (rcfg->filter_dBLdr) radarmeasurement[i_m]->dBLdr = func_dB(eta_hv / eta_vv);
 
 		//*****
 		if (rcfg->filter_specific_dBZdr) {
@@ -1085,29 +1258,41 @@ void radarfilter_exec(
 		}
 
 		//*****
-		if (rcfg->filter_rho_co) 	radarmeasurement[i_m]->rho_co 	= radarmeasurement[i_m]->eta_ShhSvvc / sqrt(radarmeasurement[i_m]->eta_hh * radarmeasurement[i_m]->eta_vv);
-		if (rcfg->filter_rho_cxh) 	radarmeasurement[i_m]->rho_cxh 	= radarmeasurement[i_m]->eta_ShhShvc / sqrt(radarmeasurement[i_m]->eta_hh * radarmeasurement[i_m]->eta_hv);
-		if (rcfg->filter_rho_cxv) 	radarmeasurement[i_m]->rho_cxv 	= radarmeasurement[i_m]->eta_SvvSvhc / sqrt(radarmeasurement[i_m]->eta_vv * radarmeasurement[i_m]->eta_vh);
+		if (rcfg->filter_rho_co) 	radarmeasurement[i_m]->rho_co 	= eta_ShhSvvc / sqrt(eta_hh * eta_vv);
+		if (rcfg->filter_rho_cxh) 	radarmeasurement[i_m]->rho_cxh 	= eta_ShhShvc / sqrt(eta_hh * eta_hv);
+		if (rcfg->filter_rho_cxv) 	radarmeasurement[i_m]->rho_cxv 	= eta_SvvSvhc / sqrt(eta_vv * eta_vh);
 
 		//*****
 		if (rcfg->filter_specific_rho_co) {
 			for ( i_int = 0; i_int < radarmeasurement[i_m]->n_spectrum; i_int++ ) {
-				radarmeasurement[i_m]->specific_rho_co[i_int] = radarmeasurement[i_m]->Doppler_spectrum_ShhSvvc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]));
+				radarmeasurement[i_m]->specific_rho_co[i_int] = Doppler_spectrum_ShhSvvc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]));
 			}
 		}
 		if (rcfg->filter_specific_rho_cxh) {
 			for ( i_int = 0; i_int < radarmeasurement[i_m]->n_spectrum; i_int++ ) {
-				radarmeasurement[i_m]->specific_rho_cxh[i_int] = radarmeasurement[i_m]->Doppler_spectrum_ShhShvc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int]));
+				radarmeasurement[i_m]->specific_rho_cxh[i_int] = Doppler_spectrum_ShhShvc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv[i_int]));
 			}
 		}
 		if (rcfg->filter_specific_rho_cxv) {
 			for ( i_int = 0; i_int < radarmeasurement[i_m]->n_spectrum; i_int++ ) {
-				radarmeasurement[i_m]->specific_rho_cxv[i_int] = radarmeasurement[i_m]->Doppler_spectrum_SvvSvhc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]));
+				radarmeasurement[i_m]->specific_rho_cxv[i_int] = Doppler_spectrum_SvvSvhc[i_int] / sqrt(func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv[i_int]) * func_dB_inv(radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh[i_int]));
 			}
 		}
 
+		if (todo->der_edr13) {
+			if (rcfg->filter_dBZ_hh) radarmeasurement[i_m]->der_edr13_dBZ_hh = 
+				func_dB(eta_hh_plus/eta_hh) / 0.001;
+			if (rcfg->filter_dBZdr) radarmeasurement[i_m]->der_edr13_dBZdr =
+				(func_dB(eta_hh_plus / eta_vv_plus) -
+				func_dB(eta_hh / eta_vv)) / 0.001;
+			if (rcfg->filter_dBLdr) radarmeasurement[i_m]->der_edr13_dBLdr =
+				(func_dB(eta_hv_plus / eta_vv_plus) -
+				func_dB(eta_hv / eta_vv)) / 0.001;
+		}
+
+
 		//KDP
-		if (rcfg->filter_KDP) radarmeasurement[i_m]->KDP = 1.e3 * cfg->derived_quantities->central_wavelength_m * radarmeasurement[i_m]->n_Re_Shh_min_Svv;
+		if (rcfg->filter_KDP) radarmeasurement[i_m]->KDP = 1.e3 * cfg->derived_quantities->central_wavelength_m * n_Re_Shh_min_Svv;
 				
 		if (rcfg->filter_errors) {
 			//TBD
@@ -1194,6 +1379,12 @@ void radarfilter_exec(
 				}
 			}
 		}
+		
+		//free variables
+		util_safe_free(&(Doppler_spectrum_ShhSvvc));
+		util_safe_free(&(Doppler_spectrum_ShhShvc));
+		util_safe_free(&(Doppler_spectrum_SvvSvhc));
+
 	}
 
 	//free resolution volume
@@ -1888,8 +2079,15 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 		res_vol->n_parmod_az			= rcfg->n_parmod_az;
 		res_vol->n_parmod_el			= 2 * rcfg->n_parmod_el; //both positive and negative
 		res_vol->n_parmod				= res_vol->n_parmod_el * res_vol->n_parmod_az;
+		
+		if (todo->der_edr13) {
+			res_vol->n_parmod_plus = 2 * res_vol->n_parmod;
+		} else {
+			res_vol->n_parmod_plus = res_vol->n_parmod;			
+		}
 	} else {
 		res_vol->n_parmod 				= 1;
+		res_vol->n_parmod_plus			= 1;
 	}
 		
 	res_vol->n_psd					= myscattererfield->npsd;
@@ -1957,13 +2155,13 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 			if (todo->calc_eta_ShhShvc) res_vol->subvolume_eta_ShhShvc[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double*));
 			if (todo->calc_eta_SvvSvhc) res_vol->subvolume_eta_SvvSvhc[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double*));
 			for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-				if (todo->calc_eta_hh) res_vol->subvolume_eta_hh[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_hv) res_vol->subvolume_eta_hv[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_vh) res_vol->subvolume_eta_vh[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_vv) res_vol->subvolume_eta_vv[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_ShhSvvc) res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_ShhShvc) res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
-				if (todo->calc_eta_SvvSvhc) res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double));
+				if (todo->calc_eta_hh) res_vol->subvolume_eta_hh[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_hv) res_vol->subvolume_eta_hv[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_vh) res_vol->subvolume_eta_vh[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_vv) res_vol->subvolume_eta_vv[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_ShhSvvc) res_vol->subvolume_eta_ShhSvvc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_ShhShvc) res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
+				if (todo->calc_eta_SvvSvhc) res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus, sizeof(double));
 			}	
 		}
 	}
@@ -1996,9 +2194,9 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 				res_vol->subvolume_particle_v[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd] , sizeof(double*));
 				res_vol->subvolume_particle_w[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd] , sizeof(double*));			
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-					res_vol->subvolume_particle_u[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
-					res_vol->subvolume_particle_v[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
-					res_vol->subvolume_particle_w[i_res][i_psd][i_par]	= calloc(2 * res_vol->n_parmod , sizeof(double));
+					res_vol->subvolume_particle_u[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus , sizeof(double));
+					res_vol->subvolume_particle_v[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus , sizeof(double));
+					res_vol->subvolume_particle_w[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod_plus , sizeof(double));
 				}
 			}
 		}
@@ -2013,8 +2211,8 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				res_vol->subvolume_particle_dir[i_res][i_psd]	= calloc(res_vol->n_diameters[i_psd], sizeof(double**));
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-					res_vol->subvolume_particle_dir[i_res][i_psd][i_par] = calloc(res_vol->n_parmod, sizeof(double*));
-					for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+					res_vol->subvolume_particle_dir[i_res][i_psd][i_par] = calloc(res_vol->n_parmod_plus, sizeof(double*));
+					for ( i_parmod = 0; i_parmod < res_vol->n_parmod_plus; i_parmod++ ) {
 						res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod] = calloc(4, sizeof(double));
 					}
 				}
@@ -2030,7 +2228,7 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd] = calloc(res_vol->n_diameters[i_psd], sizeof(double*));
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-					res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par] = calloc(res_vol->n_parmod, sizeof(double));
+					res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par] = calloc(res_vol->n_parmod_plus, sizeof(double));
 				}
 			}
 		}	
@@ -2167,7 +2365,7 @@ void radarfilter_free_resolution_volume(t_zephyros_config *cfg, int i_mode, t_ra
 			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 				for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 					for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
-						for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+						for ( i_parmod = 0; i_parmod < res_vol->n_parmod_plus; i_parmod++ ) {
 							util_safe_free(&(res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod]));			
 						}
 						util_safe_free(&(res_vol->subvolume_particle_dir[i_res][i_psd][i_par]));			
@@ -2296,6 +2494,8 @@ void radarfilter_initialize_todolist(t_zephyros_config *cfg, int i_mode, t_radar
 	todolist->calc_spectrum_eta_i_hv = 0;
 	todolist->calc_spectrum_eta_i_vh = 0;
 	todolist->calc_spectrum_eta_i_vv = 0;
+	
+	todolist->der_edr13 = 0;
 		
 	radarfilter_prepare_todolist(cfg, i_mode, todolist);
 
@@ -2537,9 +2737,6 @@ void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurem
 		radarmeasurement[i]->Doppler_spectrum_dBZ_vh_err = NULL;
 		radarmeasurement[i]->Doppler_spectrum_dBZ_vv = NULL;
 		radarmeasurement[i]->Doppler_spectrum_dBZ_vv_err = NULL;
-		radarmeasurement[i]->Doppler_spectrum_ShhSvvc = NULL;
-		radarmeasurement[i]->Doppler_spectrum_ShhShvc = NULL;
-		radarmeasurement[i]->Doppler_spectrum_SvvSvhc = NULL;
 		radarmeasurement[i]->specific_dBZdr = NULL;
 		radarmeasurement[i]->specific_dBZdr_err = NULL;
 		radarmeasurement[i]->specific_dBLdr = NULL;
@@ -2562,6 +2759,11 @@ void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurem
 		radarmeasurement[i]->spectrum_eta_i_hv = NULL;
 		radarmeasurement[i]->spectrum_eta_i_vh = NULL;
 		radarmeasurement[i]->spectrum_eta_i_vv = NULL;
+		
+		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_hh = NULL;
+		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_hv = NULL;
+		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vh = NULL;
+		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vv = NULL;
 		
 		//analysis
 		radarmeasurement[i]->analysis = calloc(1, sizeof(t_radarmeasurement_analysis));
@@ -2629,9 +2831,6 @@ void radarfilter_free_radarmeasurement(int n_measurements, t_radarmeasurement **
 			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_dBZ_vh_err));
 			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_dBZ_vv));
 			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_dBZ_vv_err));
-			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_ShhSvvc));
-			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_ShhShvc));
-			util_safe_free(&(radarmeasurement[i]->Doppler_spectrum_SvvSvhc));
 			util_safe_free(&(radarmeasurement[i]->specific_dBZdr));
 			util_safe_free(&(radarmeasurement[i]->specific_dBZdr_err));
 			util_safe_free(&(radarmeasurement[i]->specific_dBLdr));

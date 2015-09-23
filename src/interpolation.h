@@ -6,17 +6,20 @@ typedef struct st_zephyros_interpolation_bilint_lut
 	int 		n_dim;
 	int 		n;
 	int 		*shape;
-	double 		*ax_values;
+	double 		**ax_values;
 	int 		special;			//special: 0 = nothing, 1 = apply angular interpolation [rad], 2 = interpolate abs value, 3 = interpolate log value
 	double		*mesh_y;			//actual lut; y-values on the mesh; length: n.
 	int			mesy_y_allocated;	//0 = not allocated, 1 = allocated, will be freed.
+	
+	int			periodic;			//1 = periodic interpolation, 0 = standard extrapolation
+	double		*periodic_L;		//periodic length for each axis
 } t_zephyros_interpolation_bilint_lut;
 
-void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int n3, double *vec3, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut);
-
-void interpolation_linearinterpolation2lut(int n, double *x, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut);
-
+void interpolation_initialize_lut(t_zephyros_interpolation_bilint_lut **plut);
 void interpolation_free_lut(t_zephyros_interpolation_bilint_lut **plut);
+
+void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int n3, double *vec3, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut);
+void interpolation_linearinterpolation2lut(int n, double *x, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut);
 
 void interpolation_bilint(
 	t_zephyros_interpolation_bilint_lut	*lut,
@@ -33,9 +36,9 @@ void interpolation_bilint_griddep(
 	);
 
 void interpolation_calcindices(
-	int			*n,
-	double		*ax_values,
-	double		*val,
+	t_zephyros_interpolation_bilint_lut	*lut,
+	int i_axis,	
+	double		val,
 	int			*i0,
 	int			*i1,
 	double		*di
@@ -53,7 +56,7 @@ void interpolation_nr2tup(
 	int	*nr,
 	int	*tup);
 
-void interpolation_piecewise_int(int *n, double	*xin, double *yin, double *xout, double	*yout);
+//void interpolation_piecewise_int(int *n, double	*xin, double *yin, double *xout, double	*yout);
 
 void interpolation_intprod(int *n, int *arr, int *result);
 	
@@ -83,4 +86,5 @@ double interpolation_nq_sh_f_xi(
 			int		*i,
 			double 	*q);
 		
+double interpolation_modulo(double x, double y);
 #endif

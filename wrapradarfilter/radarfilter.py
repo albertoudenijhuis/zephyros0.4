@@ -28,12 +28,12 @@ def calc_radar_meas(observations):
         ]:
             
         if variable not in observations.keys():
-            print "variable '{}' was not found in dictionary!".format(variable)
+            print "variable '{0}' was not found in dictionary!".format(variable)
             exit(0)
             
-        txtfile += "!!     {}     ".format(variable)
-        txtfile += "{}     {}     ".format(1, nrad)
-        for i in range(nrad): txtfile += "{:.5e}     ".format(observations[variable][i])
+        txtfile += "!!     {0}     ".format(variable)
+        txtfile += "{0}     {1}     ".format(1, nrad)
+        for i in range(nrad): txtfile += "{0:.5e}     ".format(observations[variable][i])
         txtfile += "\n"
 
     f = open('./tmpmeasurements.z', 'w')

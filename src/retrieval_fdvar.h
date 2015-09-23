@@ -2,14 +2,14 @@
 #include "fields.h"
 #include "radarfilter.h"
 
+double prev_costfunction;
 
 typedef struct st_fdvar_o
 {
-    int 					n;								//number of observations
+    int 					n;								//number of radar observations
 	t_radarmeasurement 		**radarmeasurement;				//radar observations
-
 	t_radarmeasurement 		**model_radarmeasurement;	//model radar observations
- 
+ 	
     //output
 	double		*windvector_u;
 	double		*windvector_v;
@@ -21,8 +21,6 @@ typedef struct st_fdvar_o
 	double		*edr;
 	double		*lwc;
 
-	//dsd
-	//TBD
 } t_fdvar_o ;
 
 typedef struct st_fdvar_p
@@ -30,7 +28,7 @@ typedef struct st_fdvar_p
 	int			Kn;			//number of parameters, typically 3 + 4 * nxyz;
 	double*		Kubound;	//K upper bound
 	double*		Klbound;	//K lower bound
-	int			on;			//total number of observations that are fitted, typically 2 x o->n (reflection and vr).
+	int			cost_no;	//total number of observations that are fitted, typically 2 x o->n (reflection and vr).
 
 } t_fdvar_p ;
 

@@ -153,13 +153,13 @@ void fields_free(t_zephyros_field **pfield)
 	t_zephyros_field *field = *pfield;
 	
 	if (field != NULL) {
-		if (field->vec_x != NULL) {free(field->vec_x); field->vec_x = NULL;}
-		if (field->vec_y != NULL) {free(field->vec_y); field->vec_y = NULL;}
-		if (field->vec_z != NULL) {free(field->vec_z); field->vec_z = NULL;}
-		if (field->vec_t != NULL) {free(field->vec_t); field->vec_t = NULL;}
+		if (field->vec_x != NULL) {free(field->vec_x);}
+		if (field->vec_y != NULL) {free(field->vec_y);}
+		if (field->vec_z != NULL) {free(field->vec_z);}
+		if (field->vec_t != NULL) {free(field->vec_t);}
 			
 		free(field);
-		field = NULL;
+		*pfield = NULL;
 	}
 }
 

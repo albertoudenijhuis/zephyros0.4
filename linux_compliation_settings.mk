@@ -5,7 +5,9 @@ CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm  -g -w
 # -w
 DEPS = $(filter-out %/wrapretrieval_exec.c %/wrapradarfilter_exec.c %/wrapwindfield_exec.c, $(wildcard ../$(RELPAT)src/*.c)) particles_mischenko2000_ampld.lp.o particles_mischenko2000_lpd.o
 
-INC			= -I../$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
+INC1			= -I../$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
+INC2		= -I/usr/local/include/python2.7 -I/usr/local/lib64/python2.7/site-packages/numpy/core/include
+INC			= $(INC1) $(INC2)
 
 settings:
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
