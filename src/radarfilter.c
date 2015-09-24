@@ -976,6 +976,8 @@ void radarfilter_exec(
 						}
 					}
 
+
+					
 					if (todo->calc_eta_i_hh) radarmeasurement[i_m]->eta_i_hh[i_psd][i_par] /= res_vol->n;
 					if (todo->calc_eta_i_hv) radarmeasurement[i_m]->eta_i_hv[i_psd][i_par] /= res_vol->n;
 					if (todo->calc_eta_i_vh) radarmeasurement[i_m]->eta_i_vh[i_psd][i_par] /= res_vol->n;

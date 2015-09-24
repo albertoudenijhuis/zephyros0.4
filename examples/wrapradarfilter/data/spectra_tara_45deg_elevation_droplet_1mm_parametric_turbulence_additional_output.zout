@@ -2,7 +2,7 @@
 # '# ' #-sign + blank space at the beginning of a line means a comment and these lines are skipped
 # comments can also be put in parentheses (comment)
 #
-#configuration read from file: ../../../input_files/general/standard_output.cfg;../../../input_files/general/water_refractive_index_segelstein.cfg;../../../input_files/general/white1999_integral.cfg;../../../input_files/general/atmosphere/US1976.cfg;../../../input_files/general/instruments/tara.cfg;../../../input_files/simulation/radarfilter/all.cfg;../../../input_files/simulation/scatterers/rain.cfg;../../../input_files/simulation/wind/vector.cfg;
+#configuration read from file: ../../../input_files/general/standard_output.cfg;../../../input_files/general/water_refractive_index_segelstein.cfg;../../../input_files/general/white1999_integral.cfg;../../../input_files/general/atmosphere/US1976.cfg;../../../input_files/general/instruments/tara.cfg;../../../input_files/simulation/radarfilter/all.cfg;../../../input_files/simulation/scatterers/droplet_1mm.cfg;../../../input_files/simulation/wind/turbulence_parametric.cfg;
 #
 section general
 subsection additional_output
@@ -43,146 +43,40 @@ integral_sqrt                  62500           1.925e-03       8.514e-01       9
 section simulation
 subsection scattererfield
 psd                            0              
-psd_distribution_type          1              
+psd_distribution_type          0              
 psd_particle_type              2              
-vec_x                          1               0.000e+00      
-vec_y                          1               0.000e+00      
-vec_z                          1               0.000e+00      
-vec_t                          1               0.000e+00      
+psd_vec_x                      1               0.000e+00      
+psd_vec_y                      1               0.000e+00      
+psd_vec_z                      1               0.000e+00      
+psd_vec_t                      1               0.000e+00      
 psd_grid_lwc_gm3               1               1.000e+00      
-psd_grid_gammadistribution_N0  1               2.774e+06      
-psd_gammadistribution_mu       5.000e+00      
-psd_gammadistribution_D0_mm    2.000e+00      
-psd_gammadistribution_dmin_mm  1.000e-02      
-psd_gammadistribution_dmax_mm  8.500e+00      
-#
-psd_n_diameters                50             
-#    Equivalent representation of the gamma distribution in discrete pdf
-#    
-#    psd_distribution_type          0              
-#    psd_discrete_D_equiv_mm        50              1.252e+00       1.471e+00       1.597e+00       1.692e+00       1.771e+00       1.839e+00       1.901e+00       1.957e+00       2.010e+00       2.059e+00       2.107e+00       2.152e+00       2.196e+00       2.238e+00       2.280e+00       2.321e+00       2.361e+00       2.400e+00       2.439e+00       2.478e+00       2.517e+00       2.555e+00       2.594e+00       2.633e+00       2.672e+00       2.711e+00       2.751e+00       2.792e+00       2.833e+00       2.875e+00       2.917e+00       2.961e+00       3.006e+00       3.052e+00       3.101e+00       3.150e+00       3.203e+00       3.257e+00       3.315e+00       3.376e+00       3.442e+00       3.513e+00       3.591e+00       3.677e+00       3.775e+00       3.888e+00       4.025e+00       4.200e+00       4.453e+00       4.957e+00      
-#    psd_grid_number_density_m3     1               2.277e+02      
-#    psd_grid_dBnumber_density_err_m3 1               3.415e+01      
-#    psd_grid_number_density_m3     1               4.272e+01      
-#    psd_grid_dBnumber_density_err_m3 1               2.663e+01      
-#    psd_grid_number_density_m3     1               2.555e+01      
-#    psd_grid_dBnumber_density_err_m3 1               2.439e+01      
-#    psd_grid_number_density_m3     1               1.797e+01      
-#    psd_grid_dBnumber_density_err_m3 1               2.287e+01      
-#    psd_grid_number_density_m3     1               1.365e+01      
-#    psd_grid_dBnumber_density_err_m3 1               2.169e+01      
-#    psd_grid_number_density_m3     1               1.086e+01      
-#    psd_grid_dBnumber_density_err_m3 1               2.071e+01      
-#    psd_grid_number_density_m3     1               8.907e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.987e+01      
-#    psd_grid_number_density_m3     1               7.469e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.912e+01      
-#    psd_grid_number_density_m3     1               6.367e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.844e+01      
-#    psd_grid_number_density_m3     1               5.500e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.782e+01      
-#    psd_grid_number_density_m3     1               4.800e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.725e+01      
-#    psd_grid_number_density_m3     1               4.223e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.671e+01      
-#    psd_grid_number_density_m3     1               3.742e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.621e+01      
-#    psd_grid_number_density_m3     1               3.335e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.572e+01      
-#    psd_grid_number_density_m3     1               2.986e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.527e+01      
-#    psd_grid_number_density_m3     1               2.685e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.482e+01      
-#    psd_grid_number_density_m3     1               2.423e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.440e+01      
-#    psd_grid_number_density_m3     1               2.194e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.399e+01      
-#    psd_grid_number_density_m3     1               1.991e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.358e+01      
-#    psd_grid_number_density_m3     1               1.810e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.319e+01      
-#    psd_grid_number_density_m3     1               1.650e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.281e+01      
-#    psd_grid_number_density_m3     1               1.505e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.243e+01      
-#    psd_grid_number_density_m3     1               1.376e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.206e+01      
-#    psd_grid_number_density_m3     1               1.258e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.170e+01      
-#    psd_grid_number_density_m3     1               1.152e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.134e+01      
-#    psd_grid_number_density_m3     1               1.055e+00      
-#    psd_grid_dBnumber_density_err_m3 1               1.098e+01      
-#    psd_grid_number_density_m3     1               9.665e-01      
-#    psd_grid_dBnumber_density_err_m3 1               1.062e+01      
-#    psd_grid_number_density_m3     1               8.855e-01      
-#    psd_grid_dBnumber_density_err_m3 1               1.027e+01      
-#    psd_grid_number_density_m3     1               8.114e-01      
-#    psd_grid_dBnumber_density_err_m3 1               9.915e+00      
-#    psd_grid_number_density_m3     1               7.430e-01      
-#    psd_grid_dBnumber_density_err_m3 1               9.559e+00      
-#    psd_grid_number_density_m3     1               6.800e-01      
-#    psd_grid_dBnumber_density_err_m3 1               9.202e+00      
-#    psd_grid_number_density_m3     1               6.219e-01      
-#    psd_grid_dBnumber_density_err_m3 1               8.841e+00      
-#    psd_grid_number_density_m3     1               5.681e-01      
-#    psd_grid_dBnumber_density_err_m3 1               8.477e+00      
-#    psd_grid_number_density_m3     1               5.182e-01      
-#    psd_grid_dBnumber_density_err_m3 1               8.108e+00      
-#    psd_grid_number_density_m3     1               4.718e-01      
-#    psd_grid_dBnumber_density_err_m3 1               7.733e+00      
-#    psd_grid_number_density_m3     1               4.287e-01      
-#    psd_grid_dBnumber_density_err_m3 1               7.350e+00      
-#    psd_grid_number_density_m3     1               3.885e-01      
-#    psd_grid_dBnumber_density_err_m3 1               6.957e+00      
-#    psd_grid_number_density_m3     1               3.509e-01      
-#    psd_grid_dBnumber_density_err_m3 1               6.552e+00      
-#    psd_grid_number_density_m3     1               3.158e-01      
-#    psd_grid_dBnumber_density_err_m3 1               6.133e+00      
-#    psd_grid_number_density_m3     1               2.829e-01      
-#    psd_grid_dBnumber_density_err_m3 1               5.697e+00      
-#    psd_grid_number_density_m3     1               2.520e-01      
-#    psd_grid_dBnumber_density_err_m3 1               5.240e+00      
-#    psd_grid_number_density_m3     1               2.229e-01      
-#    psd_grid_dBnumber_density_err_m3 1               4.756e+00      
-#    psd_grid_number_density_m3     1               1.955e-01      
-#    psd_grid_dBnumber_density_err_m3 1               4.240e+00      
-#    psd_grid_number_density_m3     1               1.696e-01      
-#    psd_grid_dBnumber_density_err_m3 1               3.681e+00      
-#    psd_grid_number_density_m3     1               1.449e-01      
-#    psd_grid_dBnumber_density_err_m3 1               3.066e+00      
-#    psd_grid_number_density_m3     1               1.214e-01      
-#    psd_grid_dBnumber_density_err_m3 1               2.374e+00      
-#    psd_grid_number_density_m3     1               9.863e-02      
-#    psd_grid_dBnumber_density_err_m3 1               1.567e+00      
-#    psd_grid_number_density_m3     1               7.632e-02      
-#    psd_grid_dBnumber_density_err_m3 1               5.738e-01      
-#    psd_grid_number_density_m3     1               5.364e-02      
-#    psd_grid_dBnumber_density_err_m3 1               -7.861e-01     
-#    psd_grid_number_density_m3     1               2.711e-02      
-#    psd_grid_dBnumber_density_err_m3 1               -3.420e+00     
+psd_n_diameters                1              
+psd_discrete_D_equiv_mm        1               1.000e+00      
+psd_grid_number_density_m3     1               1.913e+03      
+psd_grid_dBnumber_density_err_m3 1               2.282e+01      
 
 
 
 subsection windfield
-grid                           0              
-vec_x                          1               0.000e+00      
-vec_y                          1               0.000e+00      
-vec_z                          1               0.000e+00      
-vec_t                          1               0.000e+00      
-grid_u                         1               1.000e+00      
-grid_v                         1               1.000e+00      
-grid_w                         1               1.000e-01      
+turbulence                     0              
+turbulence_type                5              
+turbulence_vec_x               1               0.000e+00      
+turbulence_vec_y               1               0.000e+00      
+turbulence_vec_z               1               0.000e+00      
+turbulence_vec_t               1               0.000e+00      
+turbulence_grid_edr            1               1.000e-02      
+turbulence_grid_kolmogorov_constant 1               1.000e+00      
+turbulence_fit_edr13           0              
 
 
 
 subsection radarfilter
-n_beam_range                   4              
-n_beam_theta                   4              
-n_beam_phi                     4              
+n_beam_range                   1              
+n_beam_theta                   1              
+n_beam_phi                     1              
 n_t                            1              
-n_parmod_az                    16             
-n_parmod_el                    8              
+n_parmod_az                    128            
+n_parmod_el                    128            
 n_spectrum                     8              
 
 filter_dBZ_hh                  1              
@@ -215,6 +109,7 @@ filter_specific_rho_cxv        1
 filter_errors                  1              
 additive_noise                 1              
 multiplicative_noise           0              
+inertia_effect                 0              
 effective_earth_correction     1              
 
 
@@ -248,60 +143,60 @@ radar_water_refractive_index_imag    -7.016e-01
 !! center_y                       1               1               -2.636e-03      
 !! center_z                       1               1               7.176e+02       
 !! center_t                       1               1               0.000e+00       
-!! dBZ_hh                         1               1               4.314e+01       
+!! dBZ_hh                         1               1               3.240e+01       
 !! dBZ_hh_err                     1               1               1.000e+00       
-!! dBZ_hv                         1               1               6.499e+00       
+!! dBZ_hv                         1               1               -2.455e+01      
 !! dBZ_hv_err                     1               1               1.000e+00       
-!! dBZ_vh                         1               1               6.499e+00       
+!! dBZ_vh                         1               1               -2.455e+01      
 !! dBZ_vh_err                     1               1               1.000e+00       
-!! dBZ_vv                         1               1               4.235e+01       
+!! dBZ_vv                         1               1               3.232e+01       
 !! dBZ_vv_err                     1               1               1.000e+00       
-!! dBZdr                          1               1               7.863e-01       
+!! dBZdr                          1               1               8.488e-02       
 !! dBZdr_err                      1               1               1.000e+00       
-!! dBLdr                          1               1               -3.585e+01      
+!! dBLdr                          1               1               -5.687e+01      
 !! dBLdr_err                      1               1               1.000e+00       
-!! rho_co                         1               1               9.991e-01       
+!! rho_co                         1               1               1.000e+00       
 !! rho_co_err                     1               1               1.000e+00       
-!! rho_cxh                        1               1               9.547e-01       
+!! rho_cxh                        1               1               7.941e-01       
 !! rho_cxh_err                    1               1               1.000e+00       
-!! rho_cxv                        1               1               9.415e-01       
+!! rho_cxv                        1               1               7.941e-01       
 !! rho_cxv_err                    1               1               1.000e+00       
-!! Doppler_velocity_hh_ms         1               1               -4.698e+00      
+!! Doppler_velocity_hh_ms         1               1               -2.324e+00      
 !! Doppler_velocity_hh_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_hv_ms         1               1               -5.174e+00      
+!! Doppler_velocity_hv_ms         1               1               -2.383e+00      
 !! Doppler_velocity_hv_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_vh_ms         1               1               -5.174e+00      
+!! Doppler_velocity_vh_ms         1               1               -2.383e+00      
 !! Doppler_velocity_vh_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_vv_ms         1               1               -4.628e+00      
+!! Doppler_velocity_vv_ms         1               1               -2.325e+00      
 !! Doppler_velocity_vv_ms_err     1               1               1.000e+00       
-!! Doppler_spectral_width_hh_ms   1               1               8.693e-01       
+!! Doppler_spectral_width_hh_ms   1               1               2.856e-01       
 !! Doppler_spectral_width_hh_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_hv_ms   1               1               7.030e-01       
+!! Doppler_spectral_width_hv_ms   1               1               2.576e-01       
 !! Doppler_spectral_width_hv_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_vh_ms   1               1               7.030e-01       
+!! Doppler_spectral_width_vh_ms   1               1               2.576e-01       
 !! Doppler_spectral_width_vh_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_vv_ms   1               1               8.760e-01       
+!! Doppler_spectral_width_vv_ms   1               1               2.860e-01       
 !! Doppler_spectral_width_vv_ms_err 1               1               1.000e+00       
-!! KDP                            1               1               5.707e-03       
+!! KDP                            1               1               9.814e-04       
 !! KDP_err                        1               1               1.000e+00       
-!! spectrum_velocity_lbound       2               1               8               -6.720e+00      -5.667e+00      -5.270e+00      -4.969e+00      -4.698e+00      -4.426e+00      -4.125e+00      -3.729e+00      
-!! spectrum_velocity_center       2               1               8               -5.972e+00      -5.449e+00      -5.113e+00      -4.832e+00      -4.564e+00      -4.282e+00      -3.946e+00      -3.423e+00      
-!! spectrum_velocity_ubound       2               1               8               -5.667e+00      -5.270e+00      -4.969e+00      -4.698e+00      -4.426e+00      -4.125e+00      -3.729e+00      -2.675e+00      
-!! Doppler_spectrum_dBZ_hh        2               1               8               3.440e+01       3.907e+01       3.943e+01       3.949e+01       3.932e+01       3.828e+01       3.741e+01       3.301e+01       
+!! spectrum_velocity_lbound       2               1               8               -2.988e+00      -2.642e+00      -2.512e+00      -2.413e+00      -2.324e+00      -2.235e+00      -2.136e+00      -2.006e+00      
+!! spectrum_velocity_center       2               1               8               -2.743e+00      -2.571e+00      -2.460e+00      -2.368e+00      -2.280e+00      -2.187e+00      -2.077e+00      -1.905e+00      
+!! spectrum_velocity_ubound       2               1               8               -2.642e+00      -2.512e+00      -2.413e+00      -2.324e+00      -2.235e+00      -2.136e+00      -2.006e+00      -1.660e+00      
+!! Doppler_spectrum_dBZ_hh        2               1               8               2.749e+01       2.989e+01       3.112e+01       3.231e+01       3.382e+01       3.597e+01       3.402e+01       2.610e+01       
 !! Doppler_spectrum_dBZ_hh_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_hv        2               1               8               1.087e+00       3.879e+00       3.175e+00       2.408e+00       1.427e+00       -4.587e-01      -2.381e+00      -8.637e+00      
+!! Doppler_spectrum_dBZ_hv        2               1               8               -2.832e+01      -2.507e+01      -2.388e+01      -2.306e+01      -2.257e+01      -2.247e+01      -2.391e+01      -3.612e+01      
 !! Doppler_spectrum_dBZ_hv_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_vh        2               1               8               1.087e+00       3.879e+00       3.175e+00       2.408e+00       1.427e+00       -4.588e-01      -2.381e+00      -8.637e+00      
+!! Doppler_spectrum_dBZ_vh        2               1               8               -2.832e+01      -2.507e+01      -2.388e+01      -2.306e+01      -2.257e+01      -2.247e+01      -2.391e+01      -3.612e+01      
 !! Doppler_spectrum_dBZ_vh_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_vv        2               1               8               3.296e+01       3.800e+01       3.853e+01       3.872e+01       3.865e+01       3.770e+01       3.694e+01       3.267e+01       
+!! Doppler_spectrum_dBZ_vv        2               1               8               2.743e+01       2.982e+01       3.104e+01       3.223e+01       3.373e+01       3.588e+01       3.392e+01       2.599e+01       
 !! Doppler_spectrum_dBZ_vv_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_dBZdr                 2               1               8               1.447e+00       1.079e+00       8.978e-01       7.735e-01       6.686e-01       5.730e-01       4.722e-01       3.360e-01       
+!! specific_dBZdr                 2               1               8               5.946e-02       6.732e-02       7.278e-02       7.813e-02       8.374e-02       9.020e-02       1.025e-01       1.146e-01       
 !! specific_dBZdr_err             2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_dBLdr                 2               1               8               -3.187e+01      -3.412e+01      -3.536e+01      -3.631e+01      -3.722e+01      -3.816e+01      -3.932e+01      -4.131e+01      
+!! specific_dBLdr                 2               1               8               -5.575e+01      -5.489e+01      -5.493e+01      -5.529e+01      -5.630e+01      -5.835e+01      -5.783e+01      -6.210e+01      
 !! specific_dBLdr_err             2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_co                2               1               8               9.998e-01       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_rho_co                2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
 !! specific_rho_co_err            2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_cxh               2               1               8               9.948e-01       9.990e-01       9.995e-01       9.996e-01       9.996e-01       9.995e-01       9.990e-01       9.953e-01       
+!! specific_rho_cxh               2               1               8               8.504e-01       8.507e-01       8.434e-01       8.301e-01       7.958e-01       7.093e-01       8.436e-01       8.453e-01       
 !! specific_rho_cxh_err           2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_cxv               2               1               8               9.923e-01       9.986e-01       9.993e-01       9.995e-01       9.995e-01       9.994e-01       9.988e-01       9.947e-01       
+!! specific_rho_cxv               2               1               8               8.502e-01       8.505e-01       8.431e-01       8.298e-01       7.955e-01       7.091e-01       8.434e-01       8.453e-01       
 !! specific_rho_cxv_err           2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       

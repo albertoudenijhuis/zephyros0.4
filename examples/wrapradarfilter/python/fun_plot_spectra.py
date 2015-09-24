@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-def plot_spectra(ao_name, fname, opts = {}):
+def plot_spectogram(ao_name, fname, opts = {}):
     fontsize0 = 20
     mpl.rc('xtick', labelsize=fontsize0) 
     mpl.rc('ytick', labelsize=fontsize0) 
@@ -17,7 +17,6 @@ def plot_spectra(ao_name, fname, opts = {}):
 
     recalc = {}
     recalc['spectrum_velocity_center'] = np.repeat( [np.linspace(-15.,15., 1000)], len(ao['azel_r1_m']), axis=0)
-
     recalc = calc_hr_spectrum.ao_to_recalc(ao, recalc)
 
     for plot in [
@@ -110,3 +109,64 @@ def plot_spectra(ao_name, fname, opts = {}):
 
             plt.savefig(fname + '_'+plot+'.png')
             plt.close(fig)
+
+
+
+
+
+def plot_spectrum(ao_name, fname, opts = {}):
+    fontsize0 = 20
+    mpl.rc('xtick', labelsize=fontsize0) 
+    mpl.rc('ytick', labelsize=fontsize0) 
+    
+    ao = additional_output.ao_dct(ao_name)
+
+    recalc = {}
+    recalc['spectrum_velocity_center'] = np.repeat( [np.linspace(-15.,15., 1000)], len(ao['azel_r1_m']), axis=0)
+    recalc = calc_hr_spectrum.ao_to_recalc(ao, recalc)
+
+
+    for plot in [
+        'Doppler_spectrum_dBZ_hh',
+        'Doppler_spectrum_dBZ_hv',
+        'Doppler_spectrum_dBZ_vh',
+        'Doppler_spectrum_dBZ_vv',
+        'specific_dBZdr',
+        'specific_dBLdr',
+        'specific_rho_co',
+        'specific_rho_cxh',
+        'specific_rho_cxv',
+         ]:
+
+        if plot in recalc.keys():
+            fig = plt.figure(figsize=(5,5))
+            ax=plt.subplot(111)
+                         
+            if ('title' in opts.keys()):
+                ax.set_title(opts['title'])
+            
+            z = recalc[plot][0]
+            z = np.where(z == calc_hr_spectrum._FillValueminINF, np.nan, z)
+            
+            ax.plot(recalc['spectrum_velocity_center'][0,:], z, linewidth=2)
+
+            ax.set_xlabel("Doppler velocity [m/s]") 
+            ax.set_ylabel('[dB]')
+
+                
+            ax.set_xbound(-5., 5.)
+
+                                                 
+
+            
+            plt.tight_layout()
+
+
+            plt.savefig(fname + '_'+plot+'.png')
+            plt.close(fig)
+
+
+
+
+
+

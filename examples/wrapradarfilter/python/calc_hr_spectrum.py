@@ -3,9 +3,10 @@
 _FillValueminINF = -9.999e5
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.stats import norm
 
 def special_interpolate_via_integral(
-        lbound, ubound, values, newx, interpolation_kind = 'quadratic'
+        lbound, ubound, values, newx, interpolation_kind = 'cubic'
         ):
 
     #define interpolation points for the integral function
@@ -42,7 +43,9 @@ def dB(x):
     else:
         return np.where(np.isnan(y), _FillValueminINF, y)
 
-def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'quadratic'):
+def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'cubic'):
+
+
     if recalc == None:
         n = 100
         #do a recalculation with a different resolution
@@ -72,13 +75,15 @@ def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'quadratic'):
         ]:
         for i in range(ao['Doppler_spectrum_dBZ_hh'].shape[0]):
             if myvar in ao.keys():
+                #function to translate x, to ppt
+                myf = lambda x: norm.cdf(x, ao['Doppler_velocity_hh_ms'][i], ao['Doppler_spectral_width_hh_ms'][i])             
                 recalc[myvar][i,:] = dB(special_interpolate_via_integral(
-                                ao['spectrum_velocity_lbound'][i,:],
-                                ao['spectrum_velocity_ubound'][i,:],
+                                myf(ao['spectrum_velocity_lbound'][i,:]),
+                                myf(ao['spectrum_velocity_ubound'][i,:]),
                                 dBinv(ao[myvar][i,:]),
-                                recalc['spectrum_velocity_center'][i,:], interpolation_kind))
+                                myf(recalc['spectrum_velocity_center'][i,:]), interpolation_kind))
                 #ignore low reflection
-                recalc[myvar][i,:] = np.where(recalc[myvar][i,:] > (np.nanmax(recalc[myvar][i,:]) - 10.), recalc[myvar][i,:], _FillValueminINF)
+                recalc[myvar][i,:] = np.where(recalc[myvar][i,:] > (np.nanmax(recalc[myvar][i,:]) - 25.), recalc[myvar][i,:], _FillValueminINF)
 
     recalc['specific_dBZdr'] = recalc['Doppler_spectrum_dBZ_hh'] - recalc['Doppler_spectrum_dBZ_vv']
     recalc['specific_dBLdr'] = recalc['Doppler_spectrum_dBZ_hv'] - recalc['Doppler_spectrum_dBZ_vv']
@@ -89,7 +94,7 @@ def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'quadratic'):
     crit = (recalc['Doppler_spectrum_dBZ_hv'] == _FillValueminINF) | (recalc['Doppler_spectrum_dBZ_vv'] == _FillValueminINF)    
     recalc['specific_dBLdr'] = np.where(crit, np.nan, recalc['specific_dBLdr'])
     
-    
+    #~ 
     #~ for i in range(ao['Doppler_spectrum_dBZ_hh'].shape[0]):          
         #~ recalc['specific_rho_co'][i,:] = special_interpolate_via_integral(
                         #~ ao['spectrum_velocity_lbound'][i,:],
@@ -106,5 +111,6 @@ def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'quadratic'):
                         #~ ao['spectrum_velocity_ubound'][i,:],
                         #~ ao['specific_rho_cxv'][i,:] * np.sqrt(dBinv(ao['Doppler_spectrum_dBZ_vv'][i,:]) * dBinv(ao['Doppler_spectrum_dBZ_vh'][i,:])),
                         #~ recalc['spectrum_velocity_center'][i,:], interpolation_kind) /  np.sqrt(dBinv(recalc['Doppler_spectrum_dBZ_vv'][i,:]) * dBinv(recalc['Doppler_spectrum_dBZ_vh'][i,:]))
-        
+        #~ 
+    #~ 
     return recalc

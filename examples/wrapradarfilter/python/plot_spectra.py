@@ -11,6 +11,8 @@ import pickle
 import gzip
 
 from scipy import stats
+import fun_plot_spectra
+
 
 myplotdcts = {}
 
@@ -91,13 +93,13 @@ myplotdcts['spectra_tara_45deg_elevation_droplet_8mm_vector'] = \
 
 
 #delete some, not ready yet...
-#del myplotdcts['spectra_tara_45deg_elevation_rain_parametric_turbulence']
-del myplotdcts['spectra_tara_45deg_elevation_droplet_1mm_parametric_turbulence']
+del myplotdcts['spectra_tara_45deg_elevation_rain_parametric_turbulence']
+#del myplotdcts['spectra_tara_45deg_elevation_droplet_1mm_parametric_turbulence']
 del myplotdcts['spectra_tara_45deg_elevation_droplet_8mm_parametric_turbulence']
-#del myplotdcts['spectra_tara_45deg_elevation_rain_stochastic_turbulence']
+del myplotdcts['spectra_tara_45deg_elevation_rain_stochastic_turbulence']
 del myplotdcts['spectra_tara_45deg_elevation_droplet_1mm_stochastic_turbulence']
 del myplotdcts['spectra_tara_45deg_elevation_droplet_8mm_stochastic_turbulence']
-#del myplotdcts['spectra_tara_45deg_elevation_rain_vector']
+del myplotdcts['spectra_tara_45deg_elevation_rain_vector']
 del myplotdcts['spectra_tara_45deg_elevation_droplet_1mm_vector']
 del myplotdcts['spectra_tara_45deg_elevation_droplet_8mm_vector']
 
@@ -109,8 +111,8 @@ if True:
         observations = {}
         observations['additional_output_filename']  =  "../data/"+myplotname+"_additional_output.zout"
 
-        if (os.path.exists(observations['additional_output_filename']) == False):
-
+        #if (os.path.exists(observations['additional_output_filename']) == False):
+        if True:
             #general configuration files
             observations['cfg_filename']                =  "../../../input_files/general/standard_output.cfg;"
             observations['cfg_filename']                +=  "../../../input_files/general/water_refractive_index_segelstein.cfg;"
@@ -146,71 +148,70 @@ if True:
         else:
             ao = additional_output.ao_dct(observations['additional_output_filename'])
 
-        myplotdct['ao'] = ao
+        fun_plot_spectra.plot_spectrum(observations['additional_output_filename'], 'spectra_plots/spectra_')
 
 
-
-import scipy.interpolate
-from matplotlib.mlab import griddata
-import matplotlib.pyplot as plt
-import matplotlib
-fontsize0 = 20
-matplotlib.rc('xtick', labelsize=fontsize0) 
-matplotlib.rc('ytick', labelsize=fontsize0) 
-
-if True:
-    for plot in [
-        'Doppler_spectrum_dBZ_hh',
-        'Doppler_spectrum_dBZ_hv',
-        'Doppler_spectrum_dBZ_vh',
-        'Doppler_spectrum_dBZ_vv',
-        'specific_dBZdr',
-        'specific_dBLdr',
-        'specific_rho_co',
-        'specific_rho_cxh',
-        'specific_rho_cxv',
-         ]:
-
-        fig = plt.figure(figsize=(5,5))
-        ax=plt.subplot(111)
-
-        for myplotname in sorted(myplotdcts.keys()):
-            ao = myplotdcts[myplotname]['ao']
-    
-			recalc = calc_hr_spectrum.ao_to_recalc(ao)
-            
-            if plot in recalc.keys():
-                x2 = recalc['x']
-                z2 = recalc[plot]
-            else:
-                z =  ao[plot][0,:]
-                z = np.where(z == 0., np.nan, z)
-
-                x2 = np.zeros(len(z) * 2)
-                z2 = np.zeros(len(z) * 2)
-                z2[::2]     = z[::]
-                z2[1::2]    = z[::]
-                x2[::2]     = ao['spectrum_velocity_lbound'][0,:]
-                x2[1::2]    = ao['spectrum_velocity_ubound'][0,:]
-           
-            
-            ax.plot(x2, z2, label=myplotdcts[myplotname]['plotlabel'], linewidth=2)
-
-
-
-        #if plot in ['specific_Zdr', 'specific_Ldr',]:
-        ax.set_ylabel('[dB]')
-
-
-        ax.set_xlabel("radial velocity [m/s]") 
-        #ax.set_ylabel("radar range [km]") 
-        
-        
-        leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=fontsize0)
-
-        plt.tight_layout()
-        plt.savefig('spectra_plots/spectra_'+plot+'.png', bbox_extra_artists=(leg,),  bbox_inches='tight')
-        plt.close(fig)
+#~ import scipy.interpolate
+#~ from matplotlib.mlab import griddata
+#~ import matplotlib.pyplot as plt
+#~ import matplotlib
+#~ fontsize0 = 20
+#~ matplotlib.rc('xtick', labelsize=fontsize0) 
+#~ matplotlib.rc('ytick', labelsize=fontsize0) 
+#~ 
+#~ if True:
+    #~ for plot in [
+        #~ 'Doppler_spectrum_dBZ_hh',
+        #~ 'Doppler_spectrum_dBZ_hv',
+        #~ 'Doppler_spectrum_dBZ_vh',
+        #~ 'Doppler_spectrum_dBZ_vv',
+        #~ 'specific_dBZdr',
+        #~ 'specific_dBLdr',
+        #~ 'specific_rho_co',
+        #~ 'specific_rho_cxh',
+        #~ 'specific_rho_cxv',
+         #~ ]:
+#~ 
+        #~ fig = plt.figure(figsize=(5,5))
+        #~ ax=plt.subplot(111)
+#~ 
+        #~ for myplotname in sorted(myplotdcts.keys()):
+            #~ ao = myplotdcts[myplotname]['ao']
+    #~ 
+            #~ recalc = calc_hr_spectrum.ao_to_recalc(ao)
+            #~ 
+            #~ if plot in recalc.keys():
+                #~ x2 = recalc['x']
+                #~ z2 = recalc[plot]
+            #~ else:
+                #~ z =  ao[plot][0,:]
+                #~ z = np.where(z == 0., np.nan, z)
+#~ 
+                #~ x2 = np.zeros(len(z) * 2)
+                #~ z2 = np.zeros(len(z) * 2)
+                #~ z2[::2]     = z[::]
+                #~ z2[1::2]    = z[::]
+                #~ x2[::2]     = ao['spectrum_velocity_lbound'][0,:]
+                #~ x2[1::2]    = ao['spectrum_velocity_ubound'][0,:]
+           #~ 
+            #~ 
+            #~ ax.plot(x2, z2, label=myplotdcts[myplotname]['plotlabel'], linewidth=2)
+#~ 
+#~ 
+#~ 
+        #~ #if plot in ['specific_Zdr', 'specific_Ldr',]:
+        #~ ax.set_ylabel('[dB]')
+#~ 
+#~ 
+        #~ ax.set_xlabel("radial velocity [m/s]") 
+        #~ #ax.set_ylabel("radar range [km]") 
+        #~ 
+        #~ 
+        #~ leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=fontsize0)
+#~ 
+        #~ plt.tight_layout()
+        #~ plt.savefig('spectra_plots/spectra_'+plot+'.png', bbox_extra_artists=(leg,),  bbox_inches='tight')
+        #~ plt.close(fig)
 
 
 if False:
