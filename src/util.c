@@ -869,10 +869,21 @@ void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_scattererfield *scatter
 		difcdfP = (maxcdfP - mincdfP) / thepsd->n_diameters;
 
 		for (i = 0; i < thepsd->n_diameters; i++ ) {
+			/*
 			Dl[i] = util_inverse_gammaDalpha_cdf(thepsd->gammadistribution_mu, thepsd->gammadistribution_D0_mm, thepsd->gammadistribution_dmin_mm , thepsd->gammadistribution_dmax_mm, mincdfP + (i * difcdfP));
 			Du[i] = util_inverse_gammaDalpha_cdf(thepsd->gammadistribution_mu, thepsd->gammadistribution_D0_mm, thepsd->gammadistribution_dmin_mm , thepsd->gammadistribution_dmax_mm, mincdfP + ((i + 1.) * difcdfP));
 			Dcenter[i] = util_inverse_gammaDalpha_cdf(thepsd->gammadistribution_mu, thepsd->gammadistribution_D0_mm, thepsd->gammadistribution_dmin_mm , thepsd->gammadistribution_dmax_mm, mincdfP + ((i + .5) * difcdfP));
-	
+			*/
+			
+			//for the moment used a simplified model
+			Dl[i] = thepsd->gammadistribution_dmin_mm  +
+					((thepsd->gammadistribution_dmax_mm - thepsd->gammadistribution_dmin_mm) *
+					(mincdfP + (i * difcdfP)));
+			Du[i] = thepsd->gammadistribution_dmin_mm  +
+					((thepsd->gammadistribution_dmax_mm - thepsd->gammadistribution_dmin_mm) *
+					(mincdfP + ((i + 1) * difcdfP)));
+
+			Dcenter[i] = (Du[i] - Dl[i]) / 2.;
 			//set diameter size
 			thepsd->discrete_D_equiv_mm[i] = Dcenter[i];
 			
