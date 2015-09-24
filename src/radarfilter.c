@@ -743,11 +743,13 @@ void radarfilter_exec(
 													
 								parmod_az = (2. * M_PI * i_parmod_az ) / res_vol->n_parmod_az;
 								tmp = (i_parmod_el + 0.5) / res_vol->n_parmod_el;
-								parmod_el = asin((2. * x) - 1.);
+								parmod_el = asin((2. * tmp) - 1.);
 
+								//old and wrong.
 								//tmp = -1.0 + (2. * (i_parmod_el + 0.5) / res_vol->n_parmod_el);
 								//parmod_el = ((tmp > 0.)?1.:-1.) * acos(fabs(tmp));
-
+								//end
+								
 								//calculate turbulence vector
 								tmp_turbulence_u 	= parametric_turbulence_sigmaT * sqrt(3.) * cos(parmod_az) * sin(parmod_el);
 								tmp_turbulence_v 	= parametric_turbulence_sigmaT * sqrt(3.) * sin(parmod_az) * sin(parmod_el);
