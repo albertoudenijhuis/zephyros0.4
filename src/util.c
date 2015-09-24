@@ -883,7 +883,7 @@ void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_scattererfield *scatter
 					((thepsd->gammadistribution_dmax_mm - thepsd->gammadistribution_dmin_mm) *
 					(mincdfP + ((i + 1) * difcdfP)));
 
-			Dcenter[i] = (Du[i] - Dl[i]) / 2.;
+			Dcenter[i] = (Du[i] + Dl[i]) / 2.;
 			//set diameter size
 			thepsd->discrete_D_equiv_mm[i] = Dcenter[i];
 			
