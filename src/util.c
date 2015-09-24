@@ -139,7 +139,7 @@ void util_prepare_windfield(t_zephyros_windfield *windfield)
 	double tmp;
 	
 	#ifdef _ZEPHYROS_UTIL_DEBUG
-		printf("windfield\n"); fflush(stdout);
+		printf("util_prepare_windfield\n"); fflush(stdout);
 	#endif	
 	//wind field
 	for ( i = 0; i < windfield->nfields; i++ ) {
@@ -167,8 +167,6 @@ void util_prepare_windfield(t_zephyros_windfield *windfield)
 				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_u_err[i], &(windfield->u_ecm[i]));
 			if (windfield->fit_v[i]) 
 				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_v_err[i], &(windfield->v_ecm[i]));
-
-			printf("windfield->grid_w_err[%i][0] = %.2e\n", i, windfield->grid_w_err[i][0]); 
 			if (windfield->fit_w[i]) 
 				util_initialize_field_err_cov_matrix(windfield->field[i], windfield->grid_w_err[i], &(windfield->w_ecm[i]));
 		}
@@ -571,6 +569,9 @@ void util_prepare_scattererfield(t_zephyros_scattererfield *scattererfield)
 {
 	int i;
 	
+	#ifdef _ZEPHYROS_UTIL_DEBUG
+		printf("util_prepare_scattererfield\n"); fflush(stdout);
+	#endif	
 	for ( i = 0; i < scattererfield->npsd; i++ ) {
 		if (scattererfield->psd[i] != NULL) {
 			util_prepare_psd(scattererfield->psd[i], scattererfield);
