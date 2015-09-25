@@ -148,6 +148,7 @@ if True:
         else:
             ao = additional_output.ao_dct(observations['additional_output_filename'])
 
+        #fun_plot_spectra.plot_spectrum(observations['additional_output_filename'], 'spectra_plots/spectra_')
         fun_plot_spectra.plot_spectrum(observations['additional_output_filename'], 'spectra_plots/spectra_')
 
 

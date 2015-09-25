@@ -122,8 +122,13 @@ def plot_spectrum(ao_name, fname, opts = {}):
     ao = additional_output.ao_dct(ao_name)
 
     recalc = {}
-    recalc['spectrum_velocity_center'] = np.repeat( [np.linspace(-15.,15., 1000)], len(ao['azel_r1_m']), axis=0)
+    recalc['spectrum_velocity_center'] = np.repeat( [np.linspace(-15.,15., 500)], len(ao['azel_r1_m']), axis=0)
+    d = recalc['spectrum_velocity_center'][0,1] - recalc['spectrum_velocity_center'][0,0]
+    recalc['spectrum_velocity_ubound'] = recalc['spectrum_velocity_center'] + d/2.
+    recalc['spectrum_velocity_lbound'] = recalc['spectrum_velocity_center'] - d/2.
+    
     recalc = calc_hr_spectrum.ao_to_recalc(ao, recalc)
+    calc_hr_spectrum.smooth_spectra(recalc)
 
 
     for plot in [
@@ -141,7 +146,7 @@ def plot_spectrum(ao_name, fname, opts = {}):
         if plot in recalc.keys():
             fig = plt.figure(figsize=(5,5))
             ax=plt.subplot(111)
-                         
+                     
             if ('title' in opts.keys()):
                 ax.set_title(opts['title'])
             

@@ -75,9 +75,9 @@ n_beam_range                   1
 n_beam_theta                   1              
 n_beam_phi                     1              
 n_t                            1              
-n_parmod_az                    128            
-n_parmod_el                    128            
-n_spectrum                     8              
+n_parmod_az                    8              
+n_parmod_el                    8              
+n_spectrum                     4              
 
 filter_dBZ_hh                  1              
 filter_dBZ_hv                  1              
@@ -157,46 +157,46 @@ radar_water_refractive_index_imag    -7.016e-01
 !! dBLdr_err                      1               1               1.000e+00       
 !! rho_co                         1               1               1.000e+00       
 !! rho_co_err                     1               1               1.000e+00       
-!! rho_cxh                        1               1               7.941e-01       
+!! rho_cxh                        1               1               7.540e-01       
 !! rho_cxh_err                    1               1               1.000e+00       
-!! rho_cxv                        1               1               7.941e-01       
+!! rho_cxv                        1               1               7.541e-01       
 !! rho_cxv_err                    1               1               1.000e+00       
-!! Doppler_velocity_hh_ms         1               1               -2.324e+00      
+!! Doppler_velocity_hh_ms         1               1               -2.322e+00      
 !! Doppler_velocity_hh_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_hv_ms         1               1               -2.383e+00      
+!! Doppler_velocity_hv_ms         1               1               -2.378e+00      
 !! Doppler_velocity_hv_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_vh_ms         1               1               -2.383e+00      
+!! Doppler_velocity_vh_ms         1               1               -2.378e+00      
 !! Doppler_velocity_vh_ms_err     1               1               1.000e+00       
-!! Doppler_velocity_vv_ms         1               1               -2.325e+00      
+!! Doppler_velocity_vv_ms         1               1               -2.323e+00      
 !! Doppler_velocity_vv_ms_err     1               1               1.000e+00       
-!! Doppler_spectral_width_hh_ms   1               1               2.856e-01       
+!! Doppler_spectral_width_hh_ms   1               1               2.821e-01       
 !! Doppler_spectral_width_hh_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_hv_ms   1               1               2.576e-01       
+!! Doppler_spectral_width_hv_ms   1               1               2.520e-01       
 !! Doppler_spectral_width_hv_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_vh_ms   1               1               2.576e-01       
+!! Doppler_spectral_width_vh_ms   1               1               2.520e-01       
 !! Doppler_spectral_width_vh_ms_err 1               1               1.000e+00       
-!! Doppler_spectral_width_vv_ms   1               1               2.860e-01       
+!! Doppler_spectral_width_vv_ms   1               1               2.825e-01       
 !! Doppler_spectral_width_vv_ms_err 1               1               1.000e+00       
 !! KDP                            1               1               9.814e-04       
 !! KDP_err                        1               1               1.000e+00       
-!! spectrum_velocity_lbound       2               1               8               -2.988e+00      -2.642e+00      -2.512e+00      -2.413e+00      -2.324e+00      -2.235e+00      -2.136e+00      -2.006e+00      
-!! spectrum_velocity_center       2               1               8               -2.743e+00      -2.571e+00      -2.460e+00      -2.368e+00      -2.280e+00      -2.187e+00      -2.077e+00      -1.905e+00      
-!! spectrum_velocity_ubound       2               1               8               -2.642e+00      -2.512e+00      -2.413e+00      -2.324e+00      -2.235e+00      -2.136e+00      -2.006e+00      -1.660e+00      
-!! Doppler_spectrum_dBZ_hh        2               1               8               2.749e+01       2.989e+01       3.112e+01       3.231e+01       3.382e+01       3.597e+01       3.402e+01       2.610e+01       
-!! Doppler_spectrum_dBZ_hh_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_hv        2               1               8               -2.832e+01      -2.507e+01      -2.388e+01      -2.306e+01      -2.257e+01      -2.247e+01      -2.391e+01      -3.612e+01      
-!! Doppler_spectrum_dBZ_hv_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_vh        2               1               8               -2.832e+01      -2.507e+01      -2.388e+01      -2.306e+01      -2.257e+01      -2.247e+01      -2.391e+01      -3.612e+01      
-!! Doppler_spectrum_dBZ_vh_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! Doppler_spectrum_dBZ_vv        2               1               8               2.743e+01       2.982e+01       3.104e+01       3.223e+01       3.373e+01       3.588e+01       3.392e+01       2.599e+01       
-!! Doppler_spectrum_dBZ_vv_err    2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_dBZdr                 2               1               8               5.946e-02       6.732e-02       7.278e-02       7.813e-02       8.374e-02       9.020e-02       1.025e-01       1.146e-01       
-!! specific_dBZdr_err             2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_dBLdr                 2               1               8               -5.575e+01      -5.489e+01      -5.493e+01      -5.529e+01      -5.630e+01      -5.835e+01      -5.783e+01      -6.210e+01      
-!! specific_dBLdr_err             2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_co                2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_co_err            2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_cxh               2               1               8               8.504e-01       8.507e-01       8.434e-01       8.301e-01       7.958e-01       7.093e-01       8.436e-01       8.453e-01       
-!! specific_rho_cxh_err           2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
-!! specific_rho_cxv               2               1               8               8.502e-01       8.505e-01       8.431e-01       8.298e-01       7.955e-01       7.091e-01       8.434e-01       8.453e-01       
-!! specific_rho_cxv_err           2               1               8               1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! spectrum_velocity_lbound       2               1               4               -2.978e+00      -2.508e+00      -2.322e+00      -2.136e+00      
+!! spectrum_velocity_center       2               1               4               -2.636e+00      -2.410e+00      -2.234e+00      -2.007e+00      
+!! spectrum_velocity_ubound       2               1               4               -2.508e+00      -2.322e+00      -2.136e+00      -1.665e+00      
+!! Doppler_spectrum_dBZ_hh        2               1               4               2.841e+01       3.119e+01       3.487e+01       3.040e+01       
+!! Doppler_spectrum_dBZ_hh_err    2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! Doppler_spectrum_dBZ_hv        2               1               4               -2.736e+01      -2.341e+01      -2.342e+01      -2.782e+01      
+!! Doppler_spectrum_dBZ_hv_err    2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! Doppler_spectrum_dBZ_vh        2               1               4               -2.736e+01      -2.341e+01      -2.342e+01      -2.782e+01      
+!! Doppler_spectrum_dBZ_vh_err    2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! Doppler_spectrum_dBZ_vv        2               1               4               2.834e+01       3.111e+01       3.478e+01       3.030e+01       
+!! Doppler_spectrum_dBZ_vv_err    2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_dBZdr                 2               1               4               6.352e-02       7.554e-02       8.725e-02       1.052e-01       
+!! specific_dBZdr_err             2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_dBLdr                 2               1               4               -5.570e+01      -5.453e+01      -5.820e+01      -5.811e+01      
+!! specific_dBLdr_err             2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_rho_co                2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_rho_co_err            2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_rho_cxh               2               1               4               7.701e-01       8.507e-01       7.248e-01       7.351e-01       
+!! specific_rho_cxh_err           2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
+!! specific_rho_cxv               2               1               4               7.698e-01       8.505e-01       7.246e-01       7.353e-01       
+!! specific_rho_cxv_err           2               1               4               1.000e+00       1.000e+00       1.000e+00       1.000e+00       
