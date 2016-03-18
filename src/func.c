@@ -156,7 +156,7 @@ void calc_avg_ang(
 	calc_avg(n, dat_cos, &avg_cos, nok);
 	calc_avg(n, dat_sin, &avg_sin, nok);
 	
-	*avg	= fmod(atan2(avg_sin, avg_cos), 2. * M_PI);
+	*avg	= func_modulo(atan2(avg_sin, avg_cos), 2. * M_PI);
 		
 	free(dat_cos);
 	free(dat_sin);
@@ -207,7 +207,7 @@ void calc_avg_variance_ang(
 	
 	//calculate differences with respect to average angle
 	for ( i = 0; i < *n; i++ ) {
-		dat2[i] = fmod(dat[i] - *avg, 2. * M_PI) ;
+		dat2[i] = func_modulo(dat[i] - *avg, 2. * M_PI) ;
 		if (dat2[i] > M_PI) dat2[i] = (2. * M_PI) - dat2[i];
 	}
 
@@ -353,7 +353,7 @@ void running_average_ang(
 	running_average(np, dat_sin, nav_in, running_avg_sin, running_variance_sin, &calc_var);
 	
 	for ( i = 0; i < *np; i++ ) {
-		running_avg[i]		= fmod(atan2(running_avg_sin[i], running_avg_cos[i]), 2. * M_PI);
+		running_avg[i]		= func_modulo(atan2(running_avg_sin[i], running_avg_cos[i]), 2. * M_PI);
 	}
 	
 	
@@ -361,7 +361,7 @@ void running_average_ang(
 		//calculate differences with average angle
 		//This is not exact. I.e. if there is a large trent in the running average this will fail...
 		for ( i = 0; i < *np; i++ ) {
-			dat2[i] = fmod(dat[i], 2. * M_PI) - running_avg[i];
+			dat2[i] = func_modulo(dat[i], 2. * M_PI) - running_avg[i];
 			if (dat2[i] > M_PI) dat2[i] = (2. * M_PI) - dat2[i];
 		}
 
@@ -743,7 +743,7 @@ void randompermutation(int n, int **output)
 
 double angleAminB(double *Arad, double *Brad)
 {
-	return fmod(M_PI + *Arad - *Brad, 2. * M_PI) - M_PI;
+	return func_modulo(M_PI + *Arad - *Brad, 2. * M_PI) - M_PI;
 }
 
 //void array_double_malloc(
@@ -897,4 +897,14 @@ double func_dB_inv(double val)
 	}
 }
 
-
+double func_modulo(double x, double y)
+{
+	int i;
+	
+	if (x < 0) {
+		i = abs(x / y);
+		return fmod(x + ((1 + i) * y), y);
+	} else {
+		return fmod(x,y);
+	}
+}

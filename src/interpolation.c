@@ -35,6 +35,7 @@ Note:
 /* System include files */
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 
 #include "specialfunctions.h"
@@ -43,6 +44,76 @@ Note:
 
 //uncomment next statement for debug mode
 //#define _ZEPHYROS_INTERPOLATION_DEBUG
+
+void interpolation_initialize_lut(t_zephyros_interpolation_bilint_lut **plut)
+{
+	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
+	lut->shape = NULL;
+	lut->ax_values = NULL;
+	lut->mesh_y = NULL;
+	lut->periodic_L = NULL;
+	lut->n_dim = 0;
+	lut->n = 0;
+	lut->special = 0;
+	lut->mesy_y_allocated = 0;
+	lut->periodic = 0;
+	
+	strcpy(lut->name, "Untitled");
+	lut->initialized 	= 1;
+	lut->prepared 		= 0;
+
+	*plut = lut;
+}
+
+void interpolation_assert_initialized_lut(t_zephyros_interpolation_bilint_lut *lut)
+{
+	if (lut == NULL) {
+		printf("LUT was NULL pointer. Exiting.\n");
+		exit(0);		
+	}
+	if (lut->initialized != 1) {
+		printf("LUT was not initialized. Exiting.\n");
+		exit(0);
+	}
+}
+
+void interpolation_assert_prepared_lut(t_zephyros_interpolation_bilint_lut *lut)
+{
+	interpolation_assert_initialized_lut(lut);
+	if (lut->prepared != 1) {
+		printf("LUT `%s' was not prepared. Exiting.\n", lut->name);
+		exit(0);
+	}
+}
+
+void interpolation_free_lut(t_zephyros_interpolation_bilint_lut **plut)
+{
+	int i_axis;
+	t_zephyros_interpolation_bilint_lut *lut = *plut;
+
+	#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
+		printf("interpolation_free_lut\n"); fflush(stdout);
+	#endif 
+	
+	if (lut != NULL) {
+		interpolation_assert_initialized_lut(lut);
+
+		#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
+			printf("lut name: %s\n", lut->name); fflush(stdout);
+		#endif 
+		
+		if (lut->ax_values != NULL) {
+			for ( i_axis = 0; i_axis < lut->n_dim; i_axis++ ) {			
+				free(lut->ax_values[i_axis]);
+			}
+			free(lut->ax_values);
+		}
+		if (lut->shape != NULL) free(lut->shape);
+		if ((lut->mesy_y_allocated == 1) & (lut->mesh_y != NULL)) {free(lut->mesh_y);}		
+		free(lut);
+		*plut = NULL;
+	}
+}
 
 void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int n3, double *vec3, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut)
 {
@@ -95,6 +166,8 @@ void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int 
 		lut->mesh_y = variable;
 	}
 
+	lut->prepared = 1;
+	
 	*plut = lut;
 }
 
@@ -141,6 +214,8 @@ void interpolation_linearinterpolation2lut(int n, double *x, double *variable, i
 	} else {
 		lut->mesh_y = variable;
 	}
+	
+	lut->prepared = 1;
 
 	*plut = lut;
 }
@@ -158,41 +233,7 @@ can e.g. be used to calculate:
 sum i (dPrK_i / dK1, dPrK_i / dK2, ..., dPrK_i / dKn) * 2 (v_r_i - PrK_i) / si_v_r_i**2
 */
 
-void interpolation_initialize_lut(t_zephyros_interpolation_bilint_lut **plut)
-{
-	t_zephyros_interpolation_bilint_lut *lut = malloc(sizeof(t_zephyros_interpolation_bilint_lut));
-	lut->shape = NULL;
-	lut->ax_values = NULL;
-	lut->mesh_y = NULL;
-	lut->periodic_L = NULL;
-	lut->n_dim = 0;
-	lut->n = 0;
-	lut->special = 0;
-	lut->mesy_y_allocated = 0;
-	lut->periodic = 0;
 
-	*plut = lut;
-}
-
-
-void interpolation_free_lut(t_zephyros_interpolation_bilint_lut **plut)
-{
-	int i_axis;
-	t_zephyros_interpolation_bilint_lut *lut = *plut;
-	
-	if (lut != NULL) {
-		if (lut->ax_values != NULL) {
-			for ( i_axis = 0; i_axis < lut->n_dim; i_axis++ ) {			
-				free(lut->ax_values[i_axis]);
-			}
-			free(lut->ax_values);
-		}
-		if (lut->shape != NULL) free(lut->shape);
-		if ((lut->mesy_y_allocated == 1) & (lut->mesh_y != NULL)) {free(lut->mesh_y);}		
-		free(lut);
-		lut = NULL;
-	}
-}
 
 void interpolation_bilint(
 	t_zephyros_interpolation_bilint_lut	*lut,
@@ -228,15 +269,11 @@ void interpolation_bilint(
 	
 	double 	tmpplus, tmpmin;
 
-	if (lut == NULL) {
-		printf("Error with interpolation"); fflush(stdout);
-		exit(0);
-	}
-
 	#ifdef _ZEPHYROS_INTERPOLATION_DEBUG
 		printf("interpolation_bilint\n"); fflush(stdout);
 	#endif 
 	
+	interpolation_assert_prepared_lut(lut);
 	
 	//memory allocation
 	myslice_i0 										= malloc(lut->n_dim * sizeof(int));
@@ -394,10 +431,12 @@ void interpolation_bilint(
 	
 	if (lut->special == 1) {
 		*outy = atan2(outysin, outycos);
-		for ( j = 0; j < lut->n_dim; j++ ) {
-			tmpplus = atan2(derivativesplussin[j], derivativespluscos[j]);
-			tmpmin	= atan2(derivativesminsin[j], derivativesmincos[j]);
-			derivatives[j] = (fmod(M_PI + tmpplus - tmpmin, 2. * M_PI) - M_PI) ;
+		if (calc_derivatives == 1) {	
+			for ( j = 0; j < lut->n_dim; j++ ) {
+				tmpplus = atan2(derivativesplussin[j], derivativespluscos[j]);
+				tmpmin	= atan2(derivativesminsin[j], derivativesmincos[j]);
+				derivatives[j] = (interpolation_modulo(M_PI + tmpplus - tmpmin, 2. * M_PI) - M_PI) ;
+			}
 		}
 	}
 	
@@ -444,6 +483,8 @@ void interpolation_bilint_griddep(
 	int 	*tmp_tup 		= malloc(lut->n_dim * sizeof(int)); 		
 	int 	*tmp_tup_edge 	= malloc(lut->n_dim * sizeof(int));	
 	int 	*tmp_tup_edge2 	= malloc(lut->n_dim * sizeof(int));	
+
+	interpolation_assert_prepared_lut(lut);
 			
 	//check memory allocation
 	if (((myslice_i0 == NULL) | (myslice_i1 == NULL) | (myslice_di == NULL) | (tmp_tup == NULL)
@@ -497,7 +538,7 @@ void interpolation_bilint_griddep(
 		interpolation_tup2nr(&lut->n_dim, lut->shape, tmp_tup_edge2, &nr_edge);
 
 		if (nr_edge < lut->n) {// solution to one-valued ax bug
-			//update *outy	
+			//update *outy					
 			griddep[nr_edge] = griddep[nr_edge] + w_edge;
 		}
 	}
@@ -527,6 +568,8 @@ void interpolation_calcindices(
 		printf("interpolation_calcindices\n"); fflush(stdout);
 	#endif 
 	
+	interpolation_assert_prepared_lut(lut);
+
 	if (lut->shape[i_axis] == 1) {
 		/* only one value on the axis */
 		*i0 = 0;
@@ -695,7 +738,7 @@ void interpolation_nq_sh_interp(
 		double 	*ans)
 {
 		int		i;
-		double 	x = fmod(*xin, (double) *N);
+		double 	x = interpolation_modulo(*xin, (double) *N);
 					
 		*ans = 0.;
 		for ( i = 0; i < *N; i++ ) {
@@ -716,9 +759,9 @@ void interpolation_nq_sh_interp3D(
 		double 	*ans)
 {
 	int i,j,k;
-	double 	x = fmod(*xin, (double) *Nx);
-	double 	y = fmod(*yin, (double) *Ny);
-	double 	z = fmod(*zin, (double) *Nz);
+	double 	x = interpolation_modulo(*xin, (double) *Nx);
+	double 	y = interpolation_modulo(*yin, (double) *Ny);
+	double 	z = interpolation_modulo(*zin, (double) *Nz);
 	int n_dim = 3;
 	int shape[3] = {*Nx, *Ny, *Nz};
 	int tmp_tup[3];
@@ -748,7 +791,7 @@ double interpolation_nq_sh_f_xi(
 			int		*i,
 			double 	*q)
 {
-	double x  = fmod(*xin, (double) *N);
+	double x  = interpolation_modulo(*xin, (double) *N);
 	double a, b, ka, kb;
 	
 	//check input

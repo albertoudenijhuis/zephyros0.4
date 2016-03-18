@@ -6,15 +6,16 @@
 #include <string.h>
 
 int main () {
-	t_zephyros_particles_widget *scat = malloc(sizeof(t_zephyros_particles_widget));
+	t_zephyros_particles_widget *scat;
 	t_zephyros_coordinates *coor;
 	int i,j,n;
 	double res[100];
 	FILE *fp;
 
 
-
-
+	//initialize particle
+	particles_initialize(&scat);
+ 
 	//initilize coordinates
 	coordinates_initialize_coor(&coor);
 
@@ -35,10 +36,6 @@ int main () {
 	particles_air_parameters(scat, coor);
 
 	
-
-	
-
-	
 	
 	
 	
@@ -57,10 +54,12 @@ int main () {
 			res[0] = scat->particle_D_eqvol_mm;
 			res[1] = scat->particle_axis_ratio;
 			res[2] = scat->particle_terminal_fall_speed;
-			res[3] = scat->particle_inertial_distance_z;
-			res[4] = scat->particle_inertial_distance_z / scat->particle_terminal_fall_speed;
-			res[5] = scat->particle_inertial_distance_xy;
-			res[6] = scat->particle_inertial_distance_xy / 1.;
+			res[3] = scat->particle_inertial_distance_z_vt_small;
+			res[4] = scat->particle_inertial_distance_z_vt_small / 1.;
+			res[5] = scat->particle_inertial_distance_z_vt_large;
+			res[6] = scat->particle_inertial_distance_z_vt_large / scat->particle_terminal_fall_speed;
+			res[7] = scat->particle_inertial_distance_xy;
+			res[8] = scat->particle_inertial_distance_xy / 1.;
 
 
 			scat->particle_type			= 1; //spherical
@@ -68,14 +67,16 @@ int main () {
 			particles_spheroid_geometry_beard1987(scat);
 			particles_terminal_fall_speed_khvorostyanov2005(scat);
 
-			res[7] = scat->particle_terminal_fall_speed;
-			res[8] = scat->particle_inertial_distance_z;
-			res[9] = scat->particle_inertial_distance_z /  scat->particle_terminal_fall_speed;
-			res[10] = scat->particle_inertial_distance_xy;
-			res[11] = scat->particle_inertial_distance_xy / 1.;
+			res[9] = scat->particle_terminal_fall_speed;
+			res[10] = scat->particle_inertial_distance_z_vt_small;
+			res[11] = scat->particle_inertial_distance_z_vt_small / 1.;
+			res[12] = scat->particle_inertial_distance_z_vt_large;
+			res[13] = scat->particle_inertial_distance_z_vt_large /  scat->particle_terminal_fall_speed;
+			res[14] = scat->particle_inertial_distance_xy;
+			res[15] = scat->particle_inertial_distance_xy / 1.;
 
 
-			for ( j = 0; j < 12; j++ ) {
+			for ( j = 0; j < 16; j++ ) {
 				fprintf(fp, "%.2e   ", res[j]);
 			}
 			fprintf(fp, "\n");	

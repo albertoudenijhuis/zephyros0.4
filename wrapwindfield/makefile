@@ -1,6 +1,8 @@
+RELPAT = ../
+
 all: settings clean wrapwindfield
 
-include ../linux_compliation_settings.mk
+include $(RELPAT)linux_compliation_settings.mk
 	
 wrapwindfield: $(DEPS)
 	swig -python -outcurrentdir ../src/wrapwindfield.i

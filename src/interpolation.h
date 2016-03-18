@@ -13,9 +13,15 @@ typedef struct st_zephyros_interpolation_bilint_lut
 	
 	int			periodic;			//1 = periodic interpolation, 0 = standard extrapolation
 	double		*periodic_L;		//periodic length for each axis
+	
+	char		name[8192];	//for error reporting
+	int			initialized;
+	int			prepared;
 } t_zephyros_interpolation_bilint_lut;
 
 void interpolation_initialize_lut(t_zephyros_interpolation_bilint_lut **plut);
+void interpolation_assert_initialized_lut(t_zephyros_interpolation_bilint_lut *lut);
+void interpolation_assert_prepared_lut(t_zephyros_interpolation_bilint_lut *lut);
 void interpolation_free_lut(t_zephyros_interpolation_bilint_lut **plut);
 
 void interpolation_bilint3D2lut(int n1, double *vec1, int n2, double *vec2, int n3, double *vec3, double *variable, int special, t_zephyros_interpolation_bilint_lut **plut);

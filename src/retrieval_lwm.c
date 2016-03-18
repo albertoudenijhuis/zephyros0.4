@@ -50,31 +50,45 @@ Note:
 
 #include <nlopt.h>
 
+//uncomment next statement for debug mode
+#define _ZEPHYROS_LWM_DEBUG
 
 void retrieval_lwm_apply(t_lwm_opc *opc)
 {
-	t_lwm_p *p = opc->p;
+	t_lwm_p *p;
 	t_lwm_o *o = opc->o;
 
-	retrieval_lwm_initialize_p(opc);
-
+	#ifdef _ZEPHYROS_LWM_DEBUG
+		printf("retrieval_lwm_initialize_p\n"); fflush(stdout);
+	#endif 
+	retrieval_lwm_initialize_p(opc); p= opc->p;
+	#ifdef _ZEPHYROS_LWM_DEBUG
+		printf("retrieval_lwm_calculate_xyz\n"); fflush(stdout);
+	#endif 
 	retrieval_lwm_calculate_xyz(opc);
-
+	
 	//walk through grid
 	for (p->i=0; p->i < p->field->n; p->i++) {
 		//calculate coefficients
 		retrieval_lwm_calculate_coefficients(opc);
 
 		//fit
-		if ((p->o_in_analysis_volume_n > 0) & (p->o_used_for_analysis_n > p->Kn)) {					
+		if ((o->in_analysis_volume_n > 0) & (o->used_for_analysis_n > p->Kn)) {					
 			printf("retrieval_lwm_apply, step %i/%i\n", p->i, p->field->n);
-
 			retrieval_lwm_minimize_chisquared(opc);
 
 			//store results
 			retrieval_lwm_store_results(opc);
 		}
 	}
+	#ifdef _ZEPHYROS_LWM_DEBUG
+		printf("Clean up memory.\n"); fflush(stdout);
+	#endif 	
+	retrieval_lwm_free_p(opc);
+
+	#ifdef _ZEPHYROS_LWM_DEBUG
+		printf("Linear wind model retrieval done.\n"); fflush(stdout);
+	#endif 
 }
 
 int retrieval_lwm_minimize_chisquared(t_lwm_opc *opc) {
@@ -225,35 +239,36 @@ void retrieval_lwm_chisquared(
     
 	//loop through observations.
 	for (io=0; io < o->n; io++) {
-		if (p->o_used_for_analysis[io]) {
+		if (o->used_for_analysis[io]) {
 			if (c->apply_weights) {
-				weight = 1.;
-			} else {
 				weight = pow(o->radarmeasurement[io]->Doppler_velocity_hh_ms_err,-2.);
+			} else {
+				weight = 1.;
 			}
 
-			p->o_lwm_vr[io] = 0.;
-			for (ir=0; ir < p->o_nr; ir++) {
-				if (c->fit_u0)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_u0[io][ir] * 	x[p->fit_Knr_u0];
-				if (c->fit_u_x)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_u_x[io][ir] * 	x[p->fit_Knr_u_x];
-				if (c->fit_u_z)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_u_z[io][ir] * 	x[p->fit_Knr_u_z];
-				if (c->fit_v0)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_v0[io][ir] * 	x[p->fit_Knr_v0];
-				if (c->fit_v_y)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_v_y[io][ir] * 	x[p->fit_Knr_v_y];
-				if (c->fit_v_z)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_v_z[io][ir] * 	x[p->fit_Knr_v_z];
-				if (c->fit_u_y_plus_v_x)			p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_u_y_plus_v_x[io][ir] * x[p->fit_Knr_u_y_plus_v_x];
-				if (c->fit_w0)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_w0[io][ir] * 	x[p->fit_Knr_w0];
-				if (c->fit_w_x)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_w_x[io][ir] * 	x[p->fit_Knr_w_x];
-				if (c->fit_w_y)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_w_y[io][ir] * 	x[p->fit_Knr_w_y];
-				if (c->fit_w_z)						p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_w_z[io][ir] * 	x[p->fit_Knr_w_z];
-				if (c->fit_u_t_plus_v_t_plus_w_t)	p->o_lwm_vr[io] += (1. / p->o_nr) * p->coef_u_t_plus_v_t_plus_w_t[io][ir] * 	x[p->fit_Knr_u_t_plus_v_t_plus_w_t];
+			//Calculate project Doppler velocity
+			o->lwm_vr[io] = 0.;
+			for (ir=0; ir < p->n_sv; ir++) {
+				if (c->fit_u0)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_u0[io][ir] * 		x[p->fit_Knr_u0];
+				if (c->fit_u_x)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_u_x[io][ir] * 	x[p->fit_Knr_u_x];
+				if (c->fit_u_z)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_u_z[io][ir] * 	x[p->fit_Knr_u_z];
+				if (c->fit_v0)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_v0[io][ir] * 		x[p->fit_Knr_v0];
+				if (c->fit_v_y)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_v_y[io][ir] * 	x[p->fit_Knr_v_y];
+				if (c->fit_v_z)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_v_z[io][ir] * 	x[p->fit_Knr_v_z];
+				if (c->fit_u_y_plus_v_x)			o->lwm_vr[io] += (1. / p->n_sv) * p->coef_u_y_plus_v_x[io][ir] * x[p->fit_Knr_u_y_plus_v_x];
+				if (c->fit_w0)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_w0[io][ir] * 		x[p->fit_Knr_w0];
+				if (c->fit_w_x)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_w_x[io][ir] * 	x[p->fit_Knr_w_x];
+				if (c->fit_w_y)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_w_y[io][ir] * 	x[p->fit_Knr_w_y];
+				if (c->fit_w_z)						o->lwm_vr[io] += (1. / p->n_sv) * p->coef_w_z[io][ir] * 	x[p->fit_Knr_w_z];
+				if (c->fit_u_t_plus_v_t_plus_w_t)	o->lwm_vr[io] += (1. / p->n_sv) * p->coef_u_t_plus_v_t_plus_w_t[io][ir] * 	x[p->fit_Knr_u_t_plus_v_t_plus_w_t];
 			}
 			
-			myval = weight * pow(p->o_lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms, 2.);
-			myval2 = 2. * weight * (p->o_lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms);
+			myval = weight * pow(o->lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms, 2.);
+			myval2 = 2. * weight * (o->lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms);
 			
 			//debug
 			//~ printf("o->vr[%i] = %.2e\n", io, o->vr[io]);
-			//~ printf("p->o_lwm_vr[%i] = %.2e\n", io, p->o_lwm_vr[io]);
+			//~ printf("o->lwm_vr[%i] = %.2e\n", io, o->lwm_vr[io]);
 
 			if (calc_costfunction) {
 				*f	+= myval;	
@@ -262,19 +277,19 @@ void retrieval_lwm_chisquared(
 			if (calc_costfunction_derivatives) {
 				//loop over parameters
 				for (iK = 0; iK < p->Kn; iK++) {
-					for (ir=0; ir < p->o_nr; ir++) {
-						if ((c->fit_u0) & (iK == p->fit_Knr_u0)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_u0[io][ir];}
-						if ((c->fit_u_x) & (iK == p->fit_Knr_u_x)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_u_x[io][ir];}
-						if ((c->fit_u_z) & (iK == p->fit_Knr_u_z)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_u_z[io][ir];}
-						if ((c->fit_v0) & (iK == p->fit_Knr_v0)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_v0[io][ir];}
-						if ((c->fit_v_y) & (iK == p->fit_Knr_v_y)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_v_y[io][ir];}
-						if ((c->fit_v_z) & (iK == p->fit_Knr_v_z)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_v_z[io][ir];}
-						if ((c->fit_u_y_plus_v_x) & (iK == p->fit_Knr_u_y_plus_v_x)) 	{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_u_y_plus_v_x[io][ir];}
-						if ((c->fit_w0) & (iK == p->fit_Knr_w0)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_w0[io][ir];}
-						if ((c->fit_w_x) & (iK == p->fit_Knr_w_x)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_w_x[io][ir];}
-						if ((c->fit_w_y) & (iK == p->fit_Knr_w_y)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_w_y[io][ir];}
-						if ((c->fit_w_z) & (iK == p->fit_Knr_w_z)) 						{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_w_z[io][ir];}
-						if ((c->fit_u_t_plus_v_t_plus_w_t) & (iK == p->fit_Knr_u_t_plus_v_t_plus_w_t)) 	{fd[iK] += (1. / p->o_nr) * myval2 * p->coef_u_t_plus_v_t_plus_w_t[io][ir];}
+					for (ir=0; ir < p->n_sv; ir++) {
+						if ((c->fit_u0) & (iK == p->fit_Knr_u0)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_u0[io][ir];}
+						if ((c->fit_u_x) & (iK == p->fit_Knr_u_x)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_u_x[io][ir];}
+						if ((c->fit_u_z) & (iK == p->fit_Knr_u_z)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_u_z[io][ir];}
+						if ((c->fit_v0) & (iK == p->fit_Knr_v0)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_v0[io][ir];}
+						if ((c->fit_v_y) & (iK == p->fit_Knr_v_y)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_v_y[io][ir];}
+						if ((c->fit_v_z) & (iK == p->fit_Knr_v_z)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_v_z[io][ir];}
+						if ((c->fit_u_y_plus_v_x) & (iK == p->fit_Knr_u_y_plus_v_x)) 	{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_u_y_plus_v_x[io][ir];}
+						if ((c->fit_w0) & (iK == p->fit_Knr_w0)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_w0[io][ir];}
+						if ((c->fit_w_x) & (iK == p->fit_Knr_w_x)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_w_x[io][ir];}
+						if ((c->fit_w_y) & (iK == p->fit_Knr_w_y)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_w_y[io][ir];}
+						if ((c->fit_w_z) & (iK == p->fit_Knr_w_z)) 						{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_w_z[io][ir];}
+						if ((c->fit_u_t_plus_v_t_plus_w_t) & (iK == p->fit_Knr_u_t_plus_v_t_plus_w_t)) 	{fd[iK] += (1. / p->n_sv) * myval2 * p->coef_u_t_plus_v_t_plus_w_t[io][ir];}
 					}
 				}
 			}
@@ -328,7 +343,7 @@ void retrieval_lwm_calculate_xyz(t_lwm_opc *opc)
 		myr1	= o->radarmeasurement[io]->azel_r1_m;
 		myr2	= o->radarmeasurement[io]->azel_r2_m;
 		if (myr1 == 0.) {
-			myr1 = myr2 / 1.e5;
+			myr1 = myr2 / 10.;
 		}
 		o->radarmeasurement[io]->center_coor->radar_range 		= pow(pow(myr1 , -1.) - (0.5 * (pow(myr1 , -1.) - pow(myr2, -1.))), -1.);		
 		o->radarmeasurement[io]->center_coor->radar_azel_alpha 	= o->radarmeasurement[io]->azel_alpha_rad;
@@ -337,10 +352,9 @@ void retrieval_lwm_calculate_xyz(t_lwm_opc *opc)
 		coordinates_radar_azel2enu(o->radarmeasurement[io]->center_coor);
 		coordinates_radar_azelrangedir2enu(o->radarmeasurement[io]->center_coor);
 
-				
 		//*****
 		//calculate subvolume coordinates
-		for ( ir = 0; ir < p->o_nr; ir++ ) {
+		for ( ir = 0; ir < p->n_sv; ir++ ) {
 			//take over radar location
 			p->subvolume_coor[io][ir]->enu_radar_location_xyzt[0] = o->radarmeasurement[io]->center_coor->enu_radar_location_xyzt[0];
 			p->subvolume_coor[io][ir]->enu_radar_location_xyzt[1] = o->radarmeasurement[io]->center_coor->enu_radar_location_xyzt[1];
@@ -363,11 +377,11 @@ void retrieval_lwm_calculate_xyz(t_lwm_opc *opc)
 			
 			//beam range is chosen such that equal power is there.
 			//for volumetric distributed scatterers the weighting factor is (r^-2)
-			cdfP = (i_beam_theta + 0.5) / zcfg->retrieval->radarfilter->n_beam_range; 
+			cdfP = (i_beam_range + 0.5) / zcfg->retrieval->radarfilter->n_beam_range; 
 			myr1	= o->radarmeasurement[io]->azel_r1_m;
 			myr2	= o->radarmeasurement[io]->azel_r2_m;
 			if (myr1 == 0.) {
-				myr1 = myr2 / 1.e5;
+				myr1 = myr2 / 10.;
 			}
 			p->subvolume_coor[io][ir]->radar_range = 
 				pow(  pow(myr1 , -1.) - (cdfP * (pow(myr1 , -1.) - pow(myr2, -1.))), -1.);		
@@ -439,11 +453,11 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 	int n_ep2;
 	int *my_permutation = NULL;
 
-	p->o_in_analysis_volume_n = 0;
+	o->in_analysis_volume_n = 0;
 	//loop through observations.
 	for (io=0; io < o->n; io++) {
 		//check whether the observation is in the analysis volume
-		p->o_in_analysis_volume[io] = 
+		o->in_analysis_volume[io] = 
 			((p->field->x(p->field, p->i) - (c->xvec_m[2]/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[0]) &
 				(o->radarmeasurement[io]->center_coor->enu_xyzt[0] < (p->field->x(p->field, p->i) + (c->xvec_m[2]/2.))) &
 			((p->field->y(p->field, p->i) - (c->yvec_m[2]/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[1]) &
@@ -452,10 +466,10 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 				(o->radarmeasurement[io]->center_coor->enu_xyzt[2] < (p->field->z(p->field, p->i) + (c->zvec_m[2]/2.))) &
 			((p->field->t(p->field, p->i) - (c->tvec_s[2]/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[3]) &
 				(o->radarmeasurement[io]->center_coor->enu_xyzt[3] < (p->field->t(p->field, p->i) + (c->tvec_s[2]/2.)));
-		p->o_used_for_analysis[io] = p->o_in_analysis_volume[io];
-		if (p->o_in_analysis_volume[io]) {p->o_in_analysis_volume_n++;}
+		o->used_for_analysis[io] = o->in_analysis_volume[io];
+		if (o->in_analysis_volume[io]) {o->in_analysis_volume_n++;}
 	}
-	p->o_used_for_analysis_n = p->o_in_analysis_volume_n;
+	o->used_for_analysis_n = o->in_analysis_volume_n;
 			
 	//add random extra points
 	n_ep = 0;
@@ -466,7 +480,7 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 			((p->field->y(p->field, p->i) - (c->extra_points_dy/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[1]) & (o->radarmeasurement[io]->center_coor->enu_xyzt[1] < (p->field->y(p->field, p->i) + (c->extra_points_dy/2.))) &
 			((p->field->z(p->field, p->i) - (c->extra_points_dz/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[2]) & (o->radarmeasurement[io]->center_coor->enu_xyzt[2] < (p->field->z(p->field, p->i) + (c->extra_points_dz/2.))) &
 			((p->field->t(p->field, p->i) - (c->extra_points_dt/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[3]) & (o->radarmeasurement[io]->center_coor->enu_xyzt[3] < (p->field->t(p->field, p->i) + (c->extra_points_dt/2.))) &
-			(p->o_in_analysis_volume[io] == 0)
+			(o->in_analysis_volume[io] == 0)
 			)
 			{
 				indices_extra_points[n_ep] = io;
@@ -487,19 +501,19 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 		//add points
 		for (i=0; i < n_ep2; i++) {
 			io = indices_extra_points[my_permutation[i]];
-			p->o_used_for_analysis[io] = 1;
-			p->o_used_for_analysis_n++;
+			o->used_for_analysis[io] = 1;
+			o->used_for_analysis_n++;
 		}
 	}
 
 
 	//loop through observations.
 	for (io=0; io < o->n; io++) {
-		if (p->o_used_for_analysis[io] == 1) {
+		if (o->used_for_analysis[io] == 1) {
 			
 			//debug
-			//~ printf("p->o_used_for_analysis[%i] =%i\n", io, p->o_used_for_analysis[io]);
-			//~ printf("p->o_in_analysis_volume[%i] = %i\n", io, p->o_in_analysis_volume[io]);
+			//~ printf("o->used_for_analysis[%i] =%i\n", io, o->used_for_analysis[io]);
+			//~ printf("o->in_analysis_volume[%i] = %i\n", io, o->in_analysis_volume[io]);
 			//~ printf("p->o_x[%i] = %.2e\n", io, p->o_x[io]);
 			//~ printf("p->o_y[%i] = %.2e\n", io, p->o_y[io]);
 			//~ printf("p->o_z[%i] = %.2e\n", io, p->o_z[io]);
@@ -521,7 +535,7 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 			if (c->fit_w_z) 					{p->center_coef_w_z[io]		= o->radarmeasurement[io]->center_coor->radar_enu_dir[2] * (o->radarmeasurement[io]->center_coor->enu_xyzt[2] - p->field->z(p->field, p->i));}
 			if (c->fit_u_t_plus_v_t_plus_w_t) 	{p->center_coef_u_t_plus_v_t_plus_w_t[io]	= o->radarmeasurement[io]->center_coor->enu_xyzt[3] - p->field->t(p->field, p->i);}
 
-			for (ir=0; ir < p->o_nr; ir++) {
+			for (ir=0; ir < p->n_sv; ir++) {
 				if (c->fit_u0) 						{p->coef_u0[io][ir]		= p->subvolume_coor[io][ir]->radar_enu_dir[0];}
 				if (c->fit_u_x) 					{p->coef_u_x[io][ir]	= p->subvolume_coor[io][ir]->radar_enu_dir[0] * (p->subvolume_coor[io][ir]->enu_xyzt[0] - p->field->x(p->field, p->i));}
 				if (c->fit_u_z) 					{p->coef_u_z[io][ir]	= p->subvolume_coor[io][ir]->radar_enu_dir[0] * (p->subvolume_coor[io][ir]->enu_xyzt[2] - p->field->z(p->field, p->i));}
@@ -560,7 +574,7 @@ void retrieval_lwm_store_results(t_lwm_opc *opc)
 	
 	//loop through observations.
 	for (io=0; io < o->n; io++) {
-		if (p->o_in_analysis_volume[io]) {
+		if (o->in_analysis_volume[io]) {
 												o->windvector_u[io] 	= 	0.;
 			if (c->fit_u0) 						o->windvector_u[io] 	+= 	p->u0[p->i];
 			if (c->fit_u_x)						o->windvector_u[io] 	+= 	p->u_x[p->i] * (o->radarmeasurement[io]->center_coor->enu_xyzt[0] - p->field->x(p->field, p->i));
@@ -588,14 +602,14 @@ void retrieval_lwm_store_results(t_lwm_opc *opc)
 	//obtain best estimate for the uncertainty in the measurements
 	sigma_vr = 0;
 	for (io=0; io < o->n; io++) {
-		if (p->o_in_analysis_volume[io]) {	
-			sigma_vr += pow(p->o_lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms, 2.);
+		if (o->in_analysis_volume[io]) {	
+			sigma_vr += pow(o->lwm_vr[io] - o->radarmeasurement[io]->Doppler_velocity_hh_ms, 2.);
 		}
 	}
-	sigma_vr 	= sqrt(   (1. / (p->o_used_for_analysis_n - p->Kn)) * sigma_vr);
+	sigma_vr 	= sqrt(   (1. / (o->used_for_analysis_n - p->Kn)) * sigma_vr);
 	
 	for (io=0; io < o->n; io++) {
-		if (p->o_in_analysis_volume[io]) {
+		if (o->in_analysis_volume[io]) {
 			if (c->fit_u0)						sigma_u0	= ((p->center_coef_u0[io] < 1.e-10)?0.:(fabs( 1. / (p->center_coef_u0[io])) * sigma_vr));
 			if (c->fit_u_x)						sigma_u_x	= ((p->center_coef_u_x[io] < 1.e-10)?0.:(fabs( 1. / (p->center_coef_u_x[io])) * sigma_vr));
 			if (c->fit_u_z)						sigma_u_z	= ((p->center_coef_u_z[io] < 1.e-10)?0.:(fabs( 1. / (p->center_coef_u_z[io])) * sigma_vr));
@@ -673,43 +687,42 @@ void retrieval_lwm_additional_output(t_lwm_opc *opc, FILE *fp)
 
 	int io;
 	
-	
-	radarfilter_write_measurements(zcfg, 1, o->n, o->radarmeasurement, fp);
-
+	//print coordinates only
+	radarfilter_write_measurements(zcfg, 2, o->n, o->radarmeasurement, fp);
 	
 	//output as !! <varname> <ndim> <dim1> <data>
-	//p->o_lwm_vr
-	fprintf(fp, "!! %-30s %-15i %-15i", "lwm_vr", 1, o->n);
-	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", p->o_lwm_vr[io]);
+	//o->lwm_vr
+	fprintf(fp, "!! %-30s %-15i %-15i", "Doppler_velocity_hh_ms", 1, o->n);
+	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->lwm_vr[io]);
 	fprintf(fp, " \n");
 	
 	//residual
-	fprintf(fp, "!! %-30s %-15i %-15i", "residual", 1, o->n);
-	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", p->o_lwm_vr[io] -o->radarmeasurement[io]->Doppler_velocity_hh_ms);
-	fprintf(fp, " \n");
+	//fprintf(fp, "!! %-30s %-15i %-15i", "residual", 1, o->n);
+	//for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->lwm_vr[io] -o->radarmeasurement[io]->Doppler_velocity_hh_ms);
+	//fprintf(fp, " \n");
 	
 	//windvector_u
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_u", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_u", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_u[io]);
 	fprintf(fp, " \n");
 	//windvector_u_err
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_u_err", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_u_err", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_u_err[io]);
 	fprintf(fp, " \n");
 	//windvector_v
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_v", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_v", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_v[io]);
 	fprintf(fp, " \n");
 	//windvector_v_err
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_v_err", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_v_err", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_v_err[io]);
 	fprintf(fp, " \n");
 	//windvector_w
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_w", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_w", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_w[io]);
 	fprintf(fp, " \n");
 	//windvector_w_err
-	fprintf(fp, "!! %-30s %-15i %-15i", "windvector_w_err", 1, o->n);
+	fprintf(fp, "!! %-30s %-15i %-15i", "retrieved_w_err", 1, o->n);
 	for (io=0; io < o->n; io++) fprintf(fp, " %-15.3e", o->windvector_w_err[io]);
 	fprintf(fp, " \n");
 }
@@ -738,35 +751,45 @@ void retrieval_lwm_unpack_K(
 
 void retrieval_lwm_initialize_o(t_lwm_o **p_lwm_o, char measurements_filename[8192])
 {
-	t_lwm_o *lwm_o = malloc(sizeof(t_lwm_o));
+	t_lwm_o *o = malloc(sizeof(t_lwm_o));
 	
-	radarfilter_read_measurements(&lwm_o->n, &lwm_o->radarmeasurement, measurements_filename);
+	radarfilter_read_measurements(&o->n, &o->radarmeasurement, measurements_filename);
 	
-	lwm_o->windvector_u			= malloc(lwm_o->n * sizeof(double));
-	lwm_o->windvector_v			= malloc(lwm_o->n * sizeof(double));
-	lwm_o->windvector_w			= malloc(lwm_o->n * sizeof(double));
-	lwm_o->windvector_u_err		= malloc(lwm_o->n * sizeof(double));
-	lwm_o->windvector_v_err		= malloc(lwm_o->n * sizeof(double));
-	lwm_o->windvector_w_err		= malloc(lwm_o->n * sizeof(double));
+	func_dbl_arr_calloc(o->n, &o->windvector_u );	
+	func_dbl_arr_calloc(o->n, &o->windvector_v );	
+	func_dbl_arr_calloc(o->n, &o->windvector_w );	
+	func_dbl_arr_calloc(o->n, &o->windvector_u_err );	
+	func_dbl_arr_calloc(o->n, &o->windvector_v_err );	
+	func_dbl_arr_calloc(o->n, &o->windvector_w_err );	
+	
+	func_dbl_arr_calloc(o->n, &o->lwm_vr );	
+	func_int_arr_malloc(o->n, &o->used_for_analysis);	
+	func_int_arr_malloc(o->n, &o->in_analysis_volume);	
 
-	*p_lwm_o = lwm_o;
+	*p_lwm_o = o;
 }
 
-void retrieval_lwm_free_o(t_lwm_o *lwm_o)
+void retrieval_lwm_free_o(t_lwm_o **p_lwm_o)
 {
-	if (lwm_o != NULL) { 
-		radarfilter_free_radarmeasurement(lwm_o->n, &lwm_o->radarmeasurement);	
+	t_lwm_o *o = *p_lwm_o;
 
-		free(lwm_o->windvector_u);			
-		free(lwm_o->windvector_v);
-		free(lwm_o->windvector_w);
+	if (o != NULL) {
+		radarfilter_free_radarmeasurement(o->n, &o->radarmeasurement);	
 
-		free(lwm_o->windvector_u_err);
-		free(lwm_o->windvector_v_err);
-		free(lwm_o->windvector_w_err);
+		free(o->windvector_u);			
+		free(o->windvector_v);
+		free(o->windvector_w);
 
-		free(lwm_o);
-		lwm_o = NULL;
+		free(o->windvector_u_err);
+		free(o->windvector_v_err);
+		free(o->windvector_w_err);
+		
+		free(o->lwm_vr);
+		free(o->used_for_analysis);
+		free(o->in_analysis_volume);
+
+		free(o);
+		*p_lwm_o = NULL;
 	}
 }
 
@@ -777,11 +800,6 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 	t_zephyros_config_retrieval_lwm_cfg *c = opc->c;
     t_zephyros_config *zcfg = (t_zephyros_config*)c->vd_zcfg;
 
-	double mymin, mymax, mydif;
-	double dummy_delta = 1.e-100;
-	int i;
-	int ix, iy, iz, it;
-	int in;
 	int io;
 	int ir;
 	
@@ -821,7 +839,7 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 	func_dbl_arr_calloc(p->field->n, &p->w_z );	
 	func_dbl_arr_calloc(p->field->n, &p->u_t_plus_v_t_plus_w_t );
 
-	p->o_nr = zcfg->retrieval->radarfilter->n_beam_range * 
+	p->n_sv = zcfg->retrieval->radarfilter->n_beam_range * 
 				zcfg->retrieval->radarfilter->n_beam_theta *
 				zcfg->retrieval->radarfilter->n_beam_phi *
 				zcfg->retrieval->radarfilter->n_t;
@@ -840,18 +858,18 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 	p->coef_u_t_plus_v_t_plus_w_t	= (double**)malloc(o->n * sizeof(double*));
 
 	for (io = 0; io < o->n; io++ ) {
-		func_dbl_arr_calloc(p->o_nr, p->coef_u0 + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_u_x + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_u_z + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_v0 + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_v_y + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_v_z + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_u_y_plus_v_x + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_w0 + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_w_x + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_w_y + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_w_z + io );
-		func_dbl_arr_calloc(p->o_nr, p->coef_u_t_plus_v_t_plus_w_t + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_u0 + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_u_x + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_u_z + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_v0 + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_v_y + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_v_z + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_u_y_plus_v_x + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_w0 + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_w_x + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_w_y + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_w_z + io );
+		func_dbl_arr_calloc(p->n_sv, p->coef_u_t_plus_v_t_plus_w_t + io );
 	}
 
 	func_dbl_arr_calloc(o->n, &p->center_coef_u0 );
@@ -869,16 +887,11 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 
 	p->subvolume_coor			= malloc(o->n * sizeof(t_zephyros_coordinates**));
 	for (io = 0; io < o->n; io++ ) {
-		p->subvolume_coor[io] = malloc(p->o_nr * sizeof(t_zephyros_coordinates*));
-		for (ir = 0; ir < p->o_nr; ir++ ) {
+		p->subvolume_coor[io] = malloc(p->n_sv * sizeof(t_zephyros_coordinates*));
+		for (ir = 0; ir < p->n_sv; ir++ ) {
 			coordinates_initialize_coor(&(p->subvolume_coor[io][ir]));
 		}
 	}
-	
-	func_dbl_arr_calloc(o->n, &p->o_lwm_vr );	
-			
-	func_int_arr_malloc(o->n, &p->o_used_for_analysis );	
-	func_int_arr_malloc(o->n, &p->o_in_analysis_volume );	
 }
 	
 void retrieval_lwm_free_p(t_lwm_opc *opc)
@@ -918,6 +931,7 @@ void retrieval_lwm_free_p(t_lwm_opc *opc)
 		free(p->coef_w_z[io]);
 		free(p->coef_u_t_plus_v_t_plus_w_t[io]);
 	}
+
 	free(p->coef_u0);
 	free(p->coef_u_x);
 	free(p->coef_u_z);
@@ -945,18 +959,13 @@ void retrieval_lwm_free_p(t_lwm_opc *opc)
 	free(p->center_coef_u_t_plus_v_t_plus_w_t);
 
 	for (io = 0; io < o->n; io++ ) {
-		for (ir = 0; ir < p->o_nr; ir++ ) {
+		for (ir = 0; ir < p->n_sv; ir++ ) {
 			coordinates_free_coor(&(p->subvolume_coor[io][ir]));
 		}
 		free(p->subvolume_coor[io]);
 	}
 	free(p->subvolume_coor);
 	
-	free(p->o_lwm_vr);
-	
-	free(p->o_used_for_analysis);
-	free(p->o_in_analysis_volume);
-
 	free(p);
 }
 

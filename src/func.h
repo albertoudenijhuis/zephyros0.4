@@ -164,4 +164,5 @@ double func_newton_rapson_solver(
 double func_dB(double val);
 double func_dB_inv(double val);
 
+double func_modulo(double x, double y);
 #endif

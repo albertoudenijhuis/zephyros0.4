@@ -40,6 +40,79 @@ Note:
 #include "particles.h"
 #include "func.h"
 
+void particles_initialize(t_zephyros_particles_widget **pscat)
+{	
+	t_zephyros_particles_widget *scat = calloc(1, sizeof(t_zephyros_particles_widget));
+
+	//some standard settings
+	scat->particle_dir = calloc(4, sizeof(double));
+
+	strcpy(scat->name, "Untitled");
+	scat->cross_sections_prepared 	= 0;
+	scat->mishchenko2000_wid 		= calloc(1, sizeof(t_mishchenko2000_widget));
+	scat->widget_cpy_at_cross_section_initialization 				= NULL;
+	
+	scat->initialized 				= 1;	
+	*pscat = scat;
+}
+
+void particles_assert_initialized(t_zephyros_particles_widget *scat)
+{
+	if (scat == NULL) {
+		printf("Particle was NULL pointer. Exiting.\n");
+		exit(0);
+	}
+	if (scat->initialized != 1) {
+		printf("Particle was not initialized. Exiting.\n");
+		exit(0);
+	}
+}
+
+void particles_assert_cross_sections_prepared(t_zephyros_particles_widget *scat)
+{
+	particles_assert_initialized(scat);
+	if (scat->cross_sections_prepared != 1) {
+		printf("Particle `%s' was not prepared. Exiting.\n", scat->name);
+		exit(0);
+	}
+}
+
+void particles_free(t_zephyros_particles_widget **pscat)
+{
+	t_zephyros_particles_widget *scat = *pscat;
+	
+	if (scat != NULL) {
+		particles_assert_initialized(scat);
+		if (scat->particle_dir != NULL) free(scat->particle_dir);
+		if (scat->mishchenko2000_wid != NULL) free(scat->mishchenko2000_wid);
+		
+		free(scat);
+		*pscat = NULL;
+	}
+}
+
+void particles_copy(t_zephyros_particles_widget **pdst, t_zephyros_particles_widget *src)
+{
+	t_zephyros_particles_widget *dst;
+		
+	if (src == NULL) {
+		dst = NULL;
+	} else {
+		particles_assert_initialized(src);
+
+		dst = malloc(sizeof(t_zephyros_particles_widget));
+		memcpy(dst, src, sizeof(t_zephyros_particles_widget));
+		
+		dst->particle_dir		= calloc(4, sizeof(double));
+		memcpy(dst->particle_dir, src->particle_dir, 4 * sizeof(double));
+		dst->mishchenko2000_wid	= calloc(1, sizeof(t_mishchenko2000_widget));
+		memcpy(dst->mishchenko2000_wid, src->mishchenko2000_wid, sizeof(t_mishchenko2000_widget));
+		
+		dst->widget_cpy_at_cross_section_initialization = NULL;		
+	}
+	*pdst = dst;
+}
+
 /*
 http://en.wikipedia.org/wiki/Viscosity
 Sutherland's formula can be used to derive the dynamic viscosity of an ideal gas as a function of the temperature:[22]
@@ -89,6 +162,8 @@ void particles_air_parameters(t_zephyros_particles_widget *scat, t_zephyros_coor
 	double gravity_g0 = 9.80665; //[m s-2]
 	double gravity_re = 6371.e3; //m
 
+	particles_assert_initialized(scat);
+
 	//air density
 	scat->air_density = ((100. * scat->air_drypressure_hPa) / (specific_gas_constant_Rd * scat->air_temperature_K)) + ((100. * scat->air_vaporpressure_hPa) / (specific_gas_constant_Rv * scat->air_temperature_K));
 
@@ -122,8 +197,6 @@ void particles_air_parameters(t_zephyros_particles_widget *scat, t_zephyros_coor
 //input:
 //- scat->particle_type
 //- scat->particle_D_eqvol_mm
-//- scat->air_density
-//- scat->air_gravity
 //
 //output:
 //- scat->particle_density
@@ -135,7 +208,9 @@ void particles_air_parameters(t_zephyros_particles_widget *scat, t_zephyros_coor
 //- scat->particle_A_min
 //- scat->particle_volume
 void particles_spheroid_geometry_beard1987(t_zephyros_particles_widget *scat)
-{	
+{		
+	particles_assert_initialized(scat);
+
 	if ((0 < scat->particle_type) & (scat->particle_type < 10)) {
 		//water density
 		scat->particle_density = 998.2071; //[kg m-3]
@@ -213,6 +288,8 @@ void particles_terminal_fall_speed_khvorostyanov2005(t_zephyros_particles_widget
 	
 	double Re_maj, Re_min;	//[-]
 	double CD_maj, CD_min;	//[-]
+
+	particles_assert_initialized(scat);
 
 	//Khvorostyanov (2005) uses the following expression (which is slightly better):
 	X_maj = (2. * scat->particle_volume * fabs(scat->particle_density - scat->air_density) * scat->air_gravity * pow(scat->particle_D_maj_mm * 1.e-3, 2.)) / (scat->particle_A_maj * scat->air_density * pow(scat->air_kinematic_viscosity, 2.)); //S.I.
@@ -307,7 +384,8 @@ void particles_terminal_fall_speed_khvorostyanov2005(t_zephyros_particles_widget
 	scat->particle_inertial_eta_z = (scat->air_density * scat->particle_A_maj * CD_maj) / (2. * scat->particle_mass_kg) ;
 	scat->particle_inertial_eta_xy = (scat->air_density * scat->particle_A_min * CD_min) / (2. * scat->particle_mass_kg);
 	
-	scat->particle_inertial_distance_z = 2. / scat->particle_inertial_eta_z;
+	scat->particle_inertial_distance_z_vt_small = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_z);
+	scat->particle_inertial_distance_z_vt_large = 1. / (2. * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_xy = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_xy);
 }
 
@@ -344,6 +422,8 @@ void particles_terminal_fall_speed_mitchell1996(t_zephyros_particles_widget *sca
 	double D_eqvol_mm;
 	double D_min_mm;
 
+	particles_assert_initialized(scat);
+	
 	//Mitchel (1996) uses the following expression:
 	X_maj = (2. * scat->particle_mass_kg * scat->air_gravity * scat->air_density * pow(scat->particle_D_maj_mm * 1.e-3, 2.)) / (scat->particle_A_maj * pow(scat->air_dynamic_viscosity, 2.));
 	X_min = (2. * scat->particle_mass_kg * scat->air_gravity * scat->air_density * pow(scat->particle_D_min_mm * 1.e-3, 2.)) / (scat->particle_A_min * pow(scat->air_dynamic_viscosity, 2.));
@@ -385,7 +465,8 @@ void particles_terminal_fall_speed_mitchell1996(t_zephyros_particles_widget *sca
 	scat->particle_inertial_eta_z =  (scat->air_density * scat->particle_A_maj * CD_maj ) / (2. * scat->particle_mass_kg);
 	scat->particle_inertial_eta_xy = (scat->air_density * scat->particle_A_min * CD_min ) / (2. * scat->particle_mass_kg);
 	
-	scat->particle_inertial_distance_z = 2. / scat->particle_inertial_eta_z;
+	scat->particle_inertial_distance_z_vt_small = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_z);
+	scat->particle_inertial_distance_z_vt_large = 1. / (2. * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_xy = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_xy);
 }
 
@@ -406,6 +487,8 @@ void particles_fall_speed_atlas1973(t_zephyros_particles_widget *scat)
 	double specific_gas_constant_Rv = 461.495; //Specific gas constant for water vapor, 461.495 J/(kg·K)
 	double rho0;
 	
+	particles_assert_initialized(scat);
+	
 	rho0 = ((100. * scat->air_drypressure_hPa) / (specific_gas_constant_Rd * 293.15)) + ((100. * scat->air_vaporpressure_hPa) / (specific_gas_constant_Rv * 293.15));
 	scat->particle_terminal_fall_speed = alpha - (beta * exp(-0.6 * scat->particle_D_eqvol_mm));
 	scat->particle_terminal_fall_speed *= pow(rho0/scat->air_density, 0.4);
@@ -423,9 +506,12 @@ void particles_fall_speed_atlas1973(t_zephyros_particles_widget *scat)
 //-	scat->particle_dir
 
 //output:
-//- scat->particle_terminal_fall_speed
-void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor)
+//- ...
+void particles_cross_sections_dewolf1990_init(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor)
 {
+	int do_init;
+	t_zephyros_particles_widget *prev_scat;
+
 	double e, esq, f, fsq;
 	double shapefactor_lambda12, shapefactor_lambda3;
 	
@@ -433,35 +519,63 @@ void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_ze
 	//relative permitivity = n^2, where n is the complex refractive index of water
 	//+/- 80 for water droplets, lambda = 9 cm.
 	double epsilon_r = creal(scat->particle_refractive_index * scat->particle_refractive_index);
-	
-	//solution taken over from Yanovsky, GRSPaper hr.pdf
-	if (scat->particle_axis_ratio < 1.) {
-		esq = 1. - pow(scat->particle_axis_ratio, 2.);
-		e = sqrt(esq);
-		shapefactor_lambda3 =
-			((1. - esq) / esq) * (-1. + ((1. / (2. * e)) * log((1. + e)/ (1. - e))));
-	} else if (scat->particle_axis_ratio == 1.) {
-		shapefactor_lambda3 = 1./3.;
+	t_zephyros_particles_widget *tmp;
+
+	particles_assert_initialized(scat);
+
+	//check if we can scip the init
+	if (scat->widget_cpy_at_cross_section_initialization != NULL) {
+		prev_scat = (t_zephyros_particles_widget*) scat->widget_cpy_at_cross_section_initialization;
+		
+		do_init = 0;
+		if (
+				(prev_scat->particle_axis_ratio != scat->particle_axis_ratio)	|
+				(prev_scat->particle_D_eqvol_mm != scat->particle_D_eqvol_mm)	|
+				(prev_scat->radar_wavelength_m != scat->radar_wavelength_m)		|
+				(prev_scat->particle_refractive_index != scat->particle_refractive_index)
+			) do_init = 1;
 	} else {
-		fsq = pow(scat->particle_axis_ratio, 2.) - 1.;
-		f = sqrt(fsq);
-		shapefactor_lambda3 =
-			((1. + fsq) / fsq) * (1. - ((1. / f) * atan(f)));
+			do_init = 1;
 	}
 
-	shapefactor_lambda12	= (1. - shapefactor_lambda3) / 2.;
+	if (do_init == 1) {
+		//solution taken over from Yanovsky, GRSPaper hr.pdf
+		if (scat->particle_axis_ratio < 1.) {
+			esq = 1. - pow(scat->particle_axis_ratio, 2.);
+			e = sqrt(esq);
+			shapefactor_lambda3 =
+				((1. - esq) / esq) * (-1. + ((1. / (2. * e)) * log((1. + e)/ (1. - e))));
+		} else if (scat->particle_axis_ratio == 1.) {
+			shapefactor_lambda3 = 1./3.;
+		} else {
+			fsq = pow(scat->particle_axis_ratio, 2.) - 1.;
+			f = sqrt(fsq);
+			shapefactor_lambda3 =
+				((1. + fsq) / fsq) * (1. - ((1. / f) * atan(f)));
+		}
 
-	scat->dewolf1990_shapefactor_biglambda12	= 1. / (1. + (shapefactor_lambda12 * (epsilon_r - 1.)));
-	scat->dewolf1990_shapefactor_biglambda3		= 1. / (1. + (shapefactor_lambda3 * (epsilon_r - 1.)));
-	scat->dewolf1990_fct 						= (pow(M_PI, 5.) * pow(scat->particle_D_eqvol_mm * 1.e-3, 6.) / (9. * pow(scat->radar_wavelength_m, 4.))) * pow(epsilon_r - 1., 2.);
+		shapefactor_lambda12	= (1. - shapefactor_lambda3) / 2.;
 
-	particles_cross_sections_dewolf1990_update_coor(scat, coor);
+		scat->dewolf1990_shapefactor_biglambda12	= 1. / (1. + (shapefactor_lambda12 * (epsilon_r - 1.)));
+		scat->dewolf1990_shapefactor_biglambda3		= 1. / (1. + (shapefactor_lambda3 * (epsilon_r - 1.)));
+		scat->dewolf1990_fct 						= (pow(M_PI, 5.) * pow(scat->particle_D_eqvol_mm * 1.e-3, 6.) / (9. * pow(scat->radar_wavelength_m, 4.))) * pow(epsilon_r - 1., 2.);
+
+		//make copy of corrent settings
+		particles_free((t_zephyros_particles_widget**) &scat->widget_cpy_at_cross_section_initialization);
+		particles_copy(&tmp, scat);
+		scat->widget_cpy_at_cross_section_initialization = tmp;
+	}
 }
 
-void particles_cross_sections_dewolf1990_update_coor(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor)
+void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor)
 {
 	double qhh, qvv, qhv;
 	double eh_u3_sq, ev_u3_sq;
+
+	particles_assert_initialized(scat);
+	
+	particles_cross_sections_dewolf1990_init(scat, coor);
+
 	
 	//inproducts
 	eh_u3_sq = pow(		(coor->radar_pol_hor_dir[0] * scat->particle_dir[0])
@@ -493,7 +607,7 @@ void particles_cross_sections_dewolf1990_update_coor(t_zephyros_particles_widget
 
 
 
-//function: particles_cross_sections_mischenko2000
+//function: particles_cross_sections_mishchenko2000
 //input:
 //- scat->particle_axis_ratio
 //- scat->particle_refractive_index
@@ -502,75 +616,103 @@ void particles_cross_sections_dewolf1990_update_coor(t_zephyros_particles_widget
 //-	scat->particle_dir
 
 //output:
-//- scat->particle_terminal_fall_speed
-void particles_cross_sections_mischenko2000(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward)
+//- ...
+void particles_cross_sections_mishchenko2000_init(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward)
 {
-	//TBD: not sure about units and so on ...
+	int do_init;
+	t_zephyros_particles_widget *prev_scat;
+	t_zephyros_particles_widget *tmp;
 	//here everything given in m.
 
-	//calculate t-matrix
-	scat->mischenko2000_wid.axi 	= 1.e-3 * scat->particle_D_eqvol_mm / 2.;		//equivalent-sphere radius   
-	scat->mischenko2000_wid.rat 	= 1;
-	scat->mischenko2000_wid.lam 	= scat->radar_wavelength_m;
-	scat->mischenko2000_wid.mrr 	= creal(scat->particle_refractive_index);
-	scat->mischenko2000_wid.mri 	= -1. * cimag(scat->particle_refractive_index);
-	scat->mischenko2000_wid.eps 	= 1. / scat->particle_axis_ratio;
-	scat->mischenko2000_wid.np 		= -1;	
-	//scat->mischenko2000_wid.ddelt 	= .001;	//standard value
-	scat->mischenko2000_wid.ddelt 	= .005;	
-	scat->mischenko2000_wid.ndgs 	= 2;
+	particles_assert_initialized(scat);
 
-	//calculate t-matrix
-	mischenko2000_calc_tmatrix(&(scat->mischenko2000_wid));
+	//check if we can scip the init
+	if (scat->widget_cpy_at_cross_section_initialization != NULL) {
+		prev_scat = (t_zephyros_particles_widget*) scat->widget_cpy_at_cross_section_initialization;
+		
+		do_init = 0;
 
-	particles_cross_sections_mischenko2000_update_coor(scat, coor, i_backward_forward);
+		if (
+				(prev_scat->particle_axis_ratio != scat->particle_axis_ratio)	|
+				(prev_scat->particle_D_eqvol_mm != scat->particle_D_eqvol_mm)	|
+				(prev_scat->radar_wavelength_m != scat->radar_wavelength_m)		|
+				(prev_scat->particle_refractive_index != scat->particle_refractive_index)
+			) do_init = 1;
+	} else {
+			do_init = 1;
+	}
+	
+	if (do_init == 1) {
+		//calculate t-matrix
+		scat->mishchenko2000_wid->axi 	= 1.e-3 * scat->particle_D_eqvol_mm / 2.;		//equivalent-sphere radius   
+		scat->mishchenko2000_wid->rat 	= 1;
+		scat->mishchenko2000_wid->lam 	= scat->radar_wavelength_m;
+		scat->mishchenko2000_wid->mrr 	= creal(scat->particle_refractive_index);
+		scat->mishchenko2000_wid->mri 	= -1. * cimag(scat->particle_refractive_index);
+		scat->mishchenko2000_wid->eps 	= 1. / scat->particle_axis_ratio;
+		scat->mishchenko2000_wid->np 		= -1;	
+		scat->mishchenko2000_wid->ddelt 	= .001;	//standard value
+		scat->mishchenko2000_wid->ndgs 	= 2;
+
+		//calculate t-matrix
+		mishchenko2000_calc_tmatrix(scat->mishchenko2000_wid);
+
+		//make copy of corrent settings
+		particles_free((t_zephyros_particles_widget**) &scat->widget_cpy_at_cross_section_initialization);
+		particles_copy(&tmp, scat);
+		scat->widget_cpy_at_cross_section_initialization = tmp;
+	}
 }
 
-void particles_cross_sections_mischenko2000_update_coor(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward)
+void particles_cross_sections_mishchenko2000(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward)
 {	
+	particles_assert_initialized(scat);
+	
+	particles_cross_sections_mishchenko2000_init(scat, coor, i_backward_forward);
+
 	//set angles
 	//beta is the angle w.r.t. the z-axis
 	//alpha is the angle w.r.t. the x-axis, positive in the direction of the y-axis
-	scat->mischenko2000_wid.beta 	= fmod((180. / M_PI) * fabs(acos(scat->particle_dir[2])), 180.);	
-	scat->mischenko2000_wid.alpha 	= fmod((180. / M_PI) * atan2(scat->particle_dir[1], scat->particle_dir[0]) + 360.,360.);	
+	scat->mishchenko2000_wid->beta 	= fmod((180. / M_PI) * fabs(acos(scat->particle_dir[2])), 180.);	
+	scat->mishchenko2000_wid->alpha 	= fmod((180. / M_PI) * atan2(scat->particle_dir[1], scat->particle_dir[0]) + 360.,360.);	
 	
 	//theta is the angle w.r.t. the vertical, the z-axis
 	//phi is the angle w.r.t. x-axis, positive in direction of the y-axis.
-	scat->mischenko2000_wid.thet0 	= (180. / M_PI) * fabs(acos(coor->radar_enu_dir[2]));
-	scat->mischenko2000_wid.phi0 	= fmod((180. / M_PI) * atan2(coor->radar_enu_dir[1], coor->radar_enu_dir[0]) + 360.,360.);  
+	scat->mishchenko2000_wid->thet0 	= (180. / M_PI) * fabs(acos(coor->radar_enu_dir[2]));
+	scat->mishchenko2000_wid->phi0 	= fmod((180. / M_PI) * atan2(coor->radar_enu_dir[1], coor->radar_enu_dir[0]) + 360.,360.);  
 	
 	if (i_backward_forward == 0) {
 		//for back scattering	
-		scat->mischenko2000_wid.thet 	= (180. / M_PI) * fabs(acos(-coor->radar_enu_dir[2]));
-		scat->mischenko2000_wid.phi 	= fmod((180. / M_PI) * atan2(-coor->radar_enu_dir[1], -coor->radar_enu_dir[0]) + 360.,360.);
+		scat->mishchenko2000_wid->thet 	= (180. / M_PI) * fabs(acos(-coor->radar_enu_dir[2]));
+		scat->mishchenko2000_wid->phi 	= fmod((180. / M_PI) * atan2(-coor->radar_enu_dir[1], -coor->radar_enu_dir[0]) + 360.,360.);
 	}
 	
 	if (i_backward_forward == 1) {
 		//for forward scattering	
-		scat->mischenko2000_wid.thet 	= (180. / M_PI) * fabs(acos(coor->radar_enu_dir[2]));
-		scat->mischenko2000_wid.phi 	= fmod((180. / M_PI) * atan2(coor->radar_enu_dir[1], coor->radar_enu_dir[0]) + 360.,360.);
+		scat->mishchenko2000_wid->thet 	= (180. / M_PI) * fabs(acos(coor->radar_enu_dir[2]));
+		scat->mishchenko2000_wid->phi 	= fmod((180. / M_PI) * atan2(coor->radar_enu_dir[1], coor->radar_enu_dir[0]) + 360.,360.);
 	}
 	
 	/*
 	//extra check for angle
-	if (scat->mischenko2000_wid.beta > 180. - delta) 	scat->mischenko2000_wid.beta -= delta;
-	if (scat->mischenko2000_wid.beta < 0. + delta) 		scat->mischenko2000_wid.beta += delta;
-	if (scat->mischenko2000_wid.alpha > 360. - delta) 	scat->mischenko2000_wid.alpha -= delta;
-	if (scat->mischenko2000_wid.alpha < 0. + delta) 	scat->mischenko2000_wid.alpha += delta;
+	if (scat->mishchenko2000_wid->beta > 180. - delta) 	scat->mishchenko2000_wid->beta -= delta;
+	if (scat->mishchenko2000_wid->beta < 0. + delta) 		scat->mishchenko2000_wid->beta += delta;
+	if (scat->mishchenko2000_wid->alpha > 360. - delta) 	scat->mishchenko2000_wid->alpha -= delta;
+	if (scat->mishchenko2000_wid->alpha < 0. + delta) 	scat->mishchenko2000_wid->alpha += delta;
 	
-	if (scat->mischenko2000_wid.thet0 > 180. - delta) 	scat->mischenko2000_wid.thet0 -= delta;
-	if (scat->mischenko2000_wid.thet0 < 0. + delta) 	scat->mischenko2000_wid.thet0 += delta;
-	if (scat->mischenko2000_wid.phi0 > 360. - delta) 	scat->mischenko2000_wid.phi0 -= delta;
-	if (scat->mischenko2000_wid.phi0 < 0. + delta) 		scat->mischenko2000_wid.phi0 += delta;
+	if (scat->mishchenko2000_wid->thet0 > 180. - delta) 	scat->mishchenko2000_wid->thet0 -= delta;
+	if (scat->mishchenko2000_wid->thet0 < 0. + delta) 	scat->mishchenko2000_wid->thet0 += delta;
+	if (scat->mishchenko2000_wid->phi0 > 360. - delta) 	scat->mishchenko2000_wid->phi0 -= delta;
+	if (scat->mishchenko2000_wid->phi0 < 0. + delta) 		scat->mishchenko2000_wid->phi0 += delta;
 	
-	if (scat->mischenko2000_wid.thet > 180. - delta) 	scat->mischenko2000_wid.thet -= delta;
-	if (scat->mischenko2000_wid.thet < 0. + delta) 		scat->mischenko2000_wid.thet += delta;
-	if (scat->mischenko2000_wid.phi > 360. - delta) 	scat->mischenko2000_wid.phi -= delta;
-	if (scat->mischenko2000_wid.phi < 0. + delta) 		scat->mischenko2000_wid.phi += delta;
+	if (scat->mishchenko2000_wid->thet > 180. - delta) 	scat->mishchenko2000_wid->thet -= delta;
+	if (scat->mishchenko2000_wid->thet < 0. + delta) 		scat->mishchenko2000_wid->thet += delta;
+	if (scat->mishchenko2000_wid->phi > 360. - delta) 	scat->mishchenko2000_wid->phi -= delta;
+	if (scat->mishchenko2000_wid->phi < 0. + delta) 		scat->mishchenko2000_wid->phi += delta;
 	*/
 	
 	//calculate amplitude and phase matrices
-	mischenko2000_amp_phase_matrices(&(scat->mischenko2000_wid));
+	mishchenko2000_amp_phase_matrices(scat->mishchenko2000_wid);
 
 	//radar cross section 3.10.1 from Bringi
 	//or 3.134
@@ -579,20 +721,20 @@ void particles_cross_sections_mischenko2000_update_coor(t_zephyros_particles_wid
 	//eta_hv = n * 4 * M_PI * pow(cabs(wid->s12), 2.);
 	
 	if (i_backward_forward == 0) {
-		scat->particle_sigma_hh = 4. * M_PI * pow(cabs(scat->mischenko2000_wid.s22), 2.);
-		scat->particle_sigma_vv = 4. * M_PI * pow(cabs(scat->mischenko2000_wid.s11), 2.);
-		scat->particle_sigma_hv = 4. * M_PI * pow(cabs(scat->mischenko2000_wid.s21), 2.);
-		scat->particle_sigma_vh = 4. * M_PI * pow(cabs(scat->mischenko2000_wid.s12), 2.);
+		scat->particle_sigma_hh = 4. * M_PI * pow(cabs(scat->mishchenko2000_wid->s22), 2.);
+		scat->particle_sigma_vv = 4. * M_PI * pow(cabs(scat->mishchenko2000_wid->s11), 2.);
+		scat->particle_sigma_hv = 4. * M_PI * pow(cabs(scat->mishchenko2000_wid->s21), 2.);
+		scat->particle_sigma_vh = 4. * M_PI * pow(cabs(scat->mishchenko2000_wid->s12), 2.);
 		
 		//extra to calculate correlation coefficients
-		scat->particle_sigma_ShhSvvc = 4. * M_PI * cabs(scat->mischenko2000_wid.s22 * conj(scat->mischenko2000_wid.s11));
-		scat->particle_sigma_ShhShvc = 4. * M_PI * cabs(scat->mischenko2000_wid.s22 * conj(scat->mischenko2000_wid.s21));
-		scat->particle_sigma_SvvSvhc = 4. * M_PI * cabs(scat->mischenko2000_wid.s11 * conj(scat->mischenko2000_wid.s12));	
+		scat->particle_sigma_ShhSvvc = 4. * M_PI * cabs(scat->mishchenko2000_wid->s22 * conj(scat->mishchenko2000_wid->s11));
+		scat->particle_sigma_ShhShvc = 4. * M_PI * cabs(scat->mishchenko2000_wid->s22 * conj(scat->mishchenko2000_wid->s21));
+		scat->particle_sigma_SvvSvhc = 4. * M_PI * cabs(scat->mishchenko2000_wid->s11 * conj(scat->mishchenko2000_wid->s12));	
 	}
 	
 	if (i_backward_forward == 1) {	
 		//extra to calculate differential phase
-		scat->particle_Re_Shh_min_Svv = creal(scat->mischenko2000_wid.s22 - scat->mischenko2000_wid.s11);
+		scat->particle_Re_Shh_min_Svv = creal(scat->mishchenko2000_wid->s22 - scat->mishchenko2000_wid->s11);
 	}
 }
 
@@ -668,9 +810,9 @@ void particle_print_widget(t_zephyros_particles_widget *scat)
 	printf("%-30s = %.2e\n", "particle_terminal_fall_speed", scat->particle_terminal_fall_speed);
 	printf("%-30s = %.2e\n", "particle_inertial_eta_z", scat->particle_inertial_eta_z);
 	printf("%-30s = %.2e\n", "particle_inertial_eta_xy", scat->particle_inertial_eta_xy);
-	printf("%-30s = %.2e\n", "particle_inertial_distance_z", scat->particle_inertial_distance_z);
+	printf("%-30s = %.2e\n", "particle_inertial_distance_z_vt_small", scat->particle_inertial_distance_z_vt_small);
+	printf("%-30s = %.2e\n", "particle_inertial_distance_z_vt_large", scat->particle_inertial_distance_z_vt_large);
 	printf("%-30s = %.2e\n", "particle_inertial_distance_xy", scat->particle_inertial_distance_xy);
-	
 	
 	printf("%-30s = %.2e + %.2ei\n", "particle_refractive_index", creal(scat->particle_refractive_index), cimag(scat->particle_refractive_index));
 	printf("%-30s = %.2e\n", "particle_sigma_hh", scat->particle_sigma_hh);

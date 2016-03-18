@@ -2,7 +2,7 @@
 #define _ZEPHYROS_SCATTERERS
 
 #include "coordinates.h"
-#include "particles_mischenko2000.h"
+#include "particles_mishchenko2000.h"
 #include <complex.h>
 
 typedef struct st_zephyros_particles_widget
@@ -36,13 +36,14 @@ typedef struct st_zephyros_particles_widget
 	double 	particle_volume;			
 
 	//dynamics
-	double 	particle_dir[4];				//particle direction / orientation
+	double 	*particle_dir;				//particle direction / orientation
 	double  particle_terminal_fall_speed;
 	
-	
+	//inertial parameters
 	double  particle_inertial_eta_z;
 	double  particle_inertial_eta_xy;
-	double  particle_inertial_distance_z;
+	double  particle_inertial_distance_z_vt_small;
+	double  particle_inertial_distance_z_vt_large;
 	double  particle_inertial_distance_xy;
 
 	//particle cross section
@@ -64,23 +65,32 @@ typedef struct st_zephyros_particles_widget
 	double dewolf1990_shapefactor_biglambda3;
 	double dewolf1990_fct;
 
-	//not a pointer, therefore the object does not have to be initialized -:).
-	t_mischenko2000_widget mischenko2000_wid;	
+	t_mishchenko2000_widget *mishchenko2000_wid;	
 
 	double radar_wavelength_m;
 
+	char		name[8192];	//for error reporting	
+	int 		initialized;
+	int 		cross_sections_prepared;
+	
+	void		*widget_cpy_at_cross_section_initialization;
 } t_zephyros_particles_widget;
+void particles_initialize(t_zephyros_particles_widget **pscat);
+void particles_assert_initialized(t_zephyros_particles_widget *scat);
+void particles_assert_cross_sections_prepared(t_zephyros_particles_widget *scat);
+void particles_free(t_zephyros_particles_widget **pscat);
+void particles_copy(t_zephyros_particles_widget **pdst, t_zephyros_particles_widget *src);
 
 void particles_air_parameters(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor);
 void particles_spheroid_geometry_beard1987(t_zephyros_particles_widget *scat);
 void particles_terminal_fall_speed_khvorostyanov2005(t_zephyros_particles_widget *scat);
 void particles_terminal_fall_speed_mitchell1996(t_zephyros_particles_widget *scat);
 void particles_fall_speed_atlas1973(t_zephyros_particles_widget *scat);
+void particles_cross_sections_dewolf1990_init(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor);
 void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor);
-void particles_cross_sections_dewolf1990_update_coor(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor);
 
-void particles_cross_sections_mischenko2000(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward);
-void particles_cross_sections_mischenko2000_update_coor(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward);
+void particles_cross_sections_mishchenko2000_init(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward);
+void particles_cross_sections_mishchenko2000(t_zephyros_particles_widget *scat, t_zephyros_coordinates *coor, int i_backward_forward);
 
 
 void particles_inertiamodel_fraction(

@@ -2,25 +2,14 @@
 #include "fields.h"
 #include "radarfilter.h"
 
+
 double prev_costfunction;
 
 typedef struct st_fdvar_o
 {
     int 					n;								//number of radar observations
 	t_radarmeasurement 		**radarmeasurement;				//radar observations
-	t_radarmeasurement 		**model_radarmeasurement;	//model radar observations
- 	
-    //output
-	double		*windvector_u;
-	double		*windvector_v;
-	double		*windvector_w;
-	double		*windvector_u_err;
-	double		*windvector_v_err;
-	double		*windvector_w_err;
-	
-	double		*edr;
-	double		*lwc;
-
+	t_radarmeasurement 		**model_radarmeasurement;		//model radar observations
 } t_fdvar_o ;
 
 typedef struct st_fdvar_p
@@ -67,10 +56,14 @@ void retrieval_fdvar_cost_function(
 	
 double retrieval_fdvar_K2x(t_fdvar_p *p, double *x, int Knr);
 double retrieval_fdvar_x2K(t_fdvar_p *p, double *K, int Knr);
+
 void retrieval_fdvar_init_x(void *vd_opc, double **x);
 void retrieval_fdvar_unpack_x(t_fdvar_opc *opc, double *x);
 
-void retrieval_fdvar_cast_p(t_fdvar_opc *opc1, t_fdvar_opc *opc2);
+void retrieval_fdvar_estimate_posterior_errors(t_fdvar_opc *opc);
+void retrieval_fdvar_estimate_posterior_errors_solver1(cs *mat1_triplet, double *prior_errors, double *result_errors);
+
+void retrieval_fdvar_cast_solutions(t_fdvar_opc *opc);
 
 void retrieval_fdvar_additional_output(t_fdvar_opc *opc, FILE *fp);
 
@@ -83,14 +76,6 @@ void retrieval_fdvar_free_p(t_fdvar_opc *opc);
 void retrieval_fdvar_cs_qrsol(t_zephyros_field_errcovmat *ecm, double *b, double *x);
 
 
-/*
-cs *cs_qr_obtain_inverse(
-	csn *N,
-	css *S,
-	int n,
-	double tol
-	);
-*/
 
 void cs_matrix_vector (
 	cs *A,
@@ -98,4 +83,5 @@ void cs_matrix_vector (
 	double* y,
 	int n
 	);
+
 

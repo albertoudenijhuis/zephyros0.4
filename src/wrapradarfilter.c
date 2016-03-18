@@ -16,6 +16,9 @@ void wrapradarfilter(char cfg_filename[8192], char additional_output_filename[81
 	t_zephyros_config   		*cfg = NULL;
 	t_radarmeasurement			**radarmeasurement;
 	t_radarfilter_todolist		*todo;
+	t_radarfilter_res_vol 			*res_vol;
+
+
 	
 	//load configuration
 	zephyros_config_read(cfg_filename, additional_output_filename, &cfg);
@@ -23,7 +26,10 @@ void wrapradarfilter(char cfg_filename[8192], char additional_output_filename[81
 	//initialize
 	radarfilter_initialize_todolist(cfg, 0, &todo);
 	radarfilter_read_measurements(&n, &radarmeasurement, measurements_file_name);
-	radarfilter_exec(cfg, 0, todo, n, radarmeasurement);
+	
+	radarfilter_initialize_resolution_volume(cfg, 0, &res_vol, todo);
+	radarfilter_exec(cfg, 0, todo, n, radarmeasurement, res_vol);
+	radarfilter_free_resolution_volume(cfg, 0, &res_vol, todo);
 	
 	radarfilter_write_measurements(cfg, 0, n, radarmeasurement, cfg->fp_ao);
 	if (cfg->general->additional_output->print_detailed_analysis) radarfilter_write_measurements_detailed_analysis(cfg, 0, n, radarmeasurement, cfg->fp_ao);

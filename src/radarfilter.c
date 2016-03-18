@@ -1,7 +1,3 @@
-//next:
-//- add spectrum_eta_i
-
-
 /*
 Description: 
 	RADAR filter functions
@@ -61,7 +57,8 @@ void radarfilter_exec(
 	int								i_mode,	//0 = simulation mode, 1 = retrieval mode
 	t_radarfilter_todolist			*todo,	
 	int								n_measurements,
-	t_radarmeasurement				**radarmeasurement
+	t_radarmeasurement				**radarmeasurement,
+	t_radarfilter_res_vol 			*res_vol
 )
 {
 	int i;		//used now and then for loops
@@ -70,8 +67,8 @@ void radarfilter_exec(
 	int i_par; 	//i particle
 	int i_res;	//i resolution subvolume
 	int i_parmod;  //i parametric model
-
-	t_radarfilter_res_vol 		*res_vol;
+	int i_der;	//i for derivatives
+	
 	t_zephyros_radarfilter		*rcfg;
 	t_zephyros_windfield		*mywindfield;
 	t_zephyros_scattererfield	*myscattererfield;
@@ -87,6 +84,11 @@ void radarfilter_exec(
 	double eta_ShhSvvc;
 	double eta_ShhShvc;
 	double eta_SvvSvhc;
+	
+	double *dBeta_hh_der = calloc(4, sizeof(double));
+	double *dBeta_hv_der = calloc(4, sizeof(double));
+	double *dBeta_vh_der = calloc(4, sizeof(double));
+	double *dBeta_vv_der = calloc(4, sizeof(double));
 	
 	double n_Re_Shh_min_Svv;
 
@@ -154,8 +156,13 @@ void radarfilter_exec(
 	double		Doppler_velocity_hh_ms_plus;
 	double		Doppler_spectral_width_hh_ms_plus;
 	
-	
-	
+	double 		*tmp_enu_xyzt = malloc(4 * sizeof(double));
+	double		tmpu, tmpv, tmpw, tmpH, tmpTh;
+	double 		geostrophic_advection_dx;
+	double 		geostrophic_advection_dy;
+	double 		geostrophic_advection_dz;
+	int			nsteps;
+	double 		dt, tmpdx, tmpdy, tmpdz;
 	//int debug = 0;
 	//clock_t start, diff;
 	
@@ -172,10 +179,10 @@ void radarfilter_exec(
 	}
 
 	//initialize resolution volume
-	#ifdef _ZEPHYROS_RADARFILTER_DEBUG
-		printf("radarfilter_initialize_resolution_volume\n"); fflush(stdout);
-	#endif 
-	radarfilter_initialize_resolution_volume(cfg, i_mode, &res_vol, todo);
+	//#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+	//	printf("radarfilter_initialize_resolution_volume\n"); fflush(stdout);
+	//#endif 
+	//radarfilter_initialize_resolution_volume(cfg, i_mode, &res_vol, todo);
 
 	//*****
 	//main loop over the measurements
@@ -224,6 +231,65 @@ void radarfilter_exec(
 			coordinates_radar_pol_dir(radarmeasurement[i_m]->center_coor);
 		}
 
+		//*****
+		//account for advection of fields
+		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+			printf("account for advection of fields\n"); fflush(stdout);
+		#endif 
+		if (radarmeasurement[i_m]->advected_center_enu_xyzt == NULL) radarmeasurement[i_m]->advected_center_enu_xyzt = malloc(4 * sizeof(double));
+		memcpy(radarmeasurement[i_m]->advected_center_enu_xyzt, radarmeasurement[i_m]->center_coor->enu_xyzt, 4 * sizeof(double));		
+		for ( i_res = 0; i_res < res_vol->n; i_res++ ) 
+			memcpy(res_vol->advected_subvolume_enu_xyzt[i_res], res_vol->subvolume_coor[i_res]->enu_xyzt, 4 * sizeof(double));
+
+		if (rcfg->geostrophic_advection) {
+			geostrophic_advection_dx = 0.;
+			geostrophic_advection_dy = 0.;
+			geostrophic_advection_dz = 0.;
+			
+			memcpy(tmp_enu_xyzt, radarmeasurement[i_m]->advected_center_enu_xyzt, 4 * sizeof(double));
+			
+			nsteps = 10;
+			dt = tmp_enu_xyzt[3] / nsteps;
+			for ( i= 0; i < nsteps; i++ ) {
+				util_windfield_fuvw(mywindfield, tmp_enu_xyzt, 
+					&tmpu, &tmpv, &tmpw,
+					0,
+					NULL, NULL, NULL,
+					rcfg->geostrophic_advection,
+					rcfg->coriolis_parameter
+					);
+			
+				tmpH 	= sqrt(pow(tmpu,2.) + pow(tmpv, 2.));
+				tmpTh 	= atan2(-1. * tmpu, -1. * tmpv);
+				
+				tmpdx	= -1. * (tmpH/rcfg->coriolis_parameter) * (
+						cos(tmpTh + (rcfg->coriolis_parameter * dt)) - cos(tmpTh)
+						);
+				tmpdy	= (tmpH/rcfg->coriolis_parameter) * (
+						 sin(tmpTh + (rcfg->coriolis_parameter * dt)) - sin(tmpTh)
+						);
+				tmpdz	= (tmpw * dt);
+				
+				tmp_enu_xyzt[0] += tmpdx;
+				tmp_enu_xyzt[1] += tmpdy;
+				tmp_enu_xyzt[2] += tmpdz;
+				tmp_enu_xyzt[3] -= dt;
+			}
+			geostrophic_advection_dx = tmp_enu_xyzt[0] - radarmeasurement[i_m]->center_coor->enu_xyzt[0];
+			geostrophic_advection_dy = tmp_enu_xyzt[1] - radarmeasurement[i_m]->center_coor->enu_xyzt[1];
+			geostrophic_advection_dz = tmp_enu_xyzt[2] - radarmeasurement[i_m]->center_coor->enu_xyzt[2];
+			
+			//updated advected coordinates
+			radarmeasurement[i_m]->advected_center_enu_xyzt[0] += geostrophic_advection_dx;
+			radarmeasurement[i_m]->advected_center_enu_xyzt[1] += geostrophic_advection_dy;
+			radarmeasurement[i_m]->advected_center_enu_xyzt[2] += geostrophic_advection_dz;
+			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
+				res_vol->advected_subvolume_enu_xyzt[i_res][0] += geostrophic_advection_dx;
+				res_vol->advected_subvolume_enu_xyzt[i_res][1] += geostrophic_advection_dy;
+				res_vol->advected_subvolume_enu_xyzt[i_res][2] += geostrophic_advection_dz;
+			}
+		}
+		
 		//*****
 		//free and allocate memory for spectra
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -281,7 +347,7 @@ void radarfilter_exec(
 			if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh);
 			if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv);
 		}
-		
+
 		//free and allocate memory for eta_i
 		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
 			printf("free and allocate memory for eta_i\n"); fflush(stdout);
@@ -506,23 +572,38 @@ void radarfilter_exec(
 		//*****
 		//calculate air velocity
 		if (todo->calc_air_velocity == 1) {
-			//for whole resolution volume
-			util_windfield_fuvw(mywindfield, radarmeasurement[i_m]->center_coor->enu_xyzt, 0, &(res_vol->air_u), todo->calc_air_velocity_der, res_vol->air_u_der);
-			util_windfield_fuvw(mywindfield, radarmeasurement[i_m]->center_coor->enu_xyzt, 1, &(res_vol->air_v), todo->calc_air_velocity_der, res_vol->air_v_der);
-			util_windfield_fuvw(mywindfield, radarmeasurement[i_m]->center_coor->enu_xyzt, 2, &(res_vol->air_w), todo->calc_air_velocity_der, res_vol->air_w_der);
+			#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+				printf("calc_air_velocity\n"); fflush(stdout);
+			#endif
 			
+			//for whole resolution volume
+			util_windfield_fuvw(mywindfield, radarmeasurement[i_m]->advected_center_enu_xyzt, 
+				&(res_vol->air_u), &(res_vol->air_v),&(res_vol->air_w),
+				todo->calc_air_velocity_der,
+				res_vol->air_u_der, res_vol->air_v_der, res_vol->air_w_der,
+				rcfg->geostrophic_advection,
+				rcfg->coriolis_parameter
+				);
+						
 			//for subvolume
 			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
-				util_windfield_fuvw(mywindfield, res_vol->subvolume_coor[i_res]->enu_xyzt, 0, res_vol->subvolume_air_u + i_res, todo->calc_air_velocity_der, res_vol->subvolume_air_u_der[i_res]);
-				util_windfield_fuvw(mywindfield, res_vol->subvolume_coor[i_res]->enu_xyzt, 1, res_vol->subvolume_air_v + i_res, todo->calc_air_velocity_der, res_vol->subvolume_air_u_der[i_res]);
-				util_windfield_fuvw(mywindfield, res_vol->subvolume_coor[i_res]->enu_xyzt, 2, res_vol->subvolume_air_w + i_res, todo->calc_air_velocity_der, res_vol->subvolume_air_u_der[i_res]);
+				util_windfield_fuvw(mywindfield, res_vol->advected_subvolume_enu_xyzt[i_res], 
+					res_vol->subvolume_air_u + i_res, res_vol->subvolume_air_v + i_res, res_vol->subvolume_air_w + i_res,
+					todo->calc_air_velocity_der,
+					res_vol->subvolume_air_u_der[i_res], res_vol->subvolume_air_v_der[i_res], res_vol->subvolume_air_w_der[i_res],
+					rcfg->geostrophic_advection,
+					rcfg->coriolis_parameter					
+					);
 			}
 		}
 				
 		//calculate terminal fall speeds (& related parameters)
 		if (todo->calc_terminal_fall_speeds == 1) {
+			#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+				printf("calc_terminal_fall_speeds\n"); fflush(stdout);
+			#endif
 			//obtain T_K
-			interpolation_bilint(cfg->general->atmosphere->lut_T_K, radarmeasurement[i_m]->center_coor->enu_xyzt, &tmp, 0, dummy);
+			interpolation_bilint(cfg->general->atmosphere->lut_T_K, radarmeasurement[i_m]->advected_center_enu_xyzt, &tmp, 0, dummy);
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
 					res_vol->subvolume_scat[i_psd][i_par]->air_temperature_K = tmp;
@@ -530,7 +611,7 @@ void radarfilter_exec(
 			}
 			
 			//obtain air_drypressure_hPa
-			interpolation_bilint(cfg->general->atmosphere->lut_ln_grid_pair_hPa, radarmeasurement[i_m]->center_coor->enu_xyzt, &tmp, 0, dummy);
+			interpolation_bilint(cfg->general->atmosphere->lut_ln_grid_pair_hPa, radarmeasurement[i_m]->advected_center_enu_xyzt, &tmp, 0, dummy);
 			tmp = exp(tmp);
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
@@ -539,7 +620,7 @@ void radarfilter_exec(
 			}
 
 			//obtain air_vaporpressure_hPa
-			interpolation_bilint(cfg->general->atmosphere->lut_ln_grid_pvapor_hPa, radarmeasurement[i_m]->center_coor->enu_xyzt, &tmp, 0, dummy);
+			interpolation_bilint(cfg->general->atmosphere->lut_ln_grid_pvapor_hPa, radarmeasurement[i_m]->advected_center_enu_xyzt, &tmp, 0, dummy);
 			tmp = exp(tmp);
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
@@ -566,6 +647,10 @@ void radarfilter_exec(
 		//Prepare parametric turbulence model
 		//Calculate parametric_turbulence_sigmaT
 		if (todo->calc_particle_velocity) {
+			#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+				printf("calc_particle_velocity\n"); fflush(stdout);
+			#endif
+
 			if (res_vol->parametric_turbulence == 1) {
 				parametric_turbulence_sigmaT = 0.;
 				if (todo->der_edr13) parametric_turbulence_sigmaT_plus = 0.;
@@ -573,7 +658,7 @@ void radarfilter_exec(
 					if ((mywindfield->turbulence[i] != NULL) & (mywindfield->turbulence[i]->type == 5)) {						
 						//interpolate EDR
 						interpolation_bilint(mywindfield->turbulence[i]->lut_edr13,
-								radarmeasurement[i_m]->center_coor->enu_xyzt,
+								radarmeasurement[i_m]->advected_center_enu_xyzt,
 								&tmp,
 								0, //no derivatives
 								dummy);
@@ -581,7 +666,7 @@ void radarfilter_exec(
 						tmpedr 		= pow(tmp, 3.);
 						tmpedrplus  = pow(tmp * 1.001, 3.);
 						interpolation_bilint(mywindfield->turbulence[i]->lut_kolmogorov_constant,
-								radarmeasurement[i_m]->center_coor->enu_xyzt,
+								radarmeasurement[i_m]->advected_center_enu_xyzt,
 								&tmpkolmogorovconstant,
 								0, //no derivatives
 								dummy);						
@@ -621,6 +706,9 @@ void radarfilter_exec(
 				
 		//calculate particle velocities
 		if (todo->calc_particle_velocity) {
+			#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+				printf("calc_particle_velocity\n"); fflush(stdout);
+			#endif
 			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 				for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 					for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
@@ -636,11 +724,11 @@ void radarfilter_exec(
 								//assumption is that v_par = v_air + v_terminal + v_par^prime
 								//where v_par^prime is solved via a small trajectorie.
 							
-								//solve for atrajectorie
+								//solve for a trajectorie
 								//1. define the trajectorie
 								traj_n 		= 20;
 								traj_dxy 	= 0.25 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_xy;
-								traj_dz 	= 0.25 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z;
+								traj_dz 	= 0.25 * res_vol->subvolume_scat[i_psd][i_par]->particle_inertial_distance_z_vt_large;
 								traj_d 		= sqrt(2. * pow(traj_dxy,2.) + pow(traj_dz, 2.));
 
 								i_traj = traj_n - 1;
@@ -657,9 +745,13 @@ void radarfilter_exec(
 									traj_xyzt[i_traj][1] = traj_xyzt[i_traj+1][1] - (traj_dt * traj_v[i_traj+1]);
 									traj_xyzt[i_traj][2] = traj_xyzt[i_traj+1][2] - (traj_dt * traj_w[i_traj+1]);
 									traj_xyzt[i_traj][3] = traj_xyzt[i_traj+1][3] - traj_dt;
-									util_windfield_fuvw(mywindfield, traj_xyzt[i_traj], 0, traj_u + i_traj, 0, dummy);
-									util_windfield_fuvw(mywindfield, traj_xyzt[i_traj], 1, traj_v + i_traj, 0, dummy);
-									util_windfield_fuvw(mywindfield, traj_xyzt[i_traj], 2, traj_w + i_traj, 0, dummy);
+									util_windfield_fuvw(mywindfield, traj_xyzt[i_traj], 
+										traj_u + i_traj, traj_v + i_traj, traj_w + i_traj,
+										0,
+										dummy, dummy, dummy,
+										rcfg->geostrophic_advection,
+										rcfg->coriolis_parameter										
+										);
 									traj_w[i_traj] -= res_vol->subvolume_scat[i_psd][i_par]->particle_terminal_fall_speed;
 								}
 
@@ -777,11 +869,11 @@ void radarfilter_exec(
 		}
 
 		//calculate particle direction
-		#ifdef _ZEPHYROS_RADARFILTER_DEBUG
-			printf("calculate particle direction\n"); fflush(stdout);
-		#endif 
 		//assumption is minor axis is parallel to the motion of the droplet
 		if (todo->calc_particle_direction) {
+			#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+				printf("calculate particle direction\n"); fflush(stdout);
+			#endif
 			for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 				for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 					for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
@@ -819,14 +911,9 @@ void radarfilter_exec(
 			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
 					//set water refractive index
-					res_vol->subvolume_scat[i_psd][i_par]->particle_refractive_index = cfg->derived_quantities->radar_water_refractive_index;
-					
-					//calculate cross sections
-					//particles_cross_sections_dewolf1990(res_vol->subvolume_scat[i_psd][i_par], radarmeasurement[i_m]->center_coor);			
-					
-					particles_cross_sections_mischenko2000(res_vol->subvolume_scat[i_psd][i_par], radarmeasurement[i_m]->center_coor, 0);			
+					res_vol->subvolume_scat[i_psd][i_par]->particle_refractive_index = cfg->derived_quantities->radar_water_refractive_index;					
 				}
-			}			
+			}		
 		}
 			
 #ifdef _ZEPHYROS_RADARFILTER_DEBUG
@@ -843,7 +930,7 @@ void radarfilter_exec(
 						//interpolate number_density_m3
 						interpolation_bilint(
 							myscattererfield->psd[i_psd]->lut_ln_number_density_m3[i_par], 
-							res_vol->subvolume_coor[i_res]->enu_xyzt,
+							res_vol->advected_subvolume_enu_xyzt[i_res],
 							&(res_vol->subvolume_number_density_m3[i_res][i_psd][i_par]),
 							todo->calc_number_density_der,
 							res_vol->subvolume_ln_number_density_m3_der[i_res][i_psd][i_par]);
@@ -867,6 +954,13 @@ void radarfilter_exec(
 		if (todo->calc_eta_ShhSvvc) eta_ShhSvvc = 0.;
 		if (todo->calc_eta_ShhShvc) eta_ShhShvc = 0.;
 		if (todo->calc_eta_SvvSvhc) eta_SvvSvhc = 0.;
+
+		for (i_der = 0; i_der < 4; i_der++ ) {
+			if (todo->calc_eta_hh_der) dBeta_hh_der[i_der] = 0.;
+			if (todo->calc_eta_hv_der) dBeta_hv_der[i_der] = 0.;
+			if (todo->calc_eta_vh_der) dBeta_vh_der[i_der] = 0.;
+			if (todo->calc_eta_vv_der) dBeta_vv_der[i_der] = 0.;
+		}
 
 		if (rcfg->filter_KDP) n_Re_Shh_min_Svv = 0.;
 
@@ -914,11 +1008,11 @@ void radarfilter_exec(
 							res_vol->subvolume_scat[i_psd][i_par]->particle_dir[0] = res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][0];
 							res_vol->subvolume_scat[i_psd][i_par]->particle_dir[1] = res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][1];
 							res_vol->subvolume_scat[i_psd][i_par]->particle_dir[2] = res_vol->subvolume_particle_dir[i_res][i_psd][i_par][i_parmod][2];
-							//update cross sections with particle orientation
-							//particles_cross_sections_dewolf1990_update_coor(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res]);
-							//printf("debugging. using other cross sections...");
-	
-							particles_cross_sections_mischenko2000_update_coor(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 0);
+							//cross sections with particle orientation
+							if (rcfg->cross_sections == 0)
+								particles_cross_sections_dewolf1990(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res]);
+							if (rcfg->cross_sections == 1)
+								particles_cross_sections_mishchenko2000(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 0);
 
 							if (todo->calc_eta_hh) res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod] = 
 								res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_hh / res_vol->n_parmod;
@@ -934,13 +1028,33 @@ void radarfilter_exec(
 								res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_ShhShvc / res_vol->n_parmod;
 							if (todo->calc_eta_SvvSvhc) res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod] = 
 								res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_SvvSvhc / res_vol->n_parmod;
-
+	
+							if (i_parmod <  res_vol->n_parmod) {		
+								for (i_der = 0; i_der < 4; i_der++ ) {
+									//subvolume_eta_hh_der contains
+									//subvolume_eta_hh_der = alpha_i N_i (d_dBN / dx)
+									//eta = sum_i alpha_i N_i
+									//
+									//now dBeta/dx is:
+									//dBeta/dx = (1/eta) * sum_i alpha_i N_i (d_dBN_i / dx)
+									//
+									//note that dBZ/dx = dBeta/dx
+									if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par][i_parmod][i_der] = 
+										(10. / log(10.)) * res_vol->subvolume_ln_number_density_m3_der[i_res][i_psd][i_par][i_der] * res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_hh / res_vol->n_parmod;
+									if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par][i_parmod][i_der] = 
+										(10. / log(10.)) * res_vol->subvolume_ln_number_density_m3_der[i_res][i_psd][i_par][i_der] * res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_hv / res_vol->n_parmod;
+									if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par][i_parmod][i_der] = 
+										(10. / log(10.)) * res_vol->subvolume_ln_number_density_m3_der[i_res][i_psd][i_par][i_der] * res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_vh / res_vol->n_parmod;
+									if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par][i_parmod][i_der] = 
+										(10. / log(10.)) * res_vol->subvolume_ln_number_density_m3_der[i_res][i_psd][i_par][i_der] * res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_sigma_vv / res_vol->n_parmod;
+								}
+							}
 
 							if (todo->calc_Doppler_mean_velocity == 1) {
 								res_vol->subvolume_particle_Doppler_velocity[i_res][i_psd][i_par][i_parmod] = 
 									(res_vol->subvolume_particle_u[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[0]) +
 									(res_vol->subvolume_particle_v[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[1]) +
-									(res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[2]);
+									(res_vol->subvolume_particle_w[i_res][i_psd][i_par][i_parmod] * res_vol->subvolume_coor[i_res]->radar_enu_dir[2]);									
 							}
 							
 							if (i_parmod <  res_vol->n_parmod) {
@@ -952,6 +1066,13 @@ void radarfilter_exec(
 								if (todo->calc_eta_ShhShvc) eta_ShhShvc += res_vol->subvolume_eta_ShhShvc[i_res][i_psd][i_par][i_parmod];
 								if (todo->calc_eta_SvvSvhc) eta_SvvSvhc += res_vol->subvolume_eta_SvvSvhc[i_res][i_psd][i_par][i_parmod];
 		
+								for (i_der = 0; i_der < 4; i_der++ ) {
+									if (todo->calc_eta_hh_der) dBeta_hh_der[i_der] += res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par][i_parmod][i_der];
+									if (todo->calc_eta_hv_der) dBeta_hv_der[i_der] += res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par][i_parmod][i_der];
+									if (todo->calc_eta_vh_der) dBeta_vh_der[i_der] += res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par][i_parmod][i_der];
+									if (todo->calc_eta_vv_der) dBeta_vv_der[i_der] += res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par][i_parmod][i_der];
+								}
+						
 								if (todo->calc_eta_i_hh) radarmeasurement[i_m]->eta_i_hh[i_psd][i_par] += res_vol->subvolume_eta_hh[i_res][i_psd][i_par][i_parmod];
 								if (todo->calc_eta_i_hv) radarmeasurement[i_m]->eta_i_hv[i_psd][i_par] += res_vol->subvolume_eta_hv[i_res][i_psd][i_par][i_parmod];
 								if (todo->calc_eta_i_vh) radarmeasurement[i_m]->eta_i_vh[i_psd][i_par] += res_vol->subvolume_eta_vh[i_res][i_psd][i_par][i_parmod];
@@ -969,7 +1090,7 @@ void radarfilter_exec(
 							//for calculation of KdP, specific differential phase
 							//calculate forward scattering amplitude
 							if (rcfg->filter_KDP) {
-								particles_cross_sections_mischenko2000_update_coor(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 1);
+								particles_cross_sections_mishchenko2000(res_vol->subvolume_scat[i_psd][i_par], res_vol->subvolume_coor[i_res], 1);
 								tmp = res_vol->subvolume_number_density_m3[i_res][i_psd][i_par] * res_vol->subvolume_scat[i_psd][i_par]->particle_Re_Shh_min_Svv / res_vol->n_parmod;
 								n_Re_Shh_min_Svv += tmp;
 							}
@@ -993,6 +1114,13 @@ void radarfilter_exec(
 			if (todo->calc_eta_ShhSvvc) eta_ShhSvvc /= res_vol->n;
 			if (todo->calc_eta_ShhShvc) eta_ShhShvc /= res_vol->n;
 			if (todo->calc_eta_SvvSvhc) eta_SvvSvhc /= res_vol->n;
+
+			for (i_der = 0; i_der < 4; i_der++ ) {
+				if (todo->calc_eta_hh_der) dBeta_hh_der[i_der] /= (eta_hh * res_vol->n);
+				if (todo->calc_eta_hv_der) dBeta_hv_der[i_der] /= (eta_hv * res_vol->n);
+				if (todo->calc_eta_vh_der) dBeta_vh_der[i_der] /= (eta_vh * res_vol->n);
+				if (todo->calc_eta_vv_der) dBeta_vv_der[i_der] /= (eta_vv * res_vol->n);
+			}
 
 			if (todo->der_edr13) {
 				if (todo->calc_eta_hh) eta_hh_plus /= res_vol->n;
@@ -1247,6 +1375,13 @@ void radarfilter_exec(
 		if (rcfg->filter_dBZ_vh) radarmeasurement[i_m]->dBZ_vh = func_dB(eta2Z * eta_vh);
 		if (rcfg->filter_dBZ_vv) radarmeasurement[i_m]->dBZ_vv = func_dB(eta2Z * eta_vv);
 
+		for (i_der = 0; i_der < 4; i_der++ ) {
+			if (todo->der_dBZ_hh) radarmeasurement[i_m]->der_dBZ_hh[i_der] = dBeta_hh_der[i_der];
+			if (todo->der_dBZ_hv) radarmeasurement[i_m]->der_dBZ_hv[i_der] = dBeta_hv_der[i_der];
+			if (todo->der_dBZ_vh) radarmeasurement[i_m]->der_dBZ_vh[i_der] = dBeta_vh_der[i_der];
+			if (todo->der_dBZ_vv) radarmeasurement[i_m]->der_dBZ_vv[i_der] = dBeta_vv_der[i_der];
+		}				
+
 		//*****
 		if (rcfg->filter_dBZdr) radarmeasurement[i_m]->dBZdr = func_dB(eta_hh / eta_vv);
 		if (rcfg->filter_dBLdr) radarmeasurement[i_m]->dBLdr = func_dB(eta_hv / eta_vv);
@@ -1394,10 +1529,17 @@ void radarfilter_exec(
 	}
 
 	//free resolution volume
-	#ifdef _ZEPHYROS_RADARFILTER_DEBUG
-		printf("free resolution volume\n"); fflush(stdout);
-	#endif 
-	radarfilter_free_resolution_volume(cfg, i_mode, &res_vol, todo);
+	//#ifdef _ZEPHYROS_RADARFILTER_DEBUG
+	//	printf("free resolution volume\n"); fflush(stdout);
+	//#endif 
+	//radarfilter_free_resolution_volume(cfg, i_mode, &res_vol, todo);
+	
+	free(tmp_enu_xyzt);
+	
+	free(dBeta_hh_der);
+	free(dBeta_hv_der);
+	free(dBeta_vh_der);
+	free(dBeta_vv_der);
 	
 	#ifdef _ZEPHYROS_RADARFILTER_DEBUG
 		printf("end of radarfilter_exec\n"); fflush(stdout);
@@ -2108,8 +2250,10 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 
 	//coordinates
 	res_vol->subvolume_coor		= calloc(res_vol->n, sizeof(t_zephyros_coordinates*));
+	res_vol->advected_subvolume_enu_xyzt = calloc(res_vol->n, sizeof(double*));
 	for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 		coordinates_initialize_coor(res_vol->subvolume_coor + i_res);
+		res_vol->advected_subvolume_enu_xyzt[i_res] = calloc(4, sizeof(double));
 	}
 	
 	//subvolume scattering widget
@@ -2117,7 +2261,7 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 	for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 		res_vol->subvolume_scat[i_psd] = calloc(res_vol->n_diameters[i_psd], sizeof(t_zephyros_particles_widget*));
 		for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++) {
-			res_vol->subvolume_scat[i_psd][i_par] = calloc(1, sizeof(t_zephyros_particles_widget));
+			particles_initialize(res_vol->subvolume_scat[i_psd] + i_par );
 		}
 	}
 
@@ -2171,8 +2315,42 @@ void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode
 			}	
 		}
 	}
-	
+
+	//subvolume eta_hh_edr, eta_hv_edr, eta_vv_der
+	if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der	= calloc(res_vol->n, sizeof(double****));
+	if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der	= calloc(res_vol->n, sizeof(double****));
+	if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der	= calloc(res_vol->n, sizeof(double****));
+	if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der	= calloc(res_vol->n, sizeof(double****));
+	for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
+		if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der[i_res]	= calloc(res_vol->n_psd, sizeof(double***));
+		if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der[i_res]	= calloc(res_vol->n_psd, sizeof(double***));
+		if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der[i_res]	= calloc(res_vol->n_psd, sizeof(double***));
+		if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der[i_res]	= calloc(res_vol->n_psd, sizeof(double***));
+		for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
+			if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double**));
+			if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double**));
+			if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double**));
+			if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der[i_res][i_psd]		= calloc(res_vol->n_diameters[i_psd], sizeof(double**));
+			for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
+				if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double*));
+				if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double*));
+				if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double*));
+				if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par]	= calloc(res_vol->n_parmod, sizeof(double*));
+				for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+					if (todo->calc_eta_hh_der) res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par][i_parmod]	= calloc(4, sizeof(double));
+					if (todo->calc_eta_hv_der) res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par][i_parmod]	= calloc(4, sizeof(double));
+					if (todo->calc_eta_vh_der) res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par][i_parmod]	= calloc(4, sizeof(double));
+					if (todo->calc_eta_vv_der) res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par][i_parmod]	= calloc(4, sizeof(double));
+				}
+			}
+		}
+	}
+
 	if (todo->calc_air_velocity) {
+		res_vol->air_u_der				= calloc(4, sizeof(double));
+		res_vol->air_v_der				= calloc(4, sizeof(double));
+		res_vol->air_w_der				= calloc(4, sizeof(double));
+		
 		res_vol->subvolume_air_u		= calloc(res_vol->n, sizeof(double));
 		res_vol->subvolume_air_v		= calloc(res_vol->n, sizeof(double));
 		res_vol->subvolume_air_w		= calloc(res_vol->n, sizeof(double));
@@ -2303,12 +2481,16 @@ void radarfilter_free_resolution_volume(t_zephyros_config *cfg, int i_mode, t_ra
 	if (res_vol != NULL) {
 		for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
 			coordinates_free_coor(&(res_vol->subvolume_coor[i_res]));
+			util_safe_free(&(res_vol->advected_subvolume_enu_xyzt[i_res]));
 		}
+		util_safe_free(&(res_vol->subvolume_coor));
+		util_safe_free(&(res_vol->advected_subvolume_enu_xyzt));
+
 		
 		//subvolume scattering widget
 		for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
 			for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++) {
-				util_safe_free(&(res_vol->subvolume_scat[i_psd][i_par]));
+				particles_free(&(res_vol->subvolume_scat[i_psd][i_par]));
 			}
 			util_safe_free(&(res_vol->subvolume_scat[i_psd]));
 		}
@@ -2331,6 +2513,9 @@ void radarfilter_free_resolution_volume(t_zephyros_config *cfg, int i_mode, t_ra
 
 
 		if (todo->calc_air_velocity) {
+			util_safe_free(&res_vol->air_u_der);
+			util_safe_free(&res_vol->air_v_der);
+			util_safe_free(&res_vol->air_w_der);
 			util_safe_free(&res_vol->subvolume_air_u);
 			util_safe_free(&res_vol->subvolume_air_v);
 			util_safe_free(&res_vol->subvolume_air_w);
@@ -2418,6 +2603,36 @@ void radarfilter_free_resolution_volume(t_zephyros_config *cfg, int i_mode, t_ra
 		if (todo->calc_eta_ShhSvvc) {util_safe_free(&(res_vol->subvolume_eta_ShhSvvc));}
 		if (todo->calc_eta_ShhShvc) {util_safe_free(&(res_vol->subvolume_eta_ShhShvc));}
 		if (todo->calc_eta_SvvSvhc) {util_safe_free(&(res_vol->subvolume_eta_SvvSvhc));}
+
+		//subvolume eta hh_der, hv_der, vh_der, vv_der
+		for ( i_res = 0; i_res < res_vol->n; i_res++ ) {
+			for ( i_psd = 0; i_psd < res_vol->n_psd; i_psd++ ) {
+				for ( i_par = 0; i_par < res_vol->n_diameters[i_psd]; i_par++ ) {
+					for ( i_parmod = 0; i_parmod < res_vol->n_parmod; i_parmod++ ) {
+						if (todo->calc_eta_hh_der) {util_safe_free(&(res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par][i_parmod]));}
+						if (todo->calc_eta_hv_der) {util_safe_free(&(res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par][i_parmod]));}
+						if (todo->calc_eta_vh_der) {util_safe_free(&(res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par][i_parmod]));}
+						if (todo->calc_eta_vv_der) {util_safe_free(&(res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par][i_parmod]));}
+					}
+					if (todo->calc_eta_hh_der) {util_safe_free(&(res_vol->subvolume_eta_hh_der[i_res][i_psd][i_par]));}
+					if (todo->calc_eta_hv_der) {util_safe_free(&(res_vol->subvolume_eta_hv_der[i_res][i_psd][i_par]));}
+					if (todo->calc_eta_vh_der) {util_safe_free(&(res_vol->subvolume_eta_vh_der[i_res][i_psd][i_par]));}
+					if (todo->calc_eta_vv_der) {util_safe_free(&(res_vol->subvolume_eta_vv_der[i_res][i_psd][i_par]));}
+				}
+				if (todo->calc_eta_hh_der) {util_safe_free(&(res_vol->subvolume_eta_hh_der[i_res][i_psd]));}
+				if (todo->calc_eta_hv_der) {util_safe_free(&(res_vol->subvolume_eta_hv_der[i_res][i_psd]));}
+				if (todo->calc_eta_vh_der) {util_safe_free(&(res_vol->subvolume_eta_vh_der[i_res][i_psd]));}
+				if (todo->calc_eta_vv_der) {util_safe_free(&(res_vol->subvolume_eta_vv_der[i_res][i_psd]));}
+			}
+			if (todo->calc_eta_hh_der) {util_safe_free(&(res_vol->subvolume_eta_hh_der[i_res]));}
+			if (todo->calc_eta_hv_der) {util_safe_free(&(res_vol->subvolume_eta_hv_der[i_res]));}
+			if (todo->calc_eta_vh_der) {util_safe_free(&(res_vol->subvolume_eta_vh_der[i_res]));}
+			if (todo->calc_eta_vv_der) {util_safe_free(&(res_vol->subvolume_eta_vv_der[i_res]));}
+		}
+		if (todo->calc_eta_hh_der) {util_safe_free(&(res_vol->subvolume_eta_hh_der));}
+		if (todo->calc_eta_hv_der) {util_safe_free(&(res_vol->subvolume_eta_hv_der));}
+		if (todo->calc_eta_vh_der) {util_safe_free(&(res_vol->subvolume_eta_vh_der));}
+		if (todo->calc_eta_vv_der) {util_safe_free(&(res_vol->subvolume_eta_vv_der));}
 		
 		//subvolume particle Doppler velocity
 		if (todo->calc_Doppler_mean_velocity) {
@@ -2477,6 +2692,12 @@ void radarfilter_initialize_todolist(t_zephyros_config *cfg, int i_mode, t_radar
 	todolist->calc_eta_ShhSvvc = 0;
 	todolist->calc_eta_ShhShvc = 0;
 	todolist->calc_eta_SvvSvhc = 0;
+	
+	todolist->calc_eta_hh_der = 0;
+	todolist->calc_eta_hv_der = 0;
+	todolist->calc_eta_vh_der = 0;
+	todolist->calc_eta_vv_der = 0;
+	
 	todolist->calc_air_velocity = 1;
 	todolist->calc_air_velocity_der = 0;
 	todolist->calc_terminal_fall_speeds = 1;
@@ -2502,6 +2723,11 @@ void radarfilter_initialize_todolist(t_zephyros_config *cfg, int i_mode, t_radar
 	todolist->calc_spectrum_eta_i_vv = 0;
 	
 	todolist->der_edr13 = 0;
+	
+	todolist->der_dBZ_hh = 0;
+	todolist->der_dBZ_hv = 0;
+	todolist->der_dBZ_vh = 0;
+	todolist->der_dBZ_vv = 0;
 		
 	radarfilter_prepare_todolist(cfg, i_mode, todolist);
 
@@ -2516,6 +2742,23 @@ void radarfilter_prepare_todolist(t_zephyros_config *cfg, int i_mode, t_radarfil
 	if (i_mode == 1) rcfg = cfg->retrieval->radarfilter; 
 	
 	//follow some logic so that everything is correctly calculated and initialized
+	if (todolist->der_dBZ_hh) {
+		todolist->calc_eta_hh_der = 1;
+		todolist->calc_number_density_der = 1;
+	}
+	if (todolist->der_dBZ_hv) {
+		todolist->calc_eta_hv_der = 1;
+		todolist->calc_number_density_der = 1;
+	}
+	if (todolist->der_dBZ_vh) {
+		todolist->calc_eta_vh_der = 1;
+		todolist->calc_number_density_der = 1;
+	}
+	if (todolist->der_dBZ_vv) {
+		todolist->calc_eta_vv_der = 1;
+		todolist->calc_number_density_der = 1;
+	}
+	
 	if (rcfg->filter_dBZ_hh) {
 		todolist->calc_eta_hh = 1;
 	}
@@ -2731,6 +2974,7 @@ void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurem
 		
 		coordinates_initialize_coor(&(radarmeasurement[i]->center_coor));
 
+		radarmeasurement[i]->advected_center_enu_xyzt = NULL;
 		radarmeasurement[i]->spectrum_lbound = NULL;
 		radarmeasurement[i]->spectrum_ubound = NULL;
 		radarmeasurement[i]->spectrum_center = NULL;
@@ -2770,6 +3014,11 @@ void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurem
 		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_hv = NULL;
 		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vh = NULL;
 		radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vv = NULL;
+		
+		radarmeasurement[i]->der_dBZ_hh = calloc(4, sizeof(double));
+		radarmeasurement[i]->der_dBZ_hv = calloc(4, sizeof(double));
+		radarmeasurement[i]->der_dBZ_vh = calloc(4, sizeof(double));
+		radarmeasurement[i]->der_dBZ_vv = calloc(4, sizeof(double));
 		
 		//analysis
 		radarmeasurement[i]->analysis = calloc(1, sizeof(t_radarmeasurement_analysis));
@@ -2826,6 +3075,7 @@ void radarfilter_free_radarmeasurement(int n_measurements, t_radarmeasurement **
 	for (i=0; i < n_measurements; i++) {
 		if (radarmeasurement[i] != NULL) {
 			coordinates_free_coor(&radarmeasurement[i]->center_coor);
+			util_safe_free(&(radarmeasurement[i]->advected_center_enu_xyzt));
 			util_safe_free(&(radarmeasurement[i]->spectrum_lbound));
 			util_safe_free(&(radarmeasurement[i]->spectrum_ubound));
 			util_safe_free(&(radarmeasurement[i]->spectrum_center));
@@ -2872,6 +3122,16 @@ void radarfilter_free_radarmeasurement(int n_measurements, t_radarmeasurement **
 			util_safe_free(&(radarmeasurement[i]->eta_i_hv));
 			util_safe_free(&(radarmeasurement[i]->eta_i_vh));
 			util_safe_free(&(radarmeasurement[i]->eta_i_vv));
+			
+			util_safe_free(&(radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_hh));
+			util_safe_free(&(radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_hv));
+			util_safe_free(&(radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vh));
+			util_safe_free(&(radarmeasurement[i]->der_edr13_Doppler_spectrum_dBZ_vv));
+			
+			util_safe_free(&(radarmeasurement[i]->der_dBZ_hh));
+			util_safe_free(&(radarmeasurement[i]->der_dBZ_hv));
+			util_safe_free(&(radarmeasurement[i]->der_dBZ_vh));
+			util_safe_free(&(radarmeasurement[i]->der_dBZ_vv));
 
 			//analysis
 			if (radarmeasurement[i]->analysis != NULL) {
@@ -3168,6 +3428,7 @@ void radarfilter_write_measurements(t_zephyros_config *cfg, int i_mode, int n_me
 	//point radar filter configuration in the right way
 	if (i_mode == 0) rcfg = cfg->simulation->radarfilter;
 	if (i_mode == 1) rcfg = cfg->retrieval->radarfilter;
+	if (i_mode == 2) rcfg = cfg->retrieval->radarfilter;	//special mode: only print coordinates
 	
 	fprintf(fp, "\n\n");
 	
@@ -3237,6 +3498,8 @@ void radarfilter_write_measurements(t_zephyros_config *cfg, int i_mode, int n_me
 	for (i=0; i < n_measurements; i++) fprintf(fp, " %-15.3e", radarmeasurement[i]->center_coor->enu_xyzt[3]);
 	fprintf(fp, " \n");
 
+	if (i_mode == 2) return;
+	
 	if (rcfg->filter_dBZ_hh) {
 		fprintf(fp, "!! %-30s %-15i %-15i", "dBZ_hh", 1, n_measurements);
 		for (i=0; i < n_measurements; i++) fprintf(fp, " %-15.3e", radarmeasurement[i]->dBZ_hh);

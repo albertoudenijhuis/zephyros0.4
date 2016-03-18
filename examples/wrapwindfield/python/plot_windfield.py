@@ -18,7 +18,7 @@ myplotdcts = {}
 #myplotdcts['wave'] 								= {'windfield': 'wave', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
 #myplotdcts['rankine_vortex'] 					= {'windfield': 'rankine_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
 #myplotdcts['lamb_oseen_vortex'] 				= {'windfield': 'lamb_oseen_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-myplotdcts['turbulence_mann1998_small_scales'] 	= {'windfield': 'turbulence_mann1998_small_scales', 'plane':'xz', 'scale':100., 'unit':'m'}
+myplotdcts['turbulence_mann1998_small_scales_30m'] 	= {'windfield': 'turbulence_mann1998_small_scales_30m', 'plane':'xz', 'scale':30., 'unit':'m'}
 #myplotdcts['turbulence_pinsky2006_xyplane'] 	= {'windfield': 'turbulence_pinsky2006_xyplane', 'plane':'xy', 'scale':100., 'unit':'m'}
 #myplotdcts['profile_turbulence_stochastic'] 	= {'windfield': 'profile_turbulence_stochastic', 'plane':'xz', 'scale':50., 'unit':'m'}
 
@@ -35,7 +35,6 @@ for myplotname in myplotdcts.keys():
 	wind['cfg_filename']                +=  "../../../input_files/general/atmosphere/US1976.cfg;"
 	
 	wind['cfg_filename']                += "../../../input_files/general/instruments/idra.cfg;"
-	wind['cfg_filename']                += "../../../input_files/simulation/radarfilter/all.cfg;"
 	wind['cfg_filename']                += "../../../input_files/simulation/scatterers/rain.cfg;"
 	wind['cfg_filename']                +=  "../../../input_files/simulation/wind/"+myplotdct['windfield']+".cfg;"
 	wind['additional_output_filename']  =  "../data/"+myplotname+"_additional_output.zout"
@@ -146,3 +145,11 @@ for myplotname in myplotdcts.keys():
 	print 'min:', np.min(wind['u'])
 	print 'max:', np.max(wind['u'])
 	print 'mean:', np.mean(wind['u'])
+	print 'v'
+	print 'min:', np.min(wind['v'])
+	print 'max:', np.max(wind['v'])
+	print 'mean:', np.mean(wind['v'])
+	print 'w'
+	print 'min:', np.min(wind['w'])
+	print 'max:', np.max(wind['w'])
+	print 'mean:', np.mean(wind['w'])

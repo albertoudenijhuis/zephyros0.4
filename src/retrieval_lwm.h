@@ -14,7 +14,17 @@ typedef struct st_lwm_o
 	double		*windvector_u_err;
 	double		*windvector_v_err;
 	double		*windvector_w_err;
+
+	double		*lwm_vr;
+	
+	int			*used_for_analysis;
+	int			*in_analysis_volume;
+
+	int			in_analysis_volume_n;
+	int			used_for_analysis_n;
 } t_lwm_o ;
+void retrieval_lwm_initialize_o(t_lwm_o **p_lwm_o, char measurements_filename[8192]);
+void retrieval_lwm_free_o(t_lwm_o **p_lwm_o);
 
 typedef struct st_lwm_p
 {
@@ -64,17 +74,8 @@ typedef struct st_lwm_p
 	double		*center_coef_w_z;
 	double		*center_coef_u_t_plus_v_t_plus_w_t;
 
-	int			o_nr; //number of subvolume points
+	int			n_sv; //number of subvolume points
 	t_zephyros_coordinates ***subvolume_coor;
-
-	double		*o_lwm_vr;
-	
-	int			*o_used_for_analysis;
-	int			*o_in_analysis_volume;
-
-	int			o_in_analysis_volume_n;
-	int			o_used_for_analysis_n;
-	//end
 	
 	int			fit_Knr_u0;
 	int			fit_Knr_u_x;
@@ -98,6 +99,8 @@ typedef struct st_lwm_opc
 	t_zephyros_config *zc;
 } t_lwm_opc;
 
+void retrieval_lwm_initialize_p(t_lwm_opc *opc);
+void retrieval_lwm_free_p(t_lwm_opc *opc);
 
 void retrieval_lwm_apply(t_lwm_opc *opc);
 
@@ -125,10 +128,8 @@ void retrieval_lwm_additional_output(t_lwm_opc *opc, FILE *fp);
 
 void retrieval_lwm_unpack_K(t_lwm_opc *opc, double *K);
 
-void retrieval_lwm_initialize_o(t_lwm_o **p_lwm_o, char measurements_filename[8192]);
-void retrieval_lwm_free_o(t_lwm_o *lwm_o);
 
-void retrieval_lwm_initialize_p(t_lwm_opc *opc);
-void retrieval_lwm_free_p(t_lwm_opc *opc);
+
+
 
 

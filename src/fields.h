@@ -22,18 +22,23 @@ typedef struct st_zephyros_field
     double		*vec_y;
     double		*vec_z;
     double		*vec_t;
-	char		name[8192];	//for error reporting
 	
 	double(*x)(void *vdfield, int i);
 	double(*y)(void *vdfield, int i);
 	double(*z)(void *vdfield, int i);
 	double(*t)(void *vdfield, int i);
+
+	char		name[8192];	//for error reporting	
+	int 		initialized;
+	int 		prepared;
 } t_zephyros_field;
 
-void fields_initialize(t_zephyros_field **fieldpt);
+void fields_initialize(t_zephyros_field **pfield);
+void fields_assert_initialized(t_zephyros_field *field);
+void fields_assert_prepared(t_zephyros_field *field);
+void fields_free(t_zephyros_field **pfield);
 
 void fields_prepare(t_zephyros_field *field);
-
 void fields_prepare2(
 	t_zephyros_field **fieldpt,
 	double xmin, double xmax, double xdif,
@@ -44,7 +49,7 @@ void fields_prepare2(
 
 void fields_copy(t_zephyros_field **pdst, t_zephyros_field *src);
 
-void fields_free(t_zephyros_field **pfield);
+
 
 double fields_give_xyzt(void *vdfield, int i, int i_xyzt);
 double fields_give_x(void *vdfield, int i);

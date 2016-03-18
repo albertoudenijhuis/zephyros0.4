@@ -40,9 +40,12 @@ Note:
 #include "fields.h"
 #include "interpolation.h"
 
-void fields_initialize(t_zephyros_field **fieldpt)
+//uncomment next statement for debug mode
+#define _ZEPHYROS_FIELDS_DEBUG
+
+void fields_initialize(t_zephyros_field **pfield)
 {	
-	t_zephyros_field *field = malloc(sizeof(t_zephyros_field));
+	t_zephyros_field *field = calloc(1, sizeof(t_zephyros_field));
 
 	//set functions
 	field->x = fields_give_x;
@@ -54,13 +57,56 @@ void fields_initialize(t_zephyros_field **fieldpt)
 	field->vec_y = NULL;
 	field->vec_z = NULL;
 	field->vec_t = NULL;
-	strcpy(field->name, "Untitled");
 	
-	*fieldpt = field;
+	strcpy(field->name, "Untitled");
+	field->prepared 	= 0;
+	field->initialized 	= 1;
+	
+	*pfield = field;
 }
+
+void fields_assert_initialized(t_zephyros_field *field)
+{
+	if (field == NULL) {
+		printf("Field was NULL pointer. Exiting.\n");
+		exit(0);
+	}
+	if (field->initialized != 1) {
+		printf("Field was not initialized. Exiting.\n");
+		exit(0);
+	}
+}
+
+void fields_assert_prepared(t_zephyros_field *field)
+{
+	fields_assert_initialized(field);
+	if (field->prepared != 1) {
+		printf("Field `%s' was not prepared. Exiting.\n", field->name);
+		exit(0);
+	}
+}
+
+void fields_free(t_zephyros_field **pfield)
+{
+	t_zephyros_field *field = *pfield;
+	
+	if (field != NULL) {
+		fields_assert_initialized(field);
+		if (field->vec_x != NULL) {free(field->vec_x);}
+		if (field->vec_y != NULL) {free(field->vec_y);}
+		if (field->vec_z != NULL) {free(field->vec_z);}
+		if (field->vec_t != NULL) {free(field->vec_t);}
+			
+		free(field);
+		*pfield = NULL;
+	}
+}
+
 
 void fields_prepare(t_zephyros_field *field)
 {
+	fields_assert_initialized(field);
+	
 	//it is expected that the following variables are set:
 	//field->n_x, field->vec_x and for other y, z and t.
 	if (field->vec_x == NULL) 	{printf("vec_x variable was not set for field with name ``%s''\n", field->name); exit(0);}
@@ -73,6 +119,8 @@ void fields_prepare(t_zephyros_field *field)
 	if (field->n_t == 0) 		{printf("Size for vec_t was 0 for field with name ``%s''\n", field->name); exit(0);}
 	
 	field->n = field->n_x * field->n_y * field->n_z * field->n_t;
+	
+	field->prepared = 1;	
 }
 
 void fields_prepare2(
@@ -83,7 +131,7 @@ void fields_prepare2(
 	double tmin, double tmax, double tdif
 	)
 {
-	t_zephyros_field *field = malloc(sizeof(t_zephyros_field));
+	t_zephyros_field *field;	
 	double dummy_delta = 1.e-100;
 
 	int i, j;
@@ -91,6 +139,7 @@ void fields_prepare2(
 	int ix, iy, iz, it;
 	int tmpsum;
 	
+	fields_initialize(&field);
 	*fieldpt = field;
 		
 	field->n_x = (int) (1. + (dummy_delta + xmax - xmin) / xdif);
@@ -121,16 +170,21 @@ void fields_prepare2(
 	}
 	
 	field->n = field->n_x * field->n_y * field->n_z * field->n_t;
+	
+	field->prepared = 1;
 }
+
 
 void fields_copy(t_zephyros_field **pdst, t_zephyros_field *src)
 {
 	int i;
 	t_zephyros_field *dst;
-	
+		
 	if (src == NULL) {
 		dst = NULL;
 	} else {
+		fields_assert_initialized(src);
+
 		dst = malloc(sizeof(t_zephyros_field));
 
 		memcpy(dst, src, sizeof(t_zephyros_field));
@@ -148,20 +202,6 @@ void fields_copy(t_zephyros_field **pdst, t_zephyros_field *src)
 }
 
 
-void fields_free(t_zephyros_field **pfield)
-{
-	t_zephyros_field *field = *pfield;
-	
-	if (field != NULL) {
-		if (field->vec_x != NULL) {free(field->vec_x);}
-		if (field->vec_y != NULL) {free(field->vec_y);}
-		if (field->vec_z != NULL) {free(field->vec_z);}
-		if (field->vec_t != NULL) {free(field->vec_t);}
-			
-		free(field);
-		*pfield = NULL;
-	}
-}
 
 
 double fields_give_xyzt(void *vdfield, int i, int i_xyzt)
@@ -170,7 +210,9 @@ double fields_give_xyzt(void *vdfield, int i, int i_xyzt)
 	int ndim = 4;
 	int *arr_shape = malloc(ndim * sizeof(double));
 	int *tup = malloc(ndim * sizeof(double));
-	
+
+	fields_assert_prepared(field);
+
 	arr_shape[0] = field->n_x;
 	arr_shape[1] = field->n_y;
 	arr_shape[2] = field->n_z;

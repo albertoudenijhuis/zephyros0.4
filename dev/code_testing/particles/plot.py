@@ -5,10 +5,13 @@ import warnings; warnings.simplefilter("ignore")
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-fontsize0 = 20
-fontsize1 = 16
+fontsize0 = 18
+fontsize1 = 12
 matplotlib.rc('xtick', labelsize=fontsize0) 
 matplotlib.rc('ytick', labelsize=fontsize0) 
+
+#also label fonts should be enlarged !!!
+
 
 def main():
         
@@ -19,16 +22,24 @@ def main():
 
     data = np.array(data)
 
+    c0 = 'red'
+    c1 = 'blue'
+    c2 = 'green'
+
 
     for mystyle in ['linear', 'log']:
         #make a nice plot.
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(6,4))
         ax = fig.add_subplot(1,1,1)
 
-        plt2 = ax.plot(data[:,0], data[:,4] ,   label='z-dir, KH05, sheroid', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,6] ,   label='xy-dir, KH05, sheroid', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,9] ,   label='z-dir, KH05, spherical', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,11] ,   label='xy-dir, KH05, spherical', linewidth=2)
+        plt2 = ax.plot(data[:,0], data[:,4] ,   label=r'$z$-dir, spheroid  ($v_t$ small)', linewidth=2, color=c0)
+        plt2 = ax.plot(data[:,0], data[:,6] ,   label=r'$z$-dir, spheroid ($v_t$ large)', linewidth=2, color=c1)
+        plt2 = ax.plot(data[:,0], data[:,8] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, color=c2)
+        plt2 = ax.plot(data[:,0], data[:,13] ,   label=r'$z$-dir, spherical ($v_t$ large)', linewidth=2, color=c1, linestyle='--')
+        plt2 = ax.plot(data[:,0], data[:,15] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, color=c2, linestyle='--')
+
+        #plt2 = ax.plot(data[:,0], data[:,11] ,   label=r'$z$-dir, $v_t$ small, spherical', linewidth=2)
+
 
         if mystyle == 'log':
             ax.set_xscale('log')
@@ -36,8 +47,8 @@ def main():
         else:
             ax.legend(loc='upper left', frameon=False, fontsize=fontsize1)
             
-        ax.set_xlabel(r'$D_{eqvol}$ [mm]')
-        ax.set_ylabel(r'$\tau_I$ [m]')
+        ax.set_xlabel(r'$D$ [mm]', fontsize=fontsize0)
+        ax.set_ylabel(r'$\tau_I$ [s]', fontsize=fontsize0)
 
         #ax.set_ybound(-2, 16.)
         
@@ -45,19 +56,26 @@ def main():
 
         plt.tight_layout()
         
-        plt.savefig(myname+mystyle+".png")
+        plt.savefig(myname+mystyle+".eps")
         plt.close(fig)
 
 
     for mystyle in ['linear', 'log']:
         #make a nice plot.
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(6,4))
         ax = fig.add_subplot(1,1,1)
 
-        plt2 = ax.plot(data[:,0], data[:,3] ,   label='z-dir, KH05, sheroid', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,5] ,   label='xy-dir, KH05, sheroid', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,8] ,   label='z-dir, KH05, spherical', linewidth=2)
-        plt2 = ax.plot(data[:,0], data[:,10] ,   label='xy-dir, KH05, spherical', linewidth=2)
+        
+
+        plt2 = ax.plot(data[:,0], data[:,3] ,   label=r'$z$-dir, spheroid ($v_t \ll \mathcal{O}(v^{\prime}_p)$)', linewidth=2, color=c0)
+        plt2 = ax.plot(data[:,0], data[:,5] ,   label=r'$z$-dir, spheroid ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, color=c1)
+        plt2 = ax.plot(data[:,0], data[:,7] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, color=c2)
+        #plt2 = ax.plot(data[:,0], data[:,12] ,   label=r'$z$-dir, spherical ($v_t$ large)', linewidth=2, linestyle='--', color=c1)
+        plt2 = ax.plot(data[:,0], data[:,12] ,   label=r'$z$-dir, spherical ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, linestyle='--', color=c1)
+        plt2 = ax.plot(data[:,0], data[:,14] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, linestyle='--', color=c2)
+
+        #plt2 = ax.plot(data[:,0], data[:,10] ,   label=r'$z$-dir, $v_t$ small, spherical', linewidth=2)
+
 
         if mystyle == 'log':
             ax.set_xscale('log')
@@ -65,8 +83,8 @@ def main():
         else:
             ax.legend(loc='upper left', frameon=False, fontsize=fontsize1)
             
-        ax.set_xlabel(r'$D_{eqvol}$ [mm]')
-        ax.set_ylabel(r'$d_I$ [m]')
+        ax.set_xlabel(r'$D$ [mm]', fontsize=fontsize0)
+        ax.set_ylabel(r'$d_I$ [m]', fontsize=fontsize0)
 
         #ax.set_ybound(-2, 16.)
         
@@ -74,7 +92,7 @@ def main():
 
         plt.tight_layout()
         
-        plt.savefig(myname+mystyle+".png")
+        plt.savefig(myname+mystyle+".eps")
         plt.close(fig)
     
 

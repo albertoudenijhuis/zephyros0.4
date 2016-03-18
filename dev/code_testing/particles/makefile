@@ -1,4 +1,4 @@
-RELPAT = ../../
+RELPAT = ../../../
 
 all: clean test
 

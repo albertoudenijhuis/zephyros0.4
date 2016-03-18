@@ -1,11 +1,12 @@
 FC = gfortran
 CC = gcc
 FCFLAGS=-O2 -fPIC -g
-CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm  -g -w
+#CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm  -g -w
+CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm
 # -w
-DEPS = $(filter-out %/wrapretrieval_exec.c %/wrapradarfilter_exec.c %/wrapwindfield_exec.c, $(wildcard ../$(RELPAT)src/*.c)) particles_mischenko2000_ampld.lp.o particles_mischenko2000_lpd.o
+DEPS = $(filter-out %/wrapretrieval_exec.c %/wrapradarfilter_exec.c %/wrapwindfield_exec.c, $(wildcard $(RELPAT)src/*.c)) particles_mishchenko2000_ampld.lp.o particles_mishchenko2000_lpd.o
 
-INC1			= -I../$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
+INC1			= -I$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
 INC2		= -I/usr/local/include/python2.7 -I/usr/local/lib64/python2.7/site-packages/numpy/core/include
 INC			= $(INC1) $(INC2)
 
@@ -15,7 +16,7 @@ settings:
 clean:
 	rm -f *.so *.o *_wrap.c
 
-%.o: ../$(RELPAT)src/%.f
+%.o: $(RELPAT)src/%.f
 	$(FC) $(FCFLAGS) -c $< -o $@
 
 

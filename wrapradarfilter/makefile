@@ -1,6 +1,8 @@
+RELPAT = ../
+
 all: settings clean wrapradarfilter execradarfilter
 
-include ../linux_compliation_settings.mk
+include $(RELPAT)linux_compliation_settings.mk
 
 wrapradarfilter: $(DEPS)
 	swig -python -outcurrentdir ../src/wrapradarfilter.i

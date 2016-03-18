@@ -24,6 +24,7 @@ typedef struct st_radarmeasurement
 	double		dt;					/* dt */
 	
 	t_zephyros_coordinates		*center_coor;	
+	double 		*advected_center_enu_xyzt;
 			
 	//output
 	double		dBZ_hh;
@@ -128,7 +129,10 @@ typedef struct st_radarmeasurement
 	double		*der_edr13_Doppler_spectrum_dBZ_vh;
 	double		*der_edr13_Doppler_spectrum_dBZ_vv;
 
-
+	double 		*der_dBZ_hh;
+	double 		*der_dBZ_hv;
+	double 		*der_dBZ_vh;
+	double 		*der_dBZ_vv;
 
 	/*
 	double		*Doppler_spectrum_dBZ_hh;
@@ -136,6 +140,9 @@ typedef struct st_radarmeasurement
 	double 		*specific_dBLdr;
 	*/
 } t_radarmeasurement;
+void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurement ***pradarmeasurement);
+void radarfilter_prepare_model_radarmeasurement(int n_measurements, t_radarmeasurement ***pdst, t_radarmeasurement **src);
+void radarfilter_free_radarmeasurement(int n_measurements, t_radarmeasurement ***pradarmeasurement);
 
 typedef struct st_radarfilter_res_vol			/* resolution volume */
 {
@@ -160,14 +167,15 @@ typedef struct st_radarfilter_res_vol			/* resolution volume */
 
 	//subvolume center coordinates
 	t_zephyros_coordinates **subvolume_coor;
+	double 		**advected_subvolume_enu_xyzt;
 
 	//resolution volume air velocity
 	double		air_u;
 	double		air_v;
 	double		air_w;
-	double		air_u_der[4];
-	double		air_v_der[4];
-	double		air_w_der[4];
+	double		*air_u_der;
+	double		*air_v_der;
+	double		*air_w_der;
 
 	//subvolume air velocity
 	double		*subvolume_air_u;
@@ -197,6 +205,11 @@ typedef struct st_radarfilter_res_vol			/* resolution volume */
 	double		****subvolume_eta_hv;
 	double		****subvolume_eta_vh;
 	double		****subvolume_eta_vv;
+
+	double		*****subvolume_eta_hh_der;
+	double		*****subvolume_eta_hv_der;
+	double		*****subvolume_eta_vh_der;
+	double		*****subvolume_eta_vv_der;
 	
 	double		****subvolume_eta_ShhSvvc;
 	double		****subvolume_eta_ShhShvc;
@@ -267,6 +280,11 @@ typedef struct st_radarfilter_todolist			/* resolution volume to do list */
 	int			calc_eta_ShhShvc;
 	int			calc_eta_SvvSvhc;
 	
+	int			calc_eta_hh_der;
+	int			calc_eta_hv_der;
+	int			calc_eta_vh_der;
+	int			calc_eta_vv_der;
+	
     int			calc_air_velocity;
     int			calc_air_velocity_der;
 
@@ -300,18 +318,14 @@ typedef struct st_radarfilter_todolist			/* resolution volume to do list */
 	int 		calc_spectrum_eta_i_vv;
 	
 	int			der_edr13;
+	int			der_dBZ_hh;
+	int			der_dBZ_hv;
+	int			der_dBZ_vh;
+	int			der_dBZ_vv;
 	
 	//int			apply_advection;
 	//int			apply_geostrophic_correction;
 } t_radarfilter_todolist;
-
-void radarfilter_exec(
-	t_zephyros_config 				*cfg,
-	int								i_mode,	//0 = simulation mode, 1 = retrieval mode
-	t_radarfilter_todolist			*todo,	
-	int								n_measurements,
-	t_radarmeasurement				**radarmeasurement
-);
 
 void radarfilter_initialize_resolution_volume(t_zephyros_config *cfg, int i_mode, t_radarfilter_res_vol** pres_vol, t_radarfilter_todolist *todo);
 void radarfilter_free_resolution_volume(t_zephyros_config *cfg, int i_mode, t_radarfilter_res_vol **pres_vol, t_radarfilter_todolist *todo);
@@ -320,9 +334,17 @@ void radarfilter_initialize_todolist(t_zephyros_config *cfg, int i_mode, t_radar
 void radarfilter_prepare_todolist(t_zephyros_config *cfg, int i_mode, t_radarfilter_todolist *todolist);
 void radarfilter_free_todolist(t_radarfilter_todolist **ptodolist);
 
-void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurement ***pradarmeasurement);
-void radarfilter_prepare_model_radarmeasurement(int n_measurements, t_radarmeasurement ***pdst, t_radarmeasurement **src);
-void radarfilter_free_radarmeasurement(int n_measurements, t_radarmeasurement ***pradarmeasurement);
+void radarfilter_exec(
+	t_zephyros_config 				*cfg,
+	int								i_mode,	//0 = simulation mode, 1 = retrieval mode
+	t_radarfilter_todolist			*todo,	
+	int								n_measurements,
+	t_radarmeasurement				**radarmeasurement,
+	t_radarfilter_res_vol 			*res_vol	
+);
+
+
+
 
 typedef struct t_radarfilter_readout_widget
 {

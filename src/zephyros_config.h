@@ -77,8 +77,25 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
     int			costfunction_Doppler_spectrum_dBZ_hh;
     int			costfunction_specific_dBZdr;
     int			costfunction_specific_dBLdr;
+
+	//special stuff
+    int			n_active_windfield_grid_nrs;
+    int			*active_windfield_grid_nrs;
+    int			n_active_windfield_turbulence_nrs;
+    int			*active_windfield_turbulence_nrs;
+    int			n_active_scattererfield_nrs;
+    int			*active_scattererfield_nrs;
     
-    	
+    int			n_cast_windfield_grid_nrs;
+    int			*cast_windfield_grid_nrs;
+
+    double		update_windfield_hspeed_err;		
+    double		update_windfield_hdir_err;		
+    double		update_windfield_u_err;		
+    double		update_windfield_v_err;		
+    double		update_windfield_w_err;		
+
+    
     double		maximum_time_s;		
     
     
@@ -92,6 +109,9 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
 //    double		fit_maximum_time_s;
 //    int			advection_integration_steps;
 } t_zephyros_config_retrieval_fdvar_cfg;
+void zephyros_config_initialize_retrieval_fdvar_cfg(t_zephyros_config_retrieval_fdvar_cfg **pcfg);
+void zephyros_config_free_retrieval_fdvar_cfg(t_zephyros_config_retrieval_fdvar_cfg **pcfg);
+
 typedef struct t_zephyros_config_retrieval_lwm_cfg
 {
 	void		*vd_zcfg;
@@ -119,6 +139,8 @@ typedef struct t_zephyros_config_retrieval_lwm_cfg
 	double 		extra_points_dz;
 	double 		extra_points_dt;
 } t_zephyros_config_retrieval_lwm_cfg;
+void zephyros_config_initialize_retrieval_lwm_cfg(t_zephyros_config_retrieval_lwm_cfg **pcfg);
+
 typedef struct t_zephyros_config_retrieval_algorithm
 {
 	int		type[101];
@@ -224,6 +246,14 @@ void zephyros_config_read__lf_array(
 	int  *arraysize,
 	double **destination);	
 	
+void zephyros_config_read___i_array(
+	t_zephyros_config_read_widget *rwg,
+	char section[8192],
+	char subsection[8192],
+	char identifier[8192],
+	int  *arraysize,
+	int **destination);	
+	
 void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg);
 	
 void zephyros_config_print(t_zephyros_config *cfg, FILE *fp);
@@ -232,6 +262,7 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 void zephyros_config_print_scattererfield(t_zephyros_scattererfield *myscattererfield, FILE *fp);
 
 void fprintf_array(FILE *fp, int n, double *variable);
+void fprinti_array(FILE *fp, int n, int *variable);
 void zephyros_config_initialize(t_zephyros_config **pcfg);
 
 void zephyros_config_initialize_simulation(t_zephyros_config *cfg);
