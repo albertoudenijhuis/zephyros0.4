@@ -19,10 +19,11 @@ If there are erros asking for headers, the exact locations of the headers need t
 
 	sudo apt-get install curl
 	curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
+	sudo python2 get-pip.py
 	sudo pip install matplotlib
 
 	cd examples/wrapwindfield/python
-	python plot_windfield.py
+	python2 plot_windfield.py
 
 The plots are stroed in `examples/wrapwindfield/python/plots`
 
