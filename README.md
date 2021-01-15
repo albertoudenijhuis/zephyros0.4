@@ -24,6 +24,6 @@ If there are erros asking for headers, the exact locations of the headers need t
 	cd examples/wrapwindfield/python
 	python plot_windfield.py
 
-The plots are stroed in examples/wrapwindfield/python/plots
+The plots are stroed in `examples/wrapwindfield/python/plots`
 
 
