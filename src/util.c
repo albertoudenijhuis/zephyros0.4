@@ -2,6 +2,7 @@
 #include <string.h> 
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 
 #include "util.h"
 #include "util_turbulence.h"

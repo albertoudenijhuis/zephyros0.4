@@ -6,8 +6,11 @@ CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm
 # -w
 DEPS = $(filter-out %/wrapretrieval_exec.c %/wrapradarfilter_exec.c %/wrapwindfield_exec.c, $(wildcard $(RELPAT)src/*.c)) particles_mishchenko2000_ampld.lp.o particles_mishchenko2000_lpd.o
 
-INC1			= -I$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
-INC2		= -I/usr/local/include/python2.7 -I/usr/local/lib64/python2.7/site-packages/numpy/core/include
+# INC1			= -I$(RELPAT)src/ -I/usr/include/python2.7 -I/usr/lib64/python2.7/site-packages/numpy/core/include -I/usr/include/suitesparse/
+
+INC1			= -I$(RELPAT)src/ -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/include/python3.8 -I/Library/Python/3.8/site-packages/numpy/core/include -I/usr/local/include/suitesparse/
+
+INC2		= -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.8/include/python3.8 -I/Library/Python/3.8/site-packages/numpy/core/include
 INC			= $(INC1) $(INC2)
 
 settings:

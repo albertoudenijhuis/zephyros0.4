@@ -35,9 +35,11 @@ Note:
 #include <stdlib.h>
 #include <string.h> 
 #include <math.h>
+#include <stdio.h>
 
 #include "zephyros_config.h"
 #include "specialfunctions.h"
+#include "util_turbulence.h"
 
 //uncomment next statement for debug mode
 #define _ZEPHYROS_CONFIG_DEBUG
