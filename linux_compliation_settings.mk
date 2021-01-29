@@ -14,8 +14,8 @@ INC2		= -I/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framewo
 INC			= $(INC1) $(INC2)
 
 settings:
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
-
+	# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
+	# export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib
 clean:
 	rm -f *.so *.o *_wrap.c
 

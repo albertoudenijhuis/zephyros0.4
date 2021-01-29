@@ -39,6 +39,7 @@ Note:
 
 #include "fields.h"
 #include "interpolation.h"
+#include "func.h"
 
 //uncomment next statement for debug mode
 #define _ZEPHYROS_FIELDS_DEBUG
@@ -143,27 +144,27 @@ void fields_prepare2(
 	*fieldpt = field;
 		
 	field->n_x = (int) (1. + (dummy_delta + xmax - xmin) / xdif);
-	func_dbl_arr_calloc(field->n_x, &field->vec_x);
+	func_dbl_arr_malloc(field->n_x, &field->vec_x);
 	for ( i = 0; i < field->n_x; i++ ) {
 		field->vec_x[i] = xmin + (i * xdif);
 	}
 
 	field->n_y = (int) (1. + (dummy_delta + ymax - ymin) / ydif);
-	func_dbl_arr_calloc(field->n_y, &field->vec_y);
+	func_dbl_arr_malloc(field->n_y, &field->vec_y);
 	
 	for ( i = 0; i < field->n_y; i++ ) {
 		field->vec_y[i] = ymin + (i * ydif);
 	}
 
 	field->n_z = (int) (1. + (dummy_delta + zmax - zmin) / zdif);
-	func_dbl_arr_calloc(field->n_z, &field->vec_z);
+	func_dbl_arr_malloc(field->n_z, &field->vec_z);
 
 	for ( i = 0; i < field->n_z; i++ ) {
 		field->vec_z[i] = zmin + (i * zdif);
 	}
 
 	field->n_t = (int) (1. + (dummy_delta + tmax - tmin) / tdif);
-	func_dbl_arr_calloc(field->n_t, &field->vec_t);
+	func_dbl_arr_malloc(field->n_t, &field->vec_t);
 	
 	for ( i = 0; i < field->n_t; i++ ) {
 		field->vec_t[i] = tmin + (i * tdif);

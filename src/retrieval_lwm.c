@@ -33,11 +33,12 @@ Note:
 //to do:
 //option to select fitting algorithm
 */
-
+#define _XOPEN_SOURCE  
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include<stdlib.h>
 
 
 #include "retrieval_lwm.h"
@@ -45,6 +46,7 @@ Note:
 #include "radarfilter.h"
 #include "util.h"
 #include "ltqnorm.h"
+#include "func.h"
 
 
 #include <stdlib.h>
@@ -111,9 +113,9 @@ int retrieval_lwm_minimize_chisquared(t_lwm_opc *opc) {
 	start = clock();
 
 	// Starting point
-	func_dbl_arr_calloc(p->Kn, &K);
-	func_dbl_arr_calloc(p->Kn, &Klbound);
-	func_dbl_arr_calloc(p->Kn, &Kubound);
+	func_dbl_arr_malloc(p->Kn, &K);
+	func_dbl_arr_malloc(p->Kn, &Klbound);
+	func_dbl_arr_malloc(p->Kn, &Kubound);
 	
 	for (i=0; i < p->Kn; i++) 
 	{
@@ -756,14 +758,14 @@ void retrieval_lwm_initialize_o(t_lwm_o **p_lwm_o, char measurements_filename[81
 	
 	radarfilter_read_measurements(&o->n, &o->radarmeasurement, measurements_filename);
 	
-	func_dbl_arr_calloc(o->n, &o->windvector_u );	
-	func_dbl_arr_calloc(o->n, &o->windvector_v );	
-	func_dbl_arr_calloc(o->n, &o->windvector_w );	
-	func_dbl_arr_calloc(o->n, &o->windvector_u_err );	
-	func_dbl_arr_calloc(o->n, &o->windvector_v_err );	
-	func_dbl_arr_calloc(o->n, &o->windvector_w_err );	
+	func_dbl_arr_malloc(o->n, &o->windvector_u );	
+	func_dbl_arr_malloc(o->n, &o->windvector_v );	
+	func_dbl_arr_malloc(o->n, &o->windvector_w );	
+	func_dbl_arr_malloc(o->n, &o->windvector_u_err );	
+	func_dbl_arr_malloc(o->n, &o->windvector_v_err );	
+	func_dbl_arr_malloc(o->n, &o->windvector_w_err );	
 	
-	func_dbl_arr_calloc(o->n, &o->lwm_vr );	
+	func_dbl_arr_malloc(o->n, &o->lwm_vr );	
 	func_int_arr_malloc(o->n, &o->used_for_analysis);	
 	func_int_arr_malloc(o->n, &o->in_analysis_volume);	
 
@@ -827,18 +829,18 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 	if (c->fit_w_z) 					{p->fit_Knr_w_z = p->Kn; p->Kn++;}
 	if (c->fit_u_t_plus_v_t_plus_w_t) 	{p->fit_Knr_u_t_plus_v_t_plus_w_t = p->Kn; p->Kn++;}
 	
-	func_dbl_arr_calloc(p->field->n, &p->u0 );	
-	func_dbl_arr_calloc(p->field->n, &p->u_x );	
-	func_dbl_arr_calloc(p->field->n, &p->u_z );	
-	func_dbl_arr_calloc(p->field->n, &p->v0 );	
-	func_dbl_arr_calloc(p->field->n, &p->v_y );	
-	func_dbl_arr_calloc(p->field->n, &p->v_z );	
-	func_dbl_arr_calloc(p->field->n, &p->u_y_plus_v_x );	
-	func_dbl_arr_calloc(p->field->n, &p->w0 );	
-	func_dbl_arr_calloc(p->field->n, &p->w_x );	
-	func_dbl_arr_calloc(p->field->n, &p->w_y );	
-	func_dbl_arr_calloc(p->field->n, &p->w_z );	
-	func_dbl_arr_calloc(p->field->n, &p->u_t_plus_v_t_plus_w_t );
+	func_dbl_arr_malloc(p->field->n, &p->u0 );	
+	func_dbl_arr_malloc(p->field->n, &p->u_x );	
+	func_dbl_arr_malloc(p->field->n, &p->u_z );	
+	func_dbl_arr_malloc(p->field->n, &p->v0 );	
+	func_dbl_arr_malloc(p->field->n, &p->v_y );	
+	func_dbl_arr_malloc(p->field->n, &p->v_z );	
+	func_dbl_arr_malloc(p->field->n, &p->u_y_plus_v_x );	
+	func_dbl_arr_malloc(p->field->n, &p->w0 );	
+	func_dbl_arr_malloc(p->field->n, &p->w_x );	
+	func_dbl_arr_malloc(p->field->n, &p->w_y );	
+	func_dbl_arr_malloc(p->field->n, &p->w_z );	
+	func_dbl_arr_malloc(p->field->n, &p->u_t_plus_v_t_plus_w_t );
 
 	p->n_sv = zcfg->retrieval->radarfilter->n_beam_range * 
 				zcfg->retrieval->radarfilter->n_beam_theta *
@@ -859,32 +861,32 @@ void retrieval_lwm_initialize_p(t_lwm_opc *opc)
 	p->coef_u_t_plus_v_t_plus_w_t	= (double**)malloc(o->n * sizeof(double*));
 
 	for (io = 0; io < o->n; io++ ) {
-		func_dbl_arr_calloc(p->n_sv, p->coef_u0 + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_u_x + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_u_z + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_v0 + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_v_y + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_v_z + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_u_y_plus_v_x + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_w0 + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_w_x + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_w_y + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_w_z + io );
-		func_dbl_arr_calloc(p->n_sv, p->coef_u_t_plus_v_t_plus_w_t + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_u0 + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_u_x + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_u_z + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_v0 + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_v_y + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_v_z + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_u_y_plus_v_x + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_w0 + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_w_x + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_w_y + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_w_z + io );
+		func_dbl_arr_malloc(p->n_sv, p->coef_u_t_plus_v_t_plus_w_t + io );
 	}
 
-	func_dbl_arr_calloc(o->n, &p->center_coef_u0 );
-	func_dbl_arr_calloc(o->n, &p->center_coef_u_x );
-	func_dbl_arr_calloc(o->n, &p->center_coef_u_z );
-	func_dbl_arr_calloc(o->n, &p->center_coef_v0 );
-	func_dbl_arr_calloc(o->n, &p->center_coef_v_y );
-	func_dbl_arr_calloc(o->n, &p->center_coef_v_z );
-	func_dbl_arr_calloc(o->n, &p->center_coef_u_y_plus_v_x );
-	func_dbl_arr_calloc(o->n, &p->center_coef_w0 );
-	func_dbl_arr_calloc(o->n, &p->center_coef_w_x );
-	func_dbl_arr_calloc(o->n, &p->center_coef_w_y );
-	func_dbl_arr_calloc(o->n, &p->center_coef_w_z );
-	func_dbl_arr_calloc(o->n, &p->center_coef_u_t_plus_v_t_plus_w_t );
+	func_dbl_arr_malloc(o->n, &p->center_coef_u0 );
+	func_dbl_arr_malloc(o->n, &p->center_coef_u_x );
+	func_dbl_arr_malloc(o->n, &p->center_coef_u_z );
+	func_dbl_arr_malloc(o->n, &p->center_coef_v0 );
+	func_dbl_arr_malloc(o->n, &p->center_coef_v_y );
+	func_dbl_arr_malloc(o->n, &p->center_coef_v_z );
+	func_dbl_arr_malloc(o->n, &p->center_coef_u_y_plus_v_x );
+	func_dbl_arr_malloc(o->n, &p->center_coef_w0 );
+	func_dbl_arr_malloc(o->n, &p->center_coef_w_x );
+	func_dbl_arr_malloc(o->n, &p->center_coef_w_y );
+	func_dbl_arr_malloc(o->n, &p->center_coef_w_z );
+	func_dbl_arr_malloc(o->n, &p->center_coef_u_t_plus_v_t_plus_w_t );
 
 	p->subvolume_coor			= malloc(o->n * sizeof(t_zephyros_coordinates**));
 	for (io = 0; io < o->n; io++ ) {
