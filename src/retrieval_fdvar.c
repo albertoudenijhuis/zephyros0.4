@@ -146,8 +146,8 @@ int retrieval_fdvar_minimize_cost_function(t_fdvar_opc *opc)
 	#endif 
 	retrieval_fdvar_init_x(vd_opc, &x);
 
-	func_dbl_arr_calloc(p->Kn, &xu);
-	func_dbl_arr_calloc(p->Kn, &xl);
+	func_dbl_arr_malloc(p->Kn, &xu);
+	func_dbl_arr_malloc(p->Kn, &xl);
 	
 	for (i=0; i < p->Kn; i++) {
 		xl[i]	= 0.;
@@ -1283,7 +1283,7 @@ void retrieval_fdvar_init_x(
 	K2x = retrieval_fdvar_K2x; 
 	int i_w;
 	
-	func_dbl_arr_calloc(p->Kn, x);
+	func_dbl_arr_malloc(p->Kn, x);
 
 	//set Klbound, Kubound and x value
 
@@ -2214,8 +2214,8 @@ void retrieval_fdvar_initialize_p(t_fdvar_opc *opc)
 		
 		
 	//initialize bounds
-	func_dbl_arr_calloc( p->Kn, &p->Klbound);
-	func_dbl_arr_calloc( p->Kn, &p->Kubound); 	
+	func_dbl_arr_malloc( p->Kn, &p->Klbound);
+	func_dbl_arr_malloc( p->Kn, &p->Kubound); 	
 }
 
 void retrieval_fdvar_free_p(t_fdvar_opc *opc)
@@ -2268,8 +2268,8 @@ cs *cs_qr_obtain_inverse(
 	
     invmat_triplet 		= cs_spalloc (n, n, 1, 1, 1) ;
 
-	func_dbl_arr_calloc(n, &x);
-	func_dbl_arr_calloc(n, &b);
+	func_dbl_arr_malloc(n, &x);
+	func_dbl_arr_malloc(n, &b);
 	
 	for (i = 0 ; i < n ; i++) {
 		for (j = 0 ; j < n ; j++) {

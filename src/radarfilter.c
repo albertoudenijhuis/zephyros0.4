@@ -45,6 +45,7 @@ Note:
 #include "util.h"
 #include "func.h"
 
+
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846
 #endif
@@ -319,33 +320,33 @@ void radarfilter_exec(
 		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh));
 		util_safe_free(&(radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv));
 					
-		if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh);
-		if ((rcfg->filter_Doppler_spectrum_dBZ_hh) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh_err); 		
-		if (rcfg->filter_Doppler_spectrum_dBZ_hv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv);
-		if ((rcfg->filter_Doppler_spectrum_dBZ_hv) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv_err);
-		if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh);
-		if ((rcfg->filter_Doppler_spectrum_dBZ_vh) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh_err);
-		if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv);
-		if ((rcfg->filter_Doppler_spectrum_dBZ_vv) & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv_err);
-		if (todo->calc_Doppler_spectrum_ShhSvvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhSvvc);
-		if (todo->calc_Doppler_spectrum_ShhShvc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhShvc);
-		if (todo->calc_Doppler_spectrum_SvvSvhc) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_SvvSvhc);		
-		if (rcfg->filter_specific_dBZdr) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr);
-		if ((rcfg->filter_specific_dBZdr)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr_err);
-		if (rcfg->filter_specific_dBLdr) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBLdr);
-		if ((rcfg->filter_specific_dBLdr)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBLdr_err);
-		if (rcfg->filter_specific_rho_co) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_co);
-		if ((rcfg->filter_specific_rho_co)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_co_err);
-		if (rcfg->filter_specific_rho_cxh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxh);
-		if ((rcfg->filter_specific_rho_cxh)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxh_err);
-		if (rcfg->filter_specific_rho_cxv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv);
-		if ((rcfg->filter_specific_rho_cxv)  & (rcfg->filter_errors)) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv_err);
+		if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh);
+		if ((rcfg->filter_Doppler_spectrum_dBZ_hh) & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hh_err); 		
+		if (rcfg->filter_Doppler_spectrum_dBZ_hv) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv);
+		if ((rcfg->filter_Doppler_spectrum_dBZ_hv) & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_hv_err);
+		if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh);
+		if ((rcfg->filter_Doppler_spectrum_dBZ_vh) & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vh_err);
+		if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv);
+		if ((rcfg->filter_Doppler_spectrum_dBZ_vv) & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->Doppler_spectrum_dBZ_vv_err);
+		if (todo->calc_Doppler_spectrum_ShhSvvc) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhSvvc);
+		if (todo->calc_Doppler_spectrum_ShhShvc) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_ShhShvc);
+		if (todo->calc_Doppler_spectrum_SvvSvhc) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &Doppler_spectrum_SvvSvhc);		
+		if (rcfg->filter_specific_dBZdr) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr);
+		if ((rcfg->filter_specific_dBZdr)  & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBZdr_err);
+		if (rcfg->filter_specific_dBLdr) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBLdr);
+		if ((rcfg->filter_specific_dBLdr)  & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_dBLdr_err);
+		if (rcfg->filter_specific_rho_co) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_co);
+		if ((rcfg->filter_specific_rho_co)  & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_co_err);
+		if (rcfg->filter_specific_rho_cxh) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxh);
+		if ((rcfg->filter_specific_rho_cxh)  & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxh_err);
+		if (rcfg->filter_specific_rho_cxv) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv);
+		if ((rcfg->filter_specific_rho_cxv)  & (rcfg->filter_errors)) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->specific_rho_cxv_err);
 		
 		if (todo->der_edr13) {
-			if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh);
-			if (rcfg->filter_Doppler_spectrum_dBZ_hv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv);
-			if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh);
-			if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_calloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv);
+			if (rcfg->filter_Doppler_spectrum_dBZ_hh) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hh);
+			if (rcfg->filter_Doppler_spectrum_dBZ_hv) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_hv);
+			if (rcfg->filter_Doppler_spectrum_dBZ_vh) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vh);
+			if (rcfg->filter_Doppler_spectrum_dBZ_vv) func_dbl_arr_malloc(radarmeasurement[i_m]->n_spectrum, &radarmeasurement[i_m]->der_edr13_Doppler_spectrum_dBZ_vv);
 		}
 
 		//free and allocate memory for eta_i

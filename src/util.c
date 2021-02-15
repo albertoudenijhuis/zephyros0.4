@@ -1,12 +1,15 @@
+#define _XOPEN_SOURCE
+
 #include <stdlib.h>
 #include <string.h> 
 #include <stdio.h>
 #include <math.h>
-
+#include <time.h>
+#include "func.h"
 #include "util.h"
 #include "util_turbulence.h"
 #include "specialfunctions.h"
-#include "func.h"
+
 
 //uncomment next statement for debug mode
 #define _ZEPHYROS_UTIL_DEBUG
@@ -1631,7 +1634,8 @@ void util_copy_dbl_array(int n, double **pdst, double *src)
 	if ((n == 0) | (src == NULL)) {
 		dst = NULL;
 	} else {
-		func_dbl_arr_calloc(n, &dst);
+		/* func_dbl_arr_calloc(n, &dst); */
+		func_dbl_arr_malloc(n, &dst);
 		for(i=0;i<n;i++){
 			dst[i] = src[i];
 		}
