@@ -68,6 +68,10 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
 	//void		*vd_zcfg;
 	//double		fcoriolis;
     int			costfunction_dBZ_hh;
+    int			costfunction_dBZ_hv;
+    int			costfunction_dBZ_vh;
+    int			costfunction_dBZ_vv;
+    
     int			costfunction_dBZdr;
     int			costfunction_dBLdr;
     int			costfunction_Doppler_velocity_hh_ms;
@@ -75,6 +79,9 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
     
     //spectra
     int			costfunction_Doppler_spectrum_dBZ_hh;
+    int			costfunction_Doppler_spectrum_dBZ_hv;
+    int			costfunction_Doppler_spectrum_dBZ_vh;
+    int			costfunction_Doppler_spectrum_dBZ_vv;
     int			costfunction_specific_dBZdr;
     int			costfunction_specific_dBLdr;
 
@@ -83,11 +90,17 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
     int			*active_windfield_grid_nrs;
     int			n_active_windfield_turbulence_nrs;
     int			*active_windfield_turbulence_nrs;
-    int			n_active_scattererfield_nrs;
-    int			*active_scattererfield_nrs;
+    //int			n_active_scattererfield_nrs;
+    int			n_active_psd_nrs;
+    int			*active_psd_nrs;
+    //int			*active_scattererfield_nrs;
     
+    //casting
     int			n_cast_windfield_grid_nrs;
     int			*cast_windfield_grid_nrs;
+
+    int			n_cast_psd_nrs;
+    int			*cast_psd_nrs;
 
     double		update_windfield_hspeed_err;		
     double		update_windfield_hdir_err;		
@@ -98,6 +111,7 @@ typedef struct t_zephyros_config_retrieval_fdvar_cfg
     
     double		maximum_time_s;		
     
+    int			use_derivatives;
     
     
     //fit h_speed --> in windfield
@@ -182,6 +196,7 @@ typedef struct t_zephyros_config
 typedef struct t_zephyros_config_read_widget_indices
 {
 	int windfield_grid;
+	int windfield_ekmanspiral;
 	int windfield_wave;
 	int windfield_vortex;
 	int windfield_turbulence;
@@ -209,6 +224,16 @@ typedef struct t_zephyros_config_read_widget
 } t_zephyros_config_read_widget;
 
 //functions
+void zephyros_config_initialize(t_zephyros_config **pcfg);
+
+void zephyros_config_initialize_simulation(t_zephyros_config *cfg);
+void zephyros_config_initialize_retrieval(t_zephyros_config *cfg);
+
+
+void zephyros_config_free(t_zephyros_config **pcfg);
+
+
+
 void zephyros_config_read(char file_name[8192], char additional_output_filename[8192], t_zephyros_config **pcfg);
 
 int zephyros_config_read_position(
@@ -254,6 +279,9 @@ void zephyros_config_read___i_array(
 	int  *arraysize,
 	int **destination);	
 	
+void zephyros_config_read_____error(t_zephyros_config_read_widget *rwg,
+	char mymes[8192], fpos_t pos_current);	
+	
 void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg);
 	
 void zephyros_config_print(t_zephyros_config *cfg, FILE *fp);
@@ -263,12 +291,8 @@ void zephyros_config_print_scattererfield(t_zephyros_scattererfield *myscatterer
 
 void fprintf_array(FILE *fp, int n, double *variable);
 void fprinti_array(FILE *fp, int n, int *variable);
-void zephyros_config_initialize(t_zephyros_config **pcfg);
 
-void zephyros_config_initialize_simulation(t_zephyros_config *cfg);
-void zephyros_config_initialize_retrieval(t_zephyros_config *cfg);
 
-void zephyros_config_free(t_zephyros_config **pcfg);
 
 void zephyros_config_get_dirname(char filename[8192], char dirname[8192]);
 

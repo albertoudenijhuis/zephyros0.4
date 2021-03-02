@@ -60,11 +60,11 @@ void particles_assert_initialized(t_zephyros_particles_widget *scat)
 {
 	if (scat == NULL) {
 		printf("Particle was NULL pointer. Exiting.\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 	if (scat->initialized != 1) {
 		printf("Particle was not initialized. Exiting.\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 }
 
@@ -73,7 +73,7 @@ void particles_assert_cross_sections_prepared(t_zephyros_particles_widget *scat)
 	particles_assert_initialized(scat);
 	if (scat->cross_sections_prepared != 1) {
 		printf("Particle `%s' was not prepared. Exiting.\n", scat->name);
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 }
 
@@ -218,7 +218,7 @@ void particles_spheroid_geometry_beard1987(t_zephyros_particles_widget *scat)
 		//ice crystal density
 		//rhoB = ...
 		printf("Ice crystals not implemented yet! exiting...");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 	
 	//diameters
@@ -387,6 +387,9 @@ void particles_terminal_fall_speed_khvorostyanov2005(t_zephyros_particles_widget
 	scat->particle_inertial_distance_z_vt_small = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_z_vt_large = 1. / (2. * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_xy = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_xy);
+	scat->particle_inertial_distance_xyz = 
+		sqrt((2. * pow(scat->particle_inertial_distance_xy, 2.)) + pow(scat->particle_inertial_distance_z_vt_large, 2.));
+	
 }
 
 //function: particles_terminal_fall_speed_mitchell1996
@@ -468,6 +471,8 @@ void particles_terminal_fall_speed_mitchell1996(t_zephyros_particles_widget *sca
 	scat->particle_inertial_distance_z_vt_small = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_z_vt_large = 1. / (2. * scat->particle_inertial_eta_z);
 	scat->particle_inertial_distance_xy = (1. - exp(-1.)) / (exp(-1.) * scat->particle_inertial_eta_xy);
+	scat->particle_inertial_distance_xyz = 
+		sqrt((2. * pow(scat->particle_inertial_distance_xy, 2.)) + pow(scat->particle_inertial_distance_z_vt_large, 2.));	
 }
 
 //function: particles_fall_speed_atlas1973
@@ -560,7 +565,7 @@ void particles_cross_sections_dewolf1990_init(t_zephyros_particles_widget *scat,
 		scat->dewolf1990_shapefactor_biglambda3		= 1. / (1. + (shapefactor_lambda3 * (epsilon_r - 1.)));
 		scat->dewolf1990_fct 						= (pow(M_PI, 5.) * pow(scat->particle_D_eqvol_mm * 1.e-3, 6.) / (9. * pow(scat->radar_wavelength_m, 4.))) * pow(epsilon_r - 1., 2.);
 
-		//make copy of corrent settings
+		//make copy of current settings
 		particles_free((t_zephyros_particles_widget**) &scat->widget_cpy_at_cross_section_initialization);
 		particles_copy(&tmp, scat);
 		scat->widget_cpy_at_cross_section_initialization = tmp;
@@ -575,7 +580,6 @@ void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_ze
 	particles_assert_initialized(scat);
 	
 	particles_cross_sections_dewolf1990_init(scat, coor);
-
 	
 	//inproducts
 	eh_u3_sq = pow(		(coor->radar_pol_hor_dir[0] * scat->particle_dir[0])
@@ -585,9 +589,10 @@ void particles_cross_sections_dewolf1990(t_zephyros_particles_widget *scat, t_ze
 						+ (coor->radar_pol_ver_dir[1] * scat->particle_dir[1])
 						 + (coor->radar_pol_ver_dir[2] * scat->particle_dir[2]), 2.);
 
-	qhh = pow( (scat->dewolf1990_shapefactor_biglambda3 - scat->dewolf1990_shapefactor_biglambda12) * eh_u3_sq + scat->dewolf1990_shapefactor_biglambda12 , 2.);
-	qvv = pow( (scat->dewolf1990_shapefactor_biglambda3 - scat->dewolf1990_shapefactor_biglambda12) * ev_u3_sq + scat->dewolf1990_shapefactor_biglambda12 , 2.);
-	qhv =  eh_u3_sq * ev_u3_sq * pow(scat->dewolf1990_shapefactor_biglambda3 - scat->dewolf1990_shapefactor_biglambda12, 2.);
+
+	qhh = pow( ((scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3) * eh_u3_sq) + scat->dewolf1990_shapefactor_biglambda12 , 2.);
+	qvv = pow( ((scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3) * ev_u3_sq) + scat->dewolf1990_shapefactor_biglambda12 , 2.);
+	qhv =  eh_u3_sq * ev_u3_sq * pow(scat->dewolf1990_shapefactor_biglambda12 - scat->dewolf1990_shapefactor_biglambda3, 2.);
 
 	scat->particle_sigma_hh = scat->dewolf1990_fct * qhh;
 	scat->particle_sigma_vv = scat->dewolf1990_fct * qvv;
@@ -657,7 +662,7 @@ void particles_cross_sections_mishchenko2000_init(t_zephyros_particles_widget *s
 		//calculate t-matrix
 		mishchenko2000_calc_tmatrix(scat->mishchenko2000_wid);
 
-		//make copy of corrent settings
+		//make copy of current settings
 		particles_free((t_zephyros_particles_widget**) &scat->widget_cpy_at_cross_section_initialization);
 		particles_copy(&tmp, scat);
 		scat->widget_cpy_at_cross_section_initialization = tmp;
@@ -813,6 +818,7 @@ void particle_print_widget(t_zephyros_particles_widget *scat)
 	printf("%-30s = %.2e\n", "particle_inertial_distance_z_vt_small", scat->particle_inertial_distance_z_vt_small);
 	printf("%-30s = %.2e\n", "particle_inertial_distance_z_vt_large", scat->particle_inertial_distance_z_vt_large);
 	printf("%-30s = %.2e\n", "particle_inertial_distance_xy", scat->particle_inertial_distance_xy);
+	printf("%-30s = %.2e\n", "particle_inertial_distance_xyz", scat->particle_inertial_distance_xyz);
 	
 	printf("%-30s = %.2e + %.2ei\n", "particle_refractive_index", creal(scat->particle_refractive_index), cimag(scat->particle_refractive_index));
 	printf("%-30s = %.2e\n", "particle_sigma_hh", scat->particle_sigma_hh);

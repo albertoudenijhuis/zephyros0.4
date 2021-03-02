@@ -69,16 +69,20 @@ void retrieval_lwm_apply(t_lwm_opc *opc)
 	
 	//walk through grid
 	for (p->i=0; p->i < p->field->n; p->i++) {
+		printf("retrieval_lwm_apply, step %i/%i\n", p->i, p->field->n);
+		
 		//calculate coefficients
 		retrieval_lwm_calculate_coefficients(opc);
 
 		//fit
-		if ((o->in_analysis_volume_n > 0) & (o->used_for_analysis_n > p->Kn)) {					
-			printf("retrieval_lwm_apply, step %i/%i\n", p->i, p->field->n);
+		if ((o->in_analysis_volume_n > 0) & (o->used_for_analysis_n > p->Kn)) {				
+			printf("%i measurements in the analysis volume. Fitting.\n", o->in_analysis_volume_n); fflush(stdout);
 			retrieval_lwm_minimize_chisquared(opc);
 
 			//store results
 			retrieval_lwm_store_results(opc);
+		} else {
+			printf("%i measurements in the analysis volume. Skipping.\n", o->in_analysis_volume_n); fflush(stdout);			
 		}
 	}
 	#ifdef _ZEPHYROS_LWM_DEBUG
@@ -453,6 +457,8 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 	int n_ep2;
 	int *my_permutation = NULL;
 
+	printf("info: %s %i \n", __FILE__, __LINE__); fflush(stdout);
+
 	o->in_analysis_volume_n = 0;
 	//loop through observations.
 	for (io=0; io < o->n; io++) {
@@ -466,6 +472,7 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 				(o->radarmeasurement[io]->center_coor->enu_xyzt[2] < (p->field->z(p->field, p->i) + (c->zvec_m[2]/2.))) &
 			((p->field->t(p->field, p->i) - (c->tvec_s[2]/2.)) <= o->radarmeasurement[io]->center_coor->enu_xyzt[3]) &
 				(o->radarmeasurement[io]->center_coor->enu_xyzt[3] < (p->field->t(p->field, p->i) + (c->tvec_s[2]/2.)));
+						
 		o->used_for_analysis[io] = o->in_analysis_volume[io];
 		if (o->in_analysis_volume[io]) {o->in_analysis_volume_n++;}
 	}
@@ -558,6 +565,8 @@ void retrieval_lwm_calculate_coefficients(t_lwm_opc *opc)
 	if (my_permutation != NULL) {
 		free(my_permutation);
 	}
+	
+	printf("info: %s %i \n", __FILE__, __LINE__); fflush(stdout);	
 }
 
 void retrieval_lwm_store_results(t_lwm_opc *opc)
@@ -647,7 +656,9 @@ void retrieval_lwm_store_results(t_lwm_opc *opc)
 			if (c->fit_u_t_plus_v_t_plus_w_t)	o->windvector_w_err[io] 	+= 	pow(sigma_u_t_plus_v_t_plus_w_t * (1./3.) * (o->radarmeasurement[io]->center_coor->enu_xyzt[3] - p->field->t(p->field, p->i)),2.);
 												o->windvector_w_err[io] 	= 	sqrt(o->windvector_w_err[io]);
 		}
-	}											
+	}	
+
+	printf("info: %s %i \n", __FILE__, __LINE__); fflush(stdout);											
 }
 
 /*

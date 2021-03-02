@@ -16,10 +16,11 @@ def plot_scanning(ao_name, fname, input_opts = {}):
         'ymax': 15.,
         'tmin': -1.e100,
         'tmax': 1.e100,
-        'dBZmin': -40.,
-        'dBZmax': 40.,
+        'dBZmin': 0.,
+        'dBZmax': 50.,
         'Doppler_velocity_ms_min': -15.,
         'Doppler_velocity_ms_max': 15.,
+        'file_ext': 'png',
     }
     
     opts = deepcopy(default_opts)
@@ -51,9 +52,13 @@ def plot_scanning(ao_name, fname, input_opts = {}):
             ax=plt.subplot(111)
 
                
-
+            #default
+            #plt_cmap = plt.cm.get_cmap("viridis", 100)
+            plt_cmap = plt.cm.viridis
+            #~ plt_cmap.set_under('0.90')
+            #~ plt_cmap.set_over('cyan')  
+            
             if plot == 'dBZ_hh':
-                plt_cmap = plt.cm.get_cmap("jet", 100)
                 z = np.array(ao['dBZ_hh'][okindices])
                 plt.title(r"dBZ", fontsize=fontsize0)
                 #vmin, vmax = z.min(), z.max()
@@ -61,21 +66,22 @@ def plot_scanning(ao_name, fname, input_opts = {}):
             if plot == 'Doppler_velocity_hh_ms':
                 plt_cmap = plt.cm.RdBu_r
                 z = np.array(ao['Doppler_velocity_hh_ms'][okindices])
-                plt.title(r"Doppler mean velocity [m/s]", fontsize=fontsize0)
+                plt.title(r"Doppler mean velocity [m s$^{-1}$]", fontsize=fontsize0)
                 tmp = np.max(np.abs(((1, z.min(), z.max()))))
                 #vmin, vmax = -tmp, tmp
                 vmin, vmax = opts['Doppler_velocity_ms_min'], opts['Doppler_velocity_ms_max']
             if plot == 'Doppler_spectral_width_hh_ms':
-                plt_cmap = plt.cm.get_cmap("jet", 100)
                 z = np.array(np.sqrt(ao['Doppler_spectral_width_hh_ms'][okindices]**2.))
-                plt.title(r"spectral width [m/s]", fontsize=fontsize0)
+                plt.title(r"spectral width [m s$^{-1}$]", fontsize=fontsize0)
                 vmin, vmax = 0., np.max((1., z.max()))
                 #vmin, vmax = 0., 5.
 
-            #plt_cmap.set_over('Purple')
-            plt_cmap.set_over('Magenta')
-            plt_cmap.set_under('Pink')
+
+            plt_cmap.set_over('Purple')
+            plt_cmap.set_under('cyan') 
             plt_cmap.set_bad('1.')                
+
+            #plt_cmap.set_under('0.90')
 
 
 
@@ -124,10 +130,14 @@ def plot_scanning(ao_name, fname, input_opts = {}):
                     #~ okdata = np.where(sel2
                                     #~ , 1., okdata)
             
-            
+				
             zi = np.where(okdata, zi, np.nan)
             
-            
+            if plot == 'dBZ_hh':				
+				#plot contours
+				CS = ax.contour(xi, yi, zi, [0., 10., 20., 30., 40., 50.],
+					 colors='k',  # negative contours will be dashed by default
+					 )
             
             if 'retrieved_u' in ao.keys():
                 zi_u = np.where(okdata, zi_u, np.nan)
@@ -143,9 +153,11 @@ def plot_scanning(ao_name, fname, input_opts = {}):
                        extent=[opts['xmin'], opts['xmax'], opts['ymin'], opts['ymax']], cmap=plt_cmap, interpolation='none', vmin=vmin, vmax=vmax)
             plt.colorbar(shrink=0.6, extend='both')
 
+
+
             plt.tight_layout()
 
-            plt.savefig(fname+"_"+plot+".png")
+            plt.savefig(fname+"_"+plot+"."+opts['file_ext'])
             plt.close(fig)
 
 

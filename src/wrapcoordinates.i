@@ -1,4 +1,4 @@
-%module coordinates
+%module wrapcoordinates
 
 %{
     #define SWIG_FILE_WITH_INIT
@@ -37,7 +37,8 @@
 						) {
 		int i;
 
-		t_zephyros_coordinates *coor = malloc(sizeof(t_zephyros_coordinates));
+		t_zephyros_coordinates *coor;
+		coordinates_initialize_coor(&coor);
 		
 		for ( i = 0; i < len100; i++ ) {
 			coor->radar_azel_alpha 	= azel_alpha100[i];
@@ -82,7 +83,8 @@
 						) {
 		int i;
 
-		t_zephyros_coordinates *coor = malloc(sizeof(t_zephyros_coordinates));
+		t_zephyros_coordinates *coor;
+		coordinates_initialize_coor(&coor);
 		
 		for ( i = 0; i < len300; i++ ) {
 			coor->radar_azel_alpha 	= azel_alpha300[i];
@@ -129,7 +131,8 @@
 						) {
 		int i;
 
-		t_zephyros_coordinates *coor = malloc(sizeof(t_zephyros_coordinates));
+		t_zephyros_coordinates *coor;
+		coordinates_initialize_coor(&coor);
 		
 		for ( i = 0; i < len500; i++ ) {
 			coor->enu_xyzt[0] = enu_x500[i];

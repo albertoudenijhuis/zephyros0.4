@@ -15,7 +15,7 @@ Institute:
 	Delft University of Technology
 	
 Zephyros version:
-	0.2
+	0.4
 
 Project:
 	EU FP7 program, the UFO project
@@ -127,11 +127,11 @@ void coordinates_assert_initialized(t_zephyros_coordinates *coor)
 {
 	if (coor == NULL) {
 		printf("Coordinates was NULL pointers. Exiting\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 	if (coor->initialized != 1) {
 		printf("Coordinates were not initialized. Exiting.\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 }
 

@@ -165,18 +165,22 @@ psd_n_diameters                50
 
 
 subsection windfield
+
 grid                           0              
 vec_x                          1               0.000e+00      
 vec_y                          1               0.000e+00      
 vec_z                          1               0.000e+00      
 vec_t                          1               0.000e+00      
-grid_hspeed                    1               2.000e+00      
-grid_hdir                      1               5.000e-01      
+grid_u                         1               2.000e+00      
+grid_v                         1               5.000e-01      
 grid_w                         1               1.000e-01      
+use_hspeed_hdir_erorrs         0              
 
 
 
 subsection radarfilter
+geostrophic_advection          1              
+coriolis_parameter             1.148e-04      
 cross_sections                 0              
 n_beam_range                   1              
 n_beam_theta                   3              
@@ -213,7 +217,7 @@ filter_specific_dBLdr          0
 filter_specific_rho_co         0              
 filter_specific_rho_cxh        0              
 filter_specific_rho_cxv        0              
-filter_errors                  0              
+filter_errors                  1              
 additive_noise                 1              
 multiplicative_noise           0              
 inertia_effect                 0              

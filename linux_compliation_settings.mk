@@ -1,8 +1,15 @@
 FC = gfortran
 CC = gcc
-FCFLAGS=-O2 -fPIC -g
-#CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm  -g -w
-CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm
+
+#without debugging flags
+#FCFLAGS=-O2 -fPIC
+#CCFLAGS=-lcxsparse -lnlopt -O2 -lgfortran -lm
+
+#with debugging flags
+FCFLAGS=-O3 -fPIC -g
+CCFLAGS=-lcxsparse -lnlopt -O3 -lgfortran -lm  -g -w
+
+
 # -w
 DEPS = $(filter-out %/wrapretrieval_exec.c %/wrapradarfilter_exec.c %/wrapwindfield_exec.c, $(wildcard $(RELPAT)src/*.c)) particles_mishchenko2000_ampld.lp.o particles_mishchenko2000_lpd.o
 

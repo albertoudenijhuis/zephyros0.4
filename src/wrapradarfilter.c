@@ -31,6 +31,7 @@ void wrapradarfilter(char cfg_filename[8192], char additional_output_filename[81
 	radarfilter_exec(cfg, 0, todo, n, radarmeasurement, res_vol);
 	radarfilter_free_resolution_volume(cfg, 0, &res_vol, todo);
 	
+	if (cfg->general->additional_output->print_configuration) zephyros_config_print(cfg, cfg->fp_ao);
 	radarfilter_write_measurements(cfg, 0, n, radarmeasurement, cfg->fp_ao);
 	if (cfg->general->additional_output->print_detailed_analysis) radarfilter_write_measurements_detailed_analysis(cfg, 0, n, radarmeasurement, cfg->fp_ao);
 	

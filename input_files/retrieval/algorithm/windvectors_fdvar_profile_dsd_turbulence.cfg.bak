@@ -1,0 +1,118 @@
+# configuration file for Zephyros
+# '# ' number sign + blank space at the beginning of a line means a comment and these lines are skipped
+# comments can also be put in parentheses: (comment)
+# the parsing module can not read booleans => use integers with 0 = .false. and any other number is true
+
+section general
+subsection overall
+version_number       0.4    ( version number of the tool that corresponds to this configuration file)
+
+section retrieval
+
+#Step 1: Fit Zdr_hh, Zdr_vv and dbZdr
+subsection algorithm
+run									1		(counter from 1 ... max 100)
+type                    			2       (0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+costfunction_dBZ_hh					1
+costfunction_dBZ_vv					1
+costfunction_dBZdr					1
+maximum_time_s    	  				60
+active_psd_nrs						1      0
+use_derivatives						1
+
+subsection prior_scattererfield
+psd									0		(counter from 0 ... max 100)
+psd_particle_type					2		(1 = spherical droplet, 2 = speroid droplet)
+psd_vec_z							9   0.00e+00  2.50e+02  5.00e+02  7.50e+02  1.00e+03  1.25e+03  1.50e+03  1.75e+03  2.00e+03  
+fit_dBm								1
+N_constraint						2		(0 = not, 1 = Marshall-Palmer, 2 = constraint-gamma Brandes)
+psd_n_diameters						2
+psd_discrete_D_equiv_mm				2		0.01    8
+psd_distribution_type				0
+
+
+
+#Step 2: Translate to drop size distribution, and fit w
+subsection algorithm
+run									2		(counter from 1 ... max 100)
+type                    			2       (0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+costfunction_Doppler_velocity_hh_ms 1
+maximum_time_s    	  				60
+active_psd_nrs						1      	1
+active_windfield_grid_nrs			1		1
+use_derivatives						1
+cast_psd_nrs						2		0 		1
+
+subsection prior_scattererfield
+psd									1		(counter from 0 ... max 100)
+psd_particle_type					2		(1 = spherical droplet, 2 = speroid droplet)
+psd_vec_z							9   0.00e+00  2.50e+02  5.00e+02  7.50e+02  1.00e+03  1.25e+03  1.50e+03  1.75e+03  2.00e+03  
+N_constraint						2		(0 = not, 1 = Marshall-Palmer, 2 = constraint-gamma Brandes)
+psd_n_diameters						10
+psd_distribution_type				1
+
+subsection prior_windfield
+grid                    	1       (counter from 0 ... max 100)
+vec_z						25       0.00e+00   1.00e+02   2.00e+02   3.00e+02   4.00e+02   5.00e+02   6.00e+02   7.00e+02   8.00e+02   9.00e+02   1.00e+03   1.10e+03   1.20e+03   1.30e+03   1.40e+03   1.50e+03   1.60e+03   1.70e+03   1.80e+03   1.90e+03   2.00e+03   2.10e+03   2.20e+03   2.30e+03   2.40e+03   
+fit_u                   	0
+fit_v                   	0
+fit_w                   	1
+
+
+
+
+
+
+#~ #Step 3: fit_w and turbulence
+#~ subsection algorithm
+#~ run											3		(counter from 1 ... max 100)
+#~ type                    					2       (0 = no retrieval, 1 = linear wind model retrieval, 2 = fdvar wind retrieval)
+#~ costfunction_Doppler_velocity_hh_ms 		1
+#~ costfunction_Doppler_spectral_width_hh_ms 	1
+#~ maximum_time_s    	  				60
+#~ active_psd_nrs						1      	1
+#~ active_windfield_grid_nrs			1		1
+#~ active_windfield_turbulence_nrs		1		1
+#~ use_derivatives						1
+
+
+
+#~ subsection prior_windfield
+#~ turbulence                  			1       			(counter from 0 ... max 100)
+#~ turbulence_type							5					(1 = Mann1998, 2 = CTM, 3 = Careta1993, 4 = Pinsky2006, 5 = parametric)
+#~ turbulence_vec_z						9   0.00e+00  2.50e+02  5.00e+02  7.50e+02  1.00e+03  1.25e+03  1.50e+03  1.75e+03  2.00e+03  
+#~ turbulence_grid_edr						9	    1.e-2  1.e-2 1.e-2 1.e-2 1.e-2 1.e-2  1.e-2 1.e-2 1.e-2 1.e-2	1.e-2  1.e-2 1.e-2 1.e-2 1.e-2 1.e-2  1.e-2 1.e-2 1.e-2 1.e-2	1.e-2  1.e-2 1.e-2 1.e-2 1.e-2 1.e-2  1.e-2 1.e-2 1.e-2 1.e-2		(gridded edr parameter)
+#~ turbulence_grid_edr13_err				9	    100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.  100.     
+#~ turbulence_grid_kolmogorov_constant		9		 1.	 1.  1.  1.  1.	1.	 1.  1.  1.  1.	 1.	 1.  1.  1.  1.	1.	 1.  1.  1.  1.	 1.	 1.  1.  1.  1.	1.	 1.  1.  1.  1.		(Kolmogorov constant)
+#~ turbulence_fit_edr13					1
+
+
+
+
+
+
+#~ subsection prior_scattererfield
+#~ psd									0		(counter from 0 ... max 100)
+#~ psd_particle_type					2		(1 = spherical droplet, 2 = speroid droplet)
+#~ # values from UNAL DSD retrieval
+#~ psd_vec_z							9   0.00e+00  2.50e+02  5.00e+02  7.50e+02  1.00e+03  1.25e+03  1.50e+03  1.75e+03  2.00e+03  
+#~ psd_grid_gammadistribution_mu		9	-2.46e-01  -2.46e-01  4.49e-01  6.17e-01  3.92e-01  -8.47e-01  4.16e-01  2.08e+00  2.08e+00  
+#~ psd_grid_gammadistribution_D0_mm 	9  	2.19e+00  2.19e+00  2.19e+00  1.66e+00  2.34e+00  2.18e+00  1.87e+00  1.69e+00  1.69e+00  
+#~ fit_dBlwc							1
+#~ N_constraint						2		(0 = not, 1 = Marshall-Palmer, 2 = constraint-gamma Brandes)
+#~ psd_n_diameters						10
+#~ psd_distribution_type				1
+
+
+
+
+
+
+
+
+
+
+
+
+
+

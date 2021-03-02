@@ -66,10 +66,11 @@ void wrapretrieval(char cfg_filename[8192], char additional_output_filename[8192
 	#endif 
 	if (cfg->general->additional_output->print_configuration) {
 		zephyros_config_print(cfg, cfg->fp_ao);
-		//print additional output
-		if (lwm_retrieval_executed)  {retrieval_lwm_additional_output(lwm_opc, cfg->fp_ao);}
-		if (fdvar_retrieval_executed)  {retrieval_fdvar_additional_output(fdvar_opc, cfg->fp_ao);}
 	}
+	//print additional output
+	if (lwm_retrieval_executed)  {retrieval_lwm_additional_output(lwm_opc, cfg->fp_ao);}
+	if (fdvar_retrieval_executed)  {retrieval_fdvar_additional_output(fdvar_opc, cfg->fp_ao);}
+
 
 	#ifdef _ZEPHYROS_WRAPRETRIEVAL_DEBUG
 		printf("clean up\n"); fflush(stdout);

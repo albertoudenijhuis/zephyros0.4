@@ -181,3 +181,45 @@
 						retr_edr600, retr_edr13_err601);
 	}
 %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%apply (int DIM1, double* ARGOUT_ARRAY1) {
+						(int len800, double *power800)
+						};
+%apply (int DIM1, double* IN_ARRAY1) {
+						(int len700, double *x700),
+						(int len701, double *periodic701)
+						};
+
+%rename (give_rpowerspec) my_rpowspec;
+
+%inline %{
+	double my_rpowspec(
+		int len700, double *x700,
+		int len701, double *periodic701,
+		int len800, double *power800
+	)
+	{
+	int int_periodic 		= (int) *periodic701;
+
+	rpowspec(&len700, x700, power800, &int_periodic);
+	}
+%}
+
+
+
+

@@ -118,6 +118,7 @@ typedef struct st_radarmeasurement
 	double		***spectrum_eta_i_vv; //(psd, particle, spectrum interval)
 	
 	//derivatives to eddy dissipation rate ^ (1/3)
+	double 		delta_edr13;
 	double		der_edr13_dBZ_hh;
 	double		der_edr13_dBZdr;
 	double		der_edr13_dBLdr;
@@ -133,12 +134,18 @@ typedef struct st_radarmeasurement
 	double 		*der_dBZ_hv;
 	double 		*der_dBZ_vh;
 	double 		*der_dBZ_vv;
+	
+	double 		zetaI;
 
 	/*
 	double		*Doppler_spectrum_dBZ_hh;
 	double 		*specific_dBZdr;
 	double 		*specific_dBLdr;
 	*/
+	
+	double 		center_air_u;
+	double 		center_air_v;
+	double 		center_air_w;
 } t_radarmeasurement;
 void radarfilter_initialize_radarmeasurement(int n_measurements, t_radarmeasurement ***pradarmeasurement);
 void radarfilter_prepare_model_radarmeasurement(int n_measurements, t_radarmeasurement ***pdst, t_radarmeasurement **src);
@@ -194,6 +201,7 @@ typedef struct st_radarfilter_res_vol			/* resolution volume */
 	double		****subvolume_particle_Doppler_velocity;
 
 	//subvolume particle orientation,  dimensions n_res x n_psd x n_diameters x n_parmod x 4
+	//direciton of the symmetry axis
 	double		*****subvolume_particle_dir;
 
 	//number densities
@@ -323,6 +331,9 @@ typedef struct st_radarfilter_todolist			/* resolution volume to do list */
 	int			der_dBZ_vh;
 	int			der_dBZ_vv;
 	
+	
+	int			calc_gridaverage_psd_rcs;
+	
 	//int			apply_advection;
 	//int			apply_geostrophic_correction;
 } t_radarfilter_todolist;
@@ -364,5 +375,6 @@ void radarfilter_readout(t_radarfilter_readout_widget *rwg, t_radarmeasurement *
 void radarfilter_write_measurements(t_zephyros_config *cfg, int i_mode, int n_measurements, t_radarmeasurement **radarmeasurement, FILE *fp);
 void radarfilter_write_measurements_detailed_analysis(t_zephyros_config *cfg, int i_mode, int n_measurements, t_radarmeasurement **radarmeasurement, FILE *fp);
 
+void radarfilter_calculate_center_coordinates(int *pn_measurements, t_radarmeasurement ***pradarmeasurement);
 
 #endif

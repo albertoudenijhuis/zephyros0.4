@@ -133,6 +133,7 @@ void dbldotprod(
 	double*	arr2,
 	double*	result);
 	
+
 void func_dbl_arr_malloc(
 	int n,
 	double **ptrarr
@@ -165,4 +166,7 @@ double func_dB(double val);
 double func_dB_inv(double val);
 
 double func_modulo(double x, double y);
+
+double func_norm(int *n, double *arr);
+	
 #endif

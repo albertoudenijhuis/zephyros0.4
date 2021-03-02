@@ -10,6 +10,7 @@
 /* field_w: array: field model, speed in z direction [m/s] */
 
 #include <complex.h>
+#include "interpolation.h"
 
 typedef struct st_zephyros_field
 {
@@ -51,10 +52,10 @@ void fields_copy(t_zephyros_field **pdst, t_zephyros_field *src);
 
 
 
-double fields_give_xyzt(void *vdfield, int i, int i_xyzt);
-double fields_give_x(void *vdfield, int i);
-double fields_give_y(void *vdfield, int i);
-double fields_give_z(void *vdfield, int i);
-double fields_give_t(void *vdfield, int i);
+double fields_give_xyzt(t_zephyros_field *field, int i, int i_xyzt);
+double fields_give_x(t_zephyros_field *field, int i);
+double fields_give_y(t_zephyros_field *field, int i);
+double fields_give_z(t_zephyros_field *field, int i);
+double fields_give_t(t_zephyros_field *field, int i);
 
 #endif

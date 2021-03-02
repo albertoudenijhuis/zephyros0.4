@@ -1,8 +1,8 @@
 #ifndef _ZEPHYROS_UTIL
 #define _ZEPHYROS_UTIL
 
-//Here you will find all the objects that Zephyros needs to run.
 
+//Here you will find all the objects that Zephyros needs to run.
 #include <complex.h>
 #include "interpolation.h"
 #include "particles.h"
@@ -123,6 +123,13 @@ typedef struct t_zephyros_instrument
 	double 	temperature_K;				//
 } t_zephyros_instrument;
 
+typedef struct st_zephyros_ekmanspiral
+{
+	double 		depth_m;
+	double		ug_ms;
+	double		vg_ms;
+} t_zephyros_ekmanspiral;
+
 typedef struct st_zephyros_wave
 {
 	double		*amplitude_msinv;
@@ -150,6 +157,7 @@ typedef struct t_zephyros_turbulence_widget
 	int			type;				//(1 = Mann1998, 2 = CTM, 3 = Careta1993, 4 = Pinsky2006, 5 = parametric)
 	t_zephyros_field 	*field;
 	double 		*grid_edr;
+	double 		*grid_zetaI;		//gridded turbulence correction term for analysis
 	double 		*grid_edr13;
 	t_zephyros_interpolation_bilint_lut	*lut_edr13;
 
@@ -232,50 +240,68 @@ typedef struct t_zephyros_windfield
 {
 	int					type;		//0 = normal, 1 = prior, 2 = post
 	
-    int			nfields;
-	t_zephyros_field 	*field[101];
-    double 		*grid_u[101];
-    double	 	*grid_v[101];
-    double	 	*grid_w[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_u[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_v[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_w[101];
+    int					nfields;
+    
+	t_zephyros_field 	**field;
+	
+    double 				**grid_u;
+    double	 			**grid_v;
+    double	 			**grid_w;
+    
+    double	 			**grid_hspeed;
+    double	 			**grid_hdir;
+    
+    t_zephyros_interpolation_bilint_lut	 	**lut_u;
+    t_zephyros_interpolation_bilint_lut	 	**lut_v;
+    t_zephyros_interpolation_bilint_lut	 	**lut_w;
+    
+    t_zephyros_interpolation_bilint_lut	 	**lut_hspeed;
+    t_zephyros_interpolation_bilint_lut	 	**lut_hdir;
 
-    int								nvortices;
-    t_zephyros_vortex				*vortex[101];
-    int								nwaves;
-    t_zephyros_wave					*wave[101];
     int								nturbulences;
-    t_zephyros_turbulence_widget 	*turbulence[101];
+    t_zephyros_turbulence_widget 	**turbulence;
+    
+    int								nekmanspirals;
+    t_zephyros_ekmanspiral			**ekmanspiral;
+    
+    int								nvortices;
+    t_zephyros_vortex				**vortex;
+    
+    int								nwaves;
+    t_zephyros_wave					**wave;
     
     //for retrieval mode, prior parameters
-    double 		*grid_u_err[101];
-    double	 	*grid_v_err[101];
-    double	 	*grid_w_err[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_u_err[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_v_err[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_w_err[101];
+    double 		**grid_u_err;
+    double	 	**grid_v_err;
+    double	 	**grid_w_err;
+    t_zephyros_interpolation_bilint_lut	 	**lut_u_err;
+    t_zephyros_interpolation_bilint_lut	 	**lut_v_err;
+    t_zephyros_interpolation_bilint_lut	 	**lut_w_err;
 
-	int			use_hspeed_hdir_erorrs[101]; //(1 = hspeed, hdir errors, 0 = u errors and v errors)
-    double 		*grid_hspeed_err[101];
-    double 		*grid_hdir_err[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_hspeed_err[101];
-    t_zephyros_interpolation_bilint_lut	 	*lut_hdir_err[101];
+    double 		**grid_hspeed_err;
+    double 		**grid_hdir_err;
+    t_zephyros_interpolation_bilint_lut	 	**lut_hspeed_err;
+    t_zephyros_interpolation_bilint_lut	 	**lut_hdir_err;
     
-	int fit_u[101];
-	int fit_v[101];
-	int fit_w[101];
+	int *fit_u;
+	int *fit_v;
+	int *fit_w;
+
+	int *fit_hspeed_hdir;
 	
-	int fit_u_Knr[101];
-	int fit_v_Knr[101];
-	int fit_w_Knr[101];
+	int *fit_u_Knr;
+	int *fit_v_Knr;
+	int *fit_w_Knr;
+	
+	int *fit_hspeed_Knr;
+	int *fit_hdir_Knr;
 	
 	//error covariance matrices
-	t_zephyros_field_errcovmat *hspeed_ecm[101];
-	t_zephyros_field_errcovmat *hdir_ecm[101];
-	t_zephyros_field_errcovmat *u_ecm[101];
-	t_zephyros_field_errcovmat *v_ecm[101];
-	t_zephyros_field_errcovmat *w_ecm[101];
+	t_zephyros_field_errcovmat **u_ecm;
+	t_zephyros_field_errcovmat **v_ecm;
+	t_zephyros_field_errcovmat **w_ecm;
+	t_zephyros_field_errcovmat **hspeed_ecm;
+	t_zephyros_field_errcovmat **hdir_ecm;
 } t_zephyros_windfield;
 
 void util_initialize_windfield(t_zephyros_windfield **pwindfield);
@@ -285,7 +311,10 @@ void util_prepare_windfield_i(t_zephyros_windfield *windfield, int i);
 void util_prepare_windfield(t_zephyros_windfield *windfield);
 void util_prepare_post_windfield(t_zephyros_windfield **pdst, t_zephyros_windfield *src);
 
+void util_cast_hspeed_hdir_2_u_v(t_zephyros_windfield *windfield, int i);
+void util_cast_u_v_2_hspeed_hdir(t_zephyros_windfield *windfield, int i);
 
+void util_windfield_ekmanspiral_fuvw(t_zephyros_ekmanspiral *ems, double *xyzt, int i_uvw, double *output, int calcderivatives, double *derivatives);
 void util_windfield_wave_fuvw(t_zephyros_wave *wave, double *xyzt, int i_uvw, double *output, int calcderivatives, double *derivatives);
 void util_windfield_vortex_fuvw(t_zephyros_vortex *vortex, double *xyzt, int i_uvw, double *output, int calcderivatives, double *derivatives);
 
@@ -322,13 +351,17 @@ typedef struct st_zephyros_psd
    
     double  	*grid_lwc_gm3;
     double  	*grid_dBlwc_err_gm3;
-    double  	*discrete_D_equiv_mm;
+    
+    double  	*discrete_D_equiv_mm_interval_llimt;	//interval lower limit
+    double  	*discrete_D_equiv_mm;					//interval center
+    double  	*discrete_D_equiv_mm_interval_ulimt;	//interval upper limit
+    
     double 		**grid_number_density_m3;
     double 		**grid_dBnumber_density_err_m3;
     t_zephyros_interpolation_bilint_lut	**lut_ln_number_density_m3;
     t_zephyros_interpolation_bilint_lut	**lut_dBnumber_density_err_m3;
 
-	double *grid_gammadistribution_N0; 	//(gridded number density parameter of the gamma distribution)
+	double *grid_gammadistribution_N0; 		//(gridded number density parameter of the gamma distribution)
 	double *grid_gammadistribution_N0_err; 	//(gridded number density parameter of the gamma distribution)
 	double gammadistribution_mu;
 	double gammadistribution_mu_err;
@@ -341,14 +374,37 @@ typedef struct st_zephyros_psd
 	double *grid_gammadistribution_mu; 	//(gridded number density parameter of the gamma distribution)
 	double *grid_gammadistribution_D0_mm; 	//(gridded number density parameter of the gamma distribution)
 
+	int N_constraint;			//(0 = no, 1 = Marshall-Palmer, 2 = gamma-constraint, 3 = free gamma distribution)
+
 	int fit_dBlwc;			//fit liquid water content
 	int fit_dBlwc_Knr;
 	t_zephyros_field_errcovmat *dBlwc_ecm;
 	
-	int fit_dBN;			//fit inidividual number densities
-	int fit_dBN_Knr;		
-	t_zephyros_field_errcovmat *dBN_ecm;
+	int fit_dBm;			//fit scale number densities
+	int fit_dBm_Knr;		
+	t_zephyros_field_errcovmat *dBm_ecm;
+	
+	int 		initialized;
+	int 		prepared;	
+	
+	double **grid_rcs_hh;
+	double **grid_rcs_hv;
+	double **grid_rcs_vv;
 } t_zephyros_psd;
+
+void util_initialize_psd(t_zephyros_psd **pthepsd);
+void util_assert_initialized_psd(t_zephyros_psd *thepsd);
+void util_assert_prepared_psd(t_zephyros_psd *thepsd);
+void util_free_psd(t_zephyros_psd **pthepsd);
+
+void util_copy_psd(t_zephyros_psd **pdst, t_zephyros_psd *src);
+void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_psd *scattererfield);
+void util_prepare_post_psd(t_zephyros_psd **pdst, t_zephyros_psd *src);
+
+void util_fit_gammadistribution_parameters(t_zephyros_psd *fit_psd, t_zephyros_psd *ref_psd);
+double util_fit_gammadistribution_parameters_costf(unsigned n, const double *x, double *grad, void *params);
+
+
 typedef struct st_zephyros_scattererfield
 {
 	int					type;		//0 = normal, 1 = prior, 2 = post
@@ -356,15 +412,49 @@ typedef struct st_zephyros_scattererfield
     t_zephyros_psd 		*psd[101];		//particle size distribution
 } t_zephyros_scattererfield;
 
-void util_initialize_psd(t_zephyros_psd **pthepsd);
-void util_prepare_psd(t_zephyros_psd *thepsd, t_zephyros_scattererfield *scattererfield);
-void util_prepare_post_psd(t_zephyros_psd **pdst, t_zephyros_psd *src);
-
 void util_initialize_scattererfield(t_zephyros_scattererfield **pscattererfield);
 void util_prepare_scattererfield(t_zephyros_scattererfield *scattererfield);
 void util_prepare_post_scattererfield(t_zephyros_scattererfield **pdst, t_zephyros_scattererfield *src);
 void util_free_scattererfield(t_zephyros_scattererfield **pscattererfield);
 
+
+
+
+typedef struct st_zephyros_iot //inertia over trajectorie
+{
+    int 		n;	
+    //particle trajectorie
+	double 		**xyzt;
+	
+	//particle motion without inertia (including terminal fall speed)
+	double		*u;
+	double		*v;
+	double		*w;
+	
+	//particle motion with inertia
+	int 		store_par; //store inertia calculation (1) or not (0) for debugging purposes
+	double		*wi_u;
+	double		*wi_v;
+	double		*wi_w;
+
+	//result
+	double		res_wi_u;
+	double		res_wi_v;
+	double		res_wi_w;
+
+	int 		initialized;
+	int 		prepared;
+} t_zephyros_iot;
+
+void util_iot_initialize(t_zephyros_iot **piot);
+void util_iot_assert_initialized(t_zephyros_iot *iot);
+void util_iot_assert_prepared(t_zephyros_iot *iot);
+void util_iot_free(t_zephyros_iot **piot);
+
+void util_iot_prepare(t_zephyros_iot *iot);
+void util_iot_traj(t_zephyros_iot *iot, t_zephyros_windfield *windfield, t_zephyros_particles_widget *scat);
+void util_iot_calc(t_zephyros_iot *iot, t_zephyros_particles_widget *scat);
+void util_iot_write(t_zephyros_iot *iot, char output_fname[8192]);
 
 
 
@@ -380,4 +470,12 @@ void util_safe_free_(void **ptr);
 
 void util_copy_dbl_array(int n, double **pdst, double *src);
 
+
+
+
 #endif
+
+
+
+
+

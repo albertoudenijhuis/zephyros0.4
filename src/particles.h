@@ -45,6 +45,7 @@ typedef struct st_zephyros_particles_widget
 	double  particle_inertial_distance_z_vt_small;
 	double  particle_inertial_distance_z_vt_large;
 	double  particle_inertial_distance_xy;
+	double  particle_inertial_distance_xyz;
 
 	//particle cross section
 	double complex particle_refractive_index;

@@ -10,7 +10,7 @@ void wrapwindfield(char cfg_filename[8192], char additional_output_filename[8192
 	{
 	int i;
 	double *dummy;
-	double *xyzt = malloc(4 * sizeof(double));
+	double *xyzt = calloc(4, sizeof(double));
 
 	t_zephyros_config *cfg = NULL;
 
@@ -30,8 +30,10 @@ void wrapwindfield(char cfg_filename[8192], char additional_output_filename[8192
 			dummy, dummy, dummy,
 			0,
 			1.
-			);		
+			);	
 	}
+
+	if (cfg->general->additional_output->print_configuration) zephyros_config_print(cfg, cfg->fp_ao);
 
 	zephyros_config_free(&cfg);
 	free(xyzt);

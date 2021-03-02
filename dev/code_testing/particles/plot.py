@@ -12,6 +12,15 @@ matplotlib.rc('ytick', labelsize=fontsize0)
 
 #also label fonts should be enlarged !!!
 
+linestyles = {
+	0: {'color': 'black', 'ls': '-'},
+	1: {'color': 'blue', 'ls': '--'},
+	2: {'color': 'green', 'ls': '-.'},
+	3: {'color': 'red', 'ls': ':'},
+	4: {'color': 'magenta', 'ls': '-', 'dashes':[4, 1, 1, 1, 1, 1]},
+	}
+
+
 
 def main():
         
@@ -22,21 +31,18 @@ def main():
 
     data = np.array(data)
 
-    c0 = 'red'
-    c1 = 'blue'
-    c2 = 'green'
-
 
     for mystyle in ['linear', 'log']:
         #make a nice plot.
         fig = plt.figure(figsize=(6,4))
         ax = fig.add_subplot(1,1,1)
 
-        plt2 = ax.plot(data[:,0], data[:,4] ,   label=r'$z$-dir, spheroid  ($v_t$ small)', linewidth=2, color=c0)
-        plt2 = ax.plot(data[:,0], data[:,6] ,   label=r'$z$-dir, spheroid ($v_t$ large)', linewidth=2, color=c1)
-        plt2 = ax.plot(data[:,0], data[:,8] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, color=c2)
-        plt2 = ax.plot(data[:,0], data[:,13] ,   label=r'$z$-dir, spherical ($v_t$ large)', linewidth=2, color=c1, linestyle='--')
-        plt2 = ax.plot(data[:,0], data[:,15] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, color=c2, linestyle='--')
+
+        plt2 = ax.plot(data[:,0], data[:,4] ,   label=r'$z$-dir, spheroid  ($v_t$ small)', linewidth=2, **linestyles[0])
+        plt2 = ax.plot(data[:,0], data[:,6] ,   label=r'$z$-dir, spheroid ($v_t$ large)', linewidth=2, **linestyles[1])
+        plt2 = ax.plot(data[:,0], data[:,8] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, **linestyles[2])
+        plt2 = ax.plot(data[:,0], data[:,13] ,   label=r'$z$-dir, spherical ($v_t$ large)', linewidth=2, **linestyles[3])
+        plt2 = ax.plot(data[:,0], data[:,15] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, **linestyles[4])
 
         #plt2 = ax.plot(data[:,0], data[:,11] ,   label=r'$z$-dir, $v_t$ small, spherical', linewidth=2)
 
@@ -67,12 +73,12 @@ def main():
 
         
 
-        plt2 = ax.plot(data[:,0], data[:,3] ,   label=r'$z$-dir, spheroid ($v_t \ll \mathcal{O}(v^{\prime}_p)$)', linewidth=2, color=c0)
-        plt2 = ax.plot(data[:,0], data[:,5] ,   label=r'$z$-dir, spheroid ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, color=c1)
-        plt2 = ax.plot(data[:,0], data[:,7] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, color=c2)
+        plt2 = ax.plot(data[:,0], data[:,3] ,   label=r'$z$-dir, spheroid ($v_t \ll \mathcal{O}(v^{\prime}_p)$)', linewidth=2, **linestyles[0])
+        plt2 = ax.plot(data[:,0], data[:,5] ,   label=r'$z$-dir, spheroid ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, **linestyles[1])
+        plt2 = ax.plot(data[:,0], data[:,7] ,   label=r'$x$/$y$-dir, spheroid', linewidth=2, **linestyles[2])
         #plt2 = ax.plot(data[:,0], data[:,12] ,   label=r'$z$-dir, spherical ($v_t$ large)', linewidth=2, linestyle='--', color=c1)
-        plt2 = ax.plot(data[:,0], data[:,12] ,   label=r'$z$-dir, spherical ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, linestyle='--', color=c1)
-        plt2 = ax.plot(data[:,0], data[:,14] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, linestyle='--', color=c2)
+        plt2 = ax.plot(data[:,0], data[:,12] ,   label=r'$z$-dir, spherical ($v_t \gg \mathcal{O}(v^{\prime}_p)$)', linewidth=2, **linestyles[3])
+        plt2 = ax.plot(data[:,0], data[:,14] ,   label=r'$x$/$y$-dir, spherical', linewidth=2, **linestyles[4])
 
         #plt2 = ax.plot(data[:,0], data[:,10] ,   label=r'$z$-dir, $v_t$ small, spherical', linewidth=2)
 

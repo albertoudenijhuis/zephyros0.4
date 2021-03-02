@@ -4,6 +4,7 @@ _FillValueminINF = -9.999e5
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.stats import norm
+import warnings; warnings.simplefilter("ignore")
 
 #pr: percentile rank
 
@@ -49,17 +50,23 @@ def pnans(x):
     
 
 def update_Zdr_Ldr(ao):
-    ao['specific_dBZdr'] = ao['Doppler_spectrum_dBZ_hh'] - ao['Doppler_spectrum_dBZ_vv']
-    ao['specific_dBLdr'] = ao['Doppler_spectrum_dBZ_hv'] - ao['Doppler_spectrum_dBZ_vv']
+    if (    ('Doppler_spectrum_dBZ_hh' in ao.keys()) and
+            ('Doppler_spectrum_dBZ_vv' in ao.keys())):
+        ao['specific_dBZdr'] = ao['Doppler_spectrum_dBZ_hh'] - ao['Doppler_spectrum_dBZ_vv']
+        crit = (ao['Doppler_spectrum_dBZ_hh'] == _FillValueminINF) | (ao['Doppler_spectrum_dBZ_vv'] == _FillValueminINF)
+        ao['specific_dBZdr'] = np.where(crit, np.nan, ao['specific_dBZdr'])
     
-    crit = (ao['Doppler_spectrum_dBZ_hh'] == _FillValueminINF) | (ao['Doppler_spectrum_dBZ_vv'] == _FillValueminINF)
-    ao['specific_dBZdr'] = np.where(crit, np.nan, ao['specific_dBZdr'])
-    
-    crit = (ao['Doppler_spectrum_dBZ_hv'] == _FillValueminINF) | (ao['Doppler_spectrum_dBZ_vv'] == _FillValueminINF)    
-    ao['specific_dBLdr'] = np.where(crit, np.nan, ao['specific_dBLdr'])
+    if (    ('Doppler_spectrum_dBZ_hv' in ao.keys()) and
+            ('Doppler_spectrum_dBZ_vv' in ao.keys())):
+        ao['specific_dBLdr'] = ao['Doppler_spectrum_dBZ_hv'] - ao['Doppler_spectrum_dBZ_vv']    
+        crit = (ao['Doppler_spectrum_dBZ_hv'] == _FillValueminINF) | (ao['Doppler_spectrum_dBZ_vv'] == _FillValueminINF)    
+        ao['specific_dBLdr'] = np.where(crit, np.nan, ao['specific_dBLdr'])
 
 
 def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'linear'):
+
+    if not 'Doppler_spectrum_dBZ_hh' in ao.keys():
+        return {}
 
     if recalc == None:
         n = 100
@@ -104,15 +111,15 @@ def ao_to_recalc(ao, recalc = None,  interpolation_kind = 'linear'):
                                 
                 #function to translate x, to ppt
                 myf = lambda x: norm.cdf(x, ao['Doppler_velocity_hh_ms'][i], ao['Doppler_spectral_width_hh_ms'][i])             
-                recalc[myvar][i,:] = dB(special_interpolate_via_integral(
+                recalc[myvar][i,:] = special_interpolate_via_integral(
                                 myf(ao['spectrum_velocity_lbound'][i,:]),
                                 myf(ao['spectrum_velocity_ubound'][i,:]),
                                 tmp['integrated_dBinv_'+myvar],
                                 myf(recalc['spectrum_velocity_lbound'][i,:]),
                                 myf(recalc['spectrum_velocity_ubound'][i,:]),
-                                interpolation_kind))
+                                interpolation_kind)
                                 
-                recalc[myvar][i,:] = recalc[myvar][i,:] * (recalc['spectrum_velocity_ubound'][i,:] - recalc['spectrum_velocity_lbound'][i,:])
+                recalc[myvar][i,:] = dB(recalc[myvar][i,:] / (recalc['spectrum_velocity_ubound'][i,:] - recalc['spectrum_velocity_lbound'][i,:]))
                 #ignore low reflection
                 recalc[myvar][i,:] = np.where(recalc[myvar][i,:] > (np.nanmax(recalc[myvar][i,:]) - 25.), recalc[myvar][i,:], _FillValueminINF)
 

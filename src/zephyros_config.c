@@ -42,43 +42,166 @@ Note:
 //uncomment next statement for debug mode
 #define _ZEPHYROS_CONFIG_DEBUG
 
+void zephyros_config_initialize(t_zephyros_config **pcfg)
+{
+	t_zephyros_config *cfg 									= calloc(1, sizeof(t_zephyros_config));
+	
+	//general
+	cfg->general 											= calloc(1, sizeof(t_zephyros_config_general));
+	cfg->general->additional_output							= calloc(1, sizeof(t_zephyros_config_general_additional_output));
+
+	util_initialize_atmosphere(&cfg->general->atmosphere);	
+	cfg->general->instrument 								= calloc(1, sizeof(t_zephyros_instrument));
+
+	cfg->general->overall									= calloc(1, sizeof(t_zephyros_config_general_overall));
+	cfg->general->water_refractive_index					= calloc(1, sizeof(t_zephyros_config_general_water_refractive_index));
+	cfg->general->white1999_integral						= calloc(1, sizeof(t_zephyros_config_general_white1999_integral));
+	cfg->general->water_refractive_index->wavelength_m 		= NULL;
+	cfg->general->water_refractive_index->realindex 		= NULL;
+	cfg->general->water_refractive_index->imagindex 		= NULL;
+	cfg->general->water_refractive_index->lut_realindex 	= NULL;
+	cfg->general->water_refractive_index->lut_imagindex 	= NULL;
+	cfg->general->white1999_integral->vec_ln_a 				= NULL;
+	cfg->general->white1999_integral->vec_ln_b 				= NULL;
+	cfg->general->white1999_integral->vec_ln_L 				= NULL;
+	cfg->general->white1999_integral->integral_sqrt			= NULL;
+	cfg->general->white1999_integral->lut_integral_sqrt		= NULL;
+
+	//simulation, optional
+	cfg->simulation											= NULL;
+	
+	//retrieval, optional
+	cfg->retrieval											= NULL;
+	
+	cfg->derived_quantities									= calloc(1, sizeof(t_zephyros_config_derived_quantities));
+	
+	*pcfg = cfg;
+}
+
+void zephyros_config_free(t_zephyros_config **pcfg)
+{
+	int i;
+	t_zephyros_config *cfg = *pcfg;
+
+	#ifdef _ZEPHYROS_CONFIG_DEBUG
+		printf("zephyros_config_free\n"); fflush(stdout);
+	#endif 
+	
+	if (cfg != NULL) {
+		free(cfg->general->additional_output);
+
+		util_free_atmosphere(&cfg->general->atmosphere);
+		
+		free(cfg->general->instrument);
+		
+		free(cfg->general->overall);
+
+		if (cfg->general->water_refractive_index->wavelength_m != NULL) {free(cfg->general->water_refractive_index->wavelength_m);}
+		if (cfg->general->water_refractive_index->realindex != NULL) {free(cfg->general->water_refractive_index->realindex);}
+		if (cfg->general->water_refractive_index->imagindex != NULL) {free(cfg->general->water_refractive_index->imagindex);}
+		interpolation_free_lut(&cfg->general->water_refractive_index->lut_realindex);
+		interpolation_free_lut(&cfg->general->water_refractive_index->lut_imagindex);
+		free(cfg->general->water_refractive_index);
+		
+		if (cfg->general->white1999_integral->vec_ln_a != NULL) 		{free(cfg->general->white1999_integral->vec_ln_a);}
+		if (cfg->general->white1999_integral->vec_ln_b != NULL) 		{free(cfg->general->white1999_integral->vec_ln_b);}
+		if (cfg->general->white1999_integral->vec_ln_L != NULL) 		{free(cfg->general->white1999_integral->vec_ln_L);}
+		if (cfg->general->white1999_integral->integral_sqrt != NULL) {free(cfg->general->white1999_integral->integral_sqrt);}
+		interpolation_free_lut(&cfg->general->white1999_integral->lut_integral_sqrt);
+		free(cfg->general->white1999_integral);
+		
+		free(cfg->general);
+
+		if (cfg->simulation != NULL) {	
+			free(cfg->simulation->radarfilter);
+		
+			util_free_scattererfield(&cfg->simulation->scattererfield);
+			util_free_windfield(&cfg->simulation->windfield);
+			
+			free(cfg->simulation); cfg->simulation = NULL;
+		}
+		
+		if (cfg->retrieval != NULL) {	
+			free(cfg->retrieval->radarfilter);
+			util_free_scattererfield(&cfg->retrieval->prior_scattererfield);
+			util_free_scattererfield(&cfg->retrieval->post_scattererfield);
+			util_free_windfield(&cfg->retrieval->prior_windfield);
+			util_free_windfield(&cfg->retrieval->post_windfield);
+						
+			for ( i = 0; i <= 100; i++ ) {
+				if (cfg->retrieval->algorithm->fdvar_cfg[i] != NULL) {
+					zephyros_config_free_retrieval_fdvar_cfg(&cfg->retrieval->algorithm->fdvar_cfg[i]);
+				}
+				if (cfg->retrieval->algorithm->lwm_cfg[i] != NULL) {
+					free(cfg->retrieval->algorithm->lwm_cfg[i]->xvec_m);
+					free(cfg->retrieval->algorithm->lwm_cfg[i]->yvec_m);
+					free(cfg->retrieval->algorithm->lwm_cfg[i]->zvec_m);
+					free(cfg->retrieval->algorithm->lwm_cfg[i]->tvec_s);
+					free(cfg->retrieval->algorithm->lwm_cfg[i]);
+					cfg->retrieval->algorithm->lwm_cfg[i] = NULL;
+				}
+			}
+			free(cfg->retrieval->algorithm);
+			free(cfg->retrieval); cfg->retrieval = NULL;
+		}
+
+		free(cfg->derived_quantities);
+		
+		fclose(cfg->fp_ao);
+		free(cfg);
+		*pcfg = NULL;
+	}
+}
+
+
+
+
+
+
+
 void zephyros_config_initialize_retrieval_fdvar_cfg(t_zephyros_config_retrieval_fdvar_cfg **pcfg)
 {
 	t_zephyros_config_retrieval_fdvar_cfg *cfg = calloc(1, sizeof(t_zephyros_config_retrieval_fdvar_cfg));
 	int i;
 	
-	cfg->costfunction_dBZ_hh							= 1;
+	cfg->costfunction_dBZ_hh							= 0;
+	cfg->costfunction_dBZ_hv							= 0;
+	cfg->costfunction_dBZ_vh							= 0;
+	cfg->costfunction_dBZ_vv							= 0;
 	cfg->costfunction_dBZdr								= 0;
 	cfg->costfunction_dBLdr								= 0;
-	cfg->costfunction_Doppler_velocity_hh_ms			= 1;
+	cfg->costfunction_Doppler_velocity_hh_ms			= 0;
 	cfg->costfunction_Doppler_spectral_width_hh_ms		= 0;
 
 	cfg->costfunction_Doppler_spectrum_dBZ_hh			= 0;
+	cfg->costfunction_Doppler_spectrum_dBZ_hv			= 0;
+	cfg->costfunction_Doppler_spectrum_dBZ_vh			= 0;
+	cfg->costfunction_Doppler_spectrum_dBZ_vv			= 0;
 	cfg->costfunction_specific_dBZdr					= 0;
 	cfg->costfunction_specific_dBLdr					= 0;
 	
 	cfg->maximum_time_s									= 20.;
+	cfg->use_derivatives								= 1;
 
-    cfg->n_active_windfield_grid_nrs					= 101;
-    cfg->active_windfield_grid_nrs						= malloc(101 * sizeof(int));
-	for ( i = 0; i <= 100; i++ ) cfg->active_windfield_grid_nrs[i] = i;
+    cfg->n_active_windfield_grid_nrs					= 0;
+    cfg->active_windfield_grid_nrs						= NULL;
 	
 	cfg->n_cast_windfield_grid_nrs = 0;
 	cfg->cast_windfield_grid_nrs = NULL;
+	cfg->n_cast_psd_nrs = 0;
+	cfg->cast_psd_nrs = NULL;
 
-    cfg->n_active_windfield_turbulence_nrs				= 101;
-    cfg->active_windfield_turbulence_nrs				= malloc(101 * sizeof(int));
-	for ( i = 0; i <= 100; i++ ) cfg->active_windfield_turbulence_nrs[i] = i;
+    cfg->n_active_windfield_turbulence_nrs				= 0;
+    cfg->active_windfield_turbulence_nrs				= NULL;
 
-    cfg->n_active_scattererfield_nrs					= 101;
-    cfg->active_scattererfield_nrs						= malloc(101 * sizeof(int));
-	for ( i = 0; i <= 100; i++ ) cfg->active_scattererfield_nrs[i] = i;
+    cfg->n_active_psd_nrs								= 0;
+    cfg->active_psd_nrs									= NULL;
 	
-	cfg->update_windfield_hspeed_err = -1.e100;
-	cfg->update_windfield_hdir_err = -1.e100;
-	cfg->update_windfield_u_err = -1.e100;
-	cfg->update_windfield_v_err = -1.e100;
-	cfg->update_windfield_w_err = -1.e100;
+	cfg->update_windfield_hspeed_err 	= -1.e100;
+	cfg->update_windfield_hdir_err 		= -1.e100;
+	cfg->update_windfield_u_err 		= -1.e100;
+	cfg->update_windfield_v_err 		= -1.e100;
+	cfg->update_windfield_w_err 		= -1.e100;
     
 	*pcfg = cfg;	
 }
@@ -89,9 +212,10 @@ void zephyros_config_free_retrieval_fdvar_cfg(t_zephyros_config_retrieval_fdvar_
 	
 	util_safe_free(&cfg->active_windfield_grid_nrs);
 	util_safe_free(&cfg->cast_windfield_grid_nrs);
+	util_safe_free(&cfg->cast_psd_nrs);
 
 	util_safe_free(&cfg->active_windfield_turbulence_nrs);
-	util_safe_free(&cfg->active_scattererfield_nrs);
+	util_safe_free(&cfg->active_psd_nrs);
 
 	free(cfg);
 	*pcfg = NULL;
@@ -135,7 +259,7 @@ void zephyros_config_initialize_retrieval_lwm_cfg(t_zephyros_config_retrieval_lw
 
 void zephyros_config_read(char file_name[8192], char additional_output_filename[8192], t_zephyros_config **pcfg)
 {
-	t_zephyros_config_read_widget *rwg = malloc(sizeof(t_zephyros_config_read_widget));
+	t_zephyros_config_read_widget *rwg = calloc(1, sizeof(t_zephyros_config_read_widget));
 	t_zephyros_config *cfg;
 	
 	double dummy1,dummy2,dummy3; //TBD
@@ -167,12 +291,14 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 	strcpy(rwg->line, "");		
 	rwg->simulation_indices.windfield_grid 					= 0;
 	rwg->simulation_indices.windfield_wave 					= 0;
+	rwg->simulation_indices.windfield_ekmanspiral 			= 0;
 	rwg->simulation_indices.windfield_vortex 				= 0;
 	rwg->simulation_indices.windfield_turbulence 			= 0;
 	rwg->simulation_indices.scattererfield_psd 				= 0;
 	rwg->simulation_indices.scattererfield_psd_diameter_i 	= 0;
 	rwg->simulation_indices.algorithm_run 					= 0;
 	rwg->retrieval_indices.windfield_grid 					= 0;
+	rwg->retrieval_indices.windfield_ekmanspiral			= 0;
 	rwg->retrieval_indices.windfield_wave 					= 0;
 	rwg->retrieval_indices.windfield_vortex 				= 0;
 	rwg->retrieval_indices.windfield_turbulence 			= 0;
@@ -209,7 +335,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 			if( rwg->fp == NULL )
 			{
 				perror("Error while opening the configuration file.\n");
-				exit(EXIT_FAILURE);
+				fflush(stdout); exit(EXIT_FAILURE);
 			}
 
 			//get this_dir_name .... 
@@ -230,7 +356,8 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 				fgetpos(rwg->fp, &rwg->pos_nextline);	//store position of where next line starts
 				rwg->firstchar[0] = rwg->line[0];		//get first char
 								
-				if (strncmp(rwg->firstchar,rwg->commentSign, 1) == 0) {
+				if ((strncmp(rwg->firstchar,rwg->commentSign, 1) == 0)
+					| (strlen(rwg->line) <= 2)){
 					//comment sign, nothing to be done
 				} else {
 					//read identifier
@@ -357,7 +484,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								( strcmp(rwg->subsection,"prior_windfield") == 0 ) ) 
 							{
 							if ( strcmp(rwg->section,"simulation") == 0 ) mywindfield = cfg->simulation->windfield;
-							if ( strcmp(rwg->section,"retrieval") == 0 ) mywindfield = cfg->retrieval->prior_windfield;
+							if ( strcmp(rwg->section,"retrieval") == 0 )  mywindfield = cfg->retrieval->prior_windfield;
 							
 							if (strcmp(rwg->subsection,"windfield") == 0 )			mywindfield->type = 0;
 							if (strcmp(rwg->subsection,"prior_windfield") == 0 )	mywindfield->type = 1;
@@ -367,7 +494,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "grid", &myindices->windfield_grid);
 								if ((myindices->windfield_grid + 1) > mywindfield->nfields) {
 									mywindfield->nfields = myindices->windfield_grid + 1;
-								}								
+								}						
 								util_prepare_windfield_i(mywindfield, myindices->windfield_grid);
 							}
 
@@ -379,6 +506,8 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_u", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_u[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_v", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_v[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_w", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_w[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hspeed", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hspeed[myindices->windfield_grid]);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hdir", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hdir[myindices->windfield_grid]);
 
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hspeed_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hspeed_err[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_hdir_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_hdir_err[myindices->windfield_grid]);
@@ -386,7 +515,8 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_v_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_v_err[myindices->windfield_grid]);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "grid_w_err", &mywindfield->field[myindices->windfield_grid]->n, &mywindfield->grid_w_err[myindices->windfield_grid]);
 
-								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "use_hspeed_hdir_erorrs", mywindfield->use_hspeed_hdir_erorrs + myindices->windfield_grid);
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_hspeed_hdir", mywindfield->fit_hspeed_hdir + myindices->windfield_grid);
+
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid]->cl_x_m);	
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid]->cl_y_m);	
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_hspeed", &mywindfield->hspeed_ecm[myindices->windfield_grid]->cl_z_m);	
@@ -421,6 +551,25 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_w", &mywindfield->w_ecm[myindices->windfield_grid]->c_threshold);	
 							}
 							
+							
+							
+							//initialize the wind field ekmanspiral
+							if (zephyros_config_read_position(rwg, rwg->section, rwg->subsection, "ekmanspiral")) {
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "ekmanspiral", &myindices->windfield_ekmanspiral);
+								if ((myindices->windfield_ekmanspiral + 1) > mywindfield->nekmanspirals) {
+									mywindfield->nekmanspirals = myindices->windfield_ekmanspiral + 1;
+								}
+								if (mywindfield->ekmanspiral[myindices->windfield_ekmanspiral] == NULL) {
+									mywindfield->ekmanspiral[myindices->windfield_ekmanspiral] = calloc(1, sizeof(t_zephyros_ekmanspiral));
+								}
+							}
+
+							if (mywindfield->ekmanspiral[myindices->windfield_ekmanspiral] != NULL) {
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "ekmanspiral_depth_m",  &mywindfield->ekmanspiral[myindices->windfield_ekmanspiral]->depth_m);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "ekmanspiral_ug_ms",  &mywindfield->ekmanspiral[myindices->windfield_ekmanspiral]->ug_ms);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "ekmanspiral_vg_ms",  &mywindfield->ekmanspiral[myindices->windfield_ekmanspiral]->vg_ms);
+							}							
+							
 							//initialize the wind field wave
 							if (zephyros_config_read_position(rwg, rwg->section, rwg->subsection, "wave")) {
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "wave", &myindices->windfield_wave);
@@ -428,7 +577,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 									mywindfield->nwaves = myindices->windfield_wave + 1;
 								}
 								if (mywindfield->wave[myindices->windfield_wave] == NULL) {
-									mywindfield->wave[myindices->windfield_wave] = malloc(sizeof(t_zephyros_wave));
+									mywindfield->wave[myindices->windfield_wave] = calloc(1, sizeof(t_zephyros_wave));
 								}
 							}
 
@@ -446,7 +595,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 									mywindfield->nvortices = myindices->windfield_vortex + 1;
 								}
 								if (mywindfield->vortex[myindices->windfield_vortex] == NULL) {
-									mywindfield->vortex[myindices->windfield_vortex] = malloc(sizeof(t_zephyros_vortex));
+									mywindfield->vortex[myindices->windfield_vortex] = calloc(1, sizeof(t_zephyros_vortex));
 								}
 							}
 
@@ -568,12 +717,15 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "psd_grid_gammadistribution_mu", &myscattererfield->psd[myindices->scattererfield_psd]->field->n, &myscattererfield->psd[myindices->scattererfield_psd]->grid_gammadistribution_mu);
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "psd_grid_gammadistribution_D0_mm", &myscattererfield->psd[myindices->scattererfield_psd]->field->n, &myscattererfield->psd[myindices->scattererfield_psd]->grid_gammadistribution_D0_mm);
 
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "psd_discrete_D_equiv_mm_interval_llimt", &myscattererfield->psd[myindices->scattererfield_psd]->n_diameters, &myscattererfield->psd[myindices->scattererfield_psd]->discrete_D_equiv_mm_interval_llimt);
+								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "psd_discrete_D_equiv_mm_interval_ulimt", &myscattererfield->psd[myindices->scattererfield_psd]->n_diameters, &myscattererfield->psd[myindices->scattererfield_psd]->discrete_D_equiv_mm_interval_ulimt);
+								
 								zephyros_config_read__lf_array(rwg, rwg->section, rwg->subsection, "psd_discrete_D_equiv_mm", &myscattererfield->psd[myindices->scattererfield_psd]->n_diameters, &myscattererfield->psd[myindices->scattererfield_psd]->discrete_D_equiv_mm);
 								if (zephyros_config_read_position(rwg, rwg->section, rwg->subsection, "psd_discrete_D_equiv_mm")) {
 									myscattererfield->psd[myindices->scattererfield_psd]->grid_number_density_m3 = 
-										malloc(myscattererfield->psd[myindices->scattererfield_psd]->n_diameters*sizeof(double*));
+										calloc(myscattererfield->psd[myindices->scattererfield_psd]->n_diameters, sizeof(double*));
 									myscattererfield->psd[myindices->scattererfield_psd]->grid_dBnumber_density_err_m3 = 
-										malloc(myscattererfield->psd[myindices->scattererfield_psd]->n_diameters*sizeof(double*));
+										calloc(myscattererfield->psd[myindices->scattererfield_psd]->n_diameters,sizeof(double*));
 									for (i = 0; i < myscattererfield->psd[myindices->scattererfield_psd]->n_diameters; i++ ) {
 										myscattererfield->psd[myindices->scattererfield_psd]->grid_number_density_m3[i] = NULL;
 										myscattererfield->psd[myindices->scattererfield_psd]->grid_dBnumber_density_err_m3[i] = NULL;
@@ -597,6 +749,8 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "psd_gammadistribution_dmax_mm", &myscattererfield->psd[myindices->scattererfield_psd]->gammadistribution_dmax_mm);	
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "psd_n_diameters", &myscattererfield->psd[myindices->scattererfield_psd]->n_diameters);	
 								
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "N_constraint", &myscattererfield->psd[myindices->scattererfield_psd]->N_constraint);	
+								
 								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_dBlwc", &myscattererfield->psd[myindices->scattererfield_psd]->fit_dBlwc);
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_dBlwc", &myscattererfield->psd[myindices->scattererfield_psd]->dBlwc_ecm->cl_x_m);	
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_dBlwc", &myscattererfield->psd[myindices->scattererfield_psd]->dBlwc_ecm->cl_y_m);	
@@ -604,13 +758,12 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_dBlwc", &myscattererfield->psd[myindices->scattererfield_psd]->dBlwc_ecm->cl_t_s);	
 								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_dBlwc", &myscattererfield->psd[myindices->scattererfield_psd]->dBlwc_ecm->c_threshold);	
 
-								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->fit_dBN);
-								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->dBN_ecm->cl_x_m);	
-								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->dBN_ecm->cl_y_m);	
-								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->dBN_ecm->cl_z_m);	
-								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->dBN_ecm->cl_t_s);	
-								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_dBN", &myscattererfield->psd[myindices->scattererfield_psd]->dBN_ecm->c_threshold);	
-
+								zephyros_config_read_________i(rwg, rwg->section, rwg->subsection, "fit_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->fit_dBm);
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_x_m_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->dBm_ecm->cl_x_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_y_m_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->dBm_ecm->cl_y_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_z_m_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->dBm_ecm->cl_z_m);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "cl_t_s_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->dBm_ecm->cl_t_s);	
+								zephyros_config_read________lf(rwg, rwg->section, rwg->subsection, "c_threshold_dBm", &myscattererfield->psd[myindices->scattererfield_psd]->dBm_ecm->c_threshold);	
 							}
 						}
 					}
@@ -676,16 +829,23 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 						//fdvar cfg
 						if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run] != NULL) {
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBZ_hh", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_hh);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBZ_hv", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_hv);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBZ_vh", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_vh);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBZ_vv", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_vv);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBZdr", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZdr);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_dBLdr", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBLdr);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_velocity_hh_ms", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_velocity_hh_ms);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_spectral_width_hh_ms", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectral_width_hh_ms);
 							
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_spectrum_dBZ_hh", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_hh);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_spectrum_dBZ_hv", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_hv);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_spectrum_dBZ_vh", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_vh);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_Doppler_spectrum_dBZ_vv", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_vv);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_specific_dBZdr", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_specific_dBZdr);
 							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "costfunction_specific_dBLdr", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_specific_dBLdr);
 							
 							zephyros_config_read________lf(rwg, "retrieval", "algorithm", "maximum_time_s", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->maximum_time_s);
+							zephyros_config_read_________i(rwg, "retrieval", "algorithm", "use_derivatives", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->use_derivatives);
 							zephyros_config_read________lf(rwg, "retrieval", "algorithm", "update_windfield_hspeed_err", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->update_windfield_hspeed_err);
 							zephyros_config_read________lf(rwg, "retrieval", "algorithm", "update_windfield_hdir_err", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->update_windfield_hdir_err);
 							zephyros_config_read________lf(rwg, "retrieval", "algorithm", "update_windfield_u_err", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->update_windfield_u_err);
@@ -694,9 +854,10 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 							
 							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "active_windfield_grid_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_active_windfield_grid_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->active_windfield_grid_nrs);
 							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "active_windfield_turbulence_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_active_windfield_turbulence_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->active_windfield_turbulence_nrs);
-							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "active_scattererfield_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_active_scattererfield_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->active_scattererfield_nrs);
+							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "active_psd_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_active_psd_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->active_psd_nrs);
 							
 							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "cast_windfield_grid_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_cast_windfield_grid_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->cast_windfield_grid_nrs);
+							zephyros_config_read___i_array(rwg, "retrieval", "algorithm", "cast_psd_nrs", &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->n_cast_psd_nrs, &cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->cast_psd_nrs);
 						}
 					}
 					
@@ -709,14 +870,14 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 			fclose(rwg->fp);
 		}
    }
-     	
+     	     	
    //open file pointer for additional output
    printf("Opening additional output file: %s\n",additional_output_filename); fflush(stdout);
    cfg->fp_ao = fopen(additional_output_filename, "w");
 	if( cfg->fp_ao == NULL )
 	{
 		perror("Error while opening the additional output file.\n");
-		exit(EXIT_FAILURE);
+		fflush(stdout); exit(EXIT_FAILURE);
 	}
 
 	//make luts for atmosphere
@@ -783,6 +944,12 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 			if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run] != NULL) {
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_hh) 
 					cfg->retrieval->radarfilter->filter_dBZ_hh = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_hv) 
+					cfg->retrieval->radarfilter->filter_dBZ_hv = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_vh) 
+					cfg->retrieval->radarfilter->filter_dBZ_vh = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZ_vv) 
+					cfg->retrieval->radarfilter->filter_dBZ_vv = 1;
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBZdr) 
 					cfg->retrieval->radarfilter->filter_dBZdr = 1;
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_dBLdr) 
@@ -793,6 +960,12 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 					cfg->retrieval->radarfilter->filter_Doppler_spectralwidth_hh_ms = 1;
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_hh) 
 					cfg->retrieval->radarfilter->filter_Doppler_spectrum_dBZ_hh = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_hv) 
+					cfg->retrieval->radarfilter->filter_Doppler_spectrum_dBZ_hv = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_vh) 
+					cfg->retrieval->radarfilter->filter_Doppler_spectrum_dBZ_vh = 1;
+				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_Doppler_spectrum_dBZ_vv) 
+					cfg->retrieval->radarfilter->filter_Doppler_spectrum_dBZ_vv = 1;
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_specific_dBZdr) 
 					cfg->retrieval->radarfilter->filter_specific_dBZdr = 1;
 				if (cfg->retrieval->algorithm->fdvar_cfg[myindices->algorithm_run]->costfunction_specific_dBLdr) 
@@ -821,7 +994,7 @@ void zephyros_config_read(char file_name[8192], char additional_output_filename[
 	printf("free read widget\n"); fflush(stdout);
 #endif 
    //free read widget
-   	free(rwg);      
+   	free(rwg);    
 }
 
 int zephyros_config_read_position(
@@ -843,9 +1016,15 @@ void zephyros_config_read_________i(
 	int *destination)
 {
 	char dummy[8192];
+	int res;
+	
 	if (zephyros_config_read_position(rwg, section, subsection, identifier)) {
 		fsetpos(rwg->fp, &rwg->pos_thisline);
-		fscanf(rwg->fp, "%s %i", dummy, destination);
+		res = fscanf(rwg->fp, "%s %i", dummy, destination);
+		if (res != 2) {
+			zephyros_config_read_____error(rwg,
+			"Error while reading integer from configuration file.", rwg->pos_thisline);
+		}
 	}
 }
 
@@ -857,9 +1036,15 @@ void zephyros_config_read________lf(
 	double *destination)
 {
 	char dummy[8192];
+	int res;
+	
 	if (zephyros_config_read_position(rwg, section, subsection, identifier)) {
 		fsetpos(rwg->fp, &rwg->pos_thisline);
-		fscanf(rwg->fp, "%s %lf", dummy, destination);
+		res = fscanf(rwg->fp, "%s %lf", dummy, destination);
+		if (res != 2) {
+			zephyros_config_read_____error(rwg,
+			"Error while reading double from configuration file.", rwg->pos_thisline);
+		}
 	}
 }
 
@@ -871,9 +1056,13 @@ void zephyros_config_read_________s(
 	char *destination)
 {
 	char dummy[8192];
+	int res;
+	
 	if (zephyros_config_read_position(rwg, section, subsection, identifier)) {
 		fsetpos(rwg->fp, &rwg->pos_thisline);
-		fscanf(rwg->fp, "%s %s", dummy, destination);
+		res = fscanf(rwg->fp, "%s %s", dummy, destination);
+		if (res != 2) zephyros_config_read_____error(rwg,
+		"Error while reading string from configuration file.", rwg->pos_thisline);		
 	}
 }
 
@@ -888,15 +1077,26 @@ void zephyros_config_read__lf_array(
 	char dummy[8192];
 	int i;
 	double *newarray;
-	
+
+	int res;
+	fpos_t pos_current;
+
 	if (zephyros_config_read_position(rwg, section, subsection, identifier)) {		
 		fsetpos(rwg->fp, &rwg->pos_thisline);
-		fscanf(rwg->fp, "%s %i", dummy, arraysize );
+		fgetpos(rwg->fp, &pos_current);
+		res = fscanf(rwg->fp, "%s %i", dummy, arraysize );
+		if (res != 2) zephyros_config_read_____error(rwg,
+		"Error while reading array of doubles from configuration file.", pos_current);
+		
 		//allocate
-		newarray = malloc(*arraysize * sizeof(double));
+		newarray = calloc(*arraysize, sizeof(double));
 		for ( i = 0; i < *arraysize; i++ ) {
-			fscanf(rwg->fp, "%lf", newarray + i);
+			fgetpos(rwg->fp, &pos_current);
+			res = fscanf(rwg->fp, "%lf", newarray + i);
+			if (res != 1) zephyros_config_read_____error(rwg,
+			"Error while reading array of doubles from configuration file.", pos_current);
 		}
+		util_safe_free(destination);		
 		*destination = newarray;
 	}
 }
@@ -913,19 +1113,47 @@ void zephyros_config_read___i_array(
 	int i;
 	int *newarray;
 	
+	int res;
+	fpos_t pos_current;
+		
 	if (zephyros_config_read_position(rwg, section, subsection, identifier)) {		
 		fsetpos(rwg->fp, &rwg->pos_thisline);
-		fscanf(rwg->fp, "%s %i", dummy, arraysize );
+		fgetpos(rwg->fp, &pos_current);
+		res = fscanf(rwg->fp, "%s %i", dummy, arraysize );
+		
+		if (res != 2) zephyros_config_read_____error(rwg,
+		"Error while reading array of integers from configuration file.", pos_current);
+
 		//allocate
-		newarray = malloc(*arraysize * sizeof(int));
+		newarray = calloc(*arraysize, sizeof(int));
 		for ( i = 0; i < *arraysize; i++ ) {
-			fscanf(rwg->fp, "%i", newarray + i);
+			fgetpos(rwg->fp, &pos_current);
+			res = fscanf(rwg->fp, "%i", newarray + i);
+			if (res != 1) zephyros_config_read_____error(rwg,
+			"Error while reading array of integers from configuration file.", pos_current);
+			
 		}
+		util_safe_free(destination);
 		*destination = newarray;
 	}
 }
 
 
+
+void zephyros_config_read_____error(t_zephyros_config_read_widget *rwg,
+	char mymes[8192], fpos_t pos_current)
+{
+	char part[8192];
+	
+	printf("%s\n", mymes);
+	printf("At %s -> %s -> %s\n",rwg->section, rwg->subsection, rwg->identifier);
+	fsetpos(rwg->fp, &pos_current);
+	fscanf(rwg->fp, "%s ", part);
+	printf("Near ``%s''\n", part );
+	printf("Full line is:\n%s\n", rwg->line );
+	printf("Please verify and update the configruration file(s). Exiting.\n");
+	fflush(stdout); exit(0);
+}
 
 void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg)
 {
@@ -940,6 +1168,8 @@ void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg)
 	double radar_resolution_m;
 	double radar_maximum_range_m;
 	*/
+
+printf("info: %s %i \n", __FILE__, __LINE__); fflush(stdout);
 	
 	cfg->derived_quantities->central_wavelength_m 	= c0 / cfg->general->instrument->central_frequency_hz;
 	cfg->derived_quantities->radar_vmax_ms			= cfg->derived_quantities->central_wavelength_m * cfg->general->instrument->prf_hz / 4.;
@@ -963,6 +1193,7 @@ void zephyros_config_derive_quantities_zephyros_config(t_zephyros_config *cfg)
 		0,
 		dummy);
 	cfg->derived_quantities->radar_water_refractive_index -= (tmp * 1.j);
+	
 }
 
 void zephyros_config_print(t_zephyros_config *cfg, FILE *fp)
@@ -1245,9 +1476,20 @@ void zephyros_config_print(t_zephyros_config *cfg, FILE *fp)
 				fprintf(fp, "%-30s %-15i\n",
 					"type",
 					cfg->retrieval->algorithm->type[i]);
+					
 				fprintf(fp, "%-30s %-15i\n",
 							"costfunction_dBZ_hh",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_dBZ_hh);
+				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_dBZ_hv",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_dBZ_hv);
+				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_dBZ_vh",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_dBZ_vh);
+				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_dBZ_vv",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_dBZ_vv);
+							
 				fprintf(fp, "%-30s %-15i\n",
 							"costfunction_dBZdr",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_dBZdr);
@@ -1264,6 +1506,15 @@ void zephyros_config_print(t_zephyros_config *cfg, FILE *fp)
 							"costfunction_Doppler_spectrum_dBZ_hh",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_Doppler_spectrum_dBZ_hh);
 				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_Doppler_spectrum_dBZ_hv",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_Doppler_spectrum_dBZ_hv);
+				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_Doppler_spectrum_dBZ_vh",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_Doppler_spectrum_dBZ_vh);
+				fprintf(fp, "%-30s %-15i\n",
+							"costfunction_Doppler_spectrum_dBZ_vv",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_Doppler_spectrum_dBZ_vv);
+				fprintf(fp, "%-30s %-15i\n",
 							"costfunction_specific_dBZdr",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->costfunction_specific_dBZdr);
 				fprintf(fp, "%-30s %-15i\n",
@@ -1273,6 +1524,10 @@ void zephyros_config_print(t_zephyros_config *cfg, FILE *fp)
 				fprintf(fp, "%-30s %-15.3e\n",
 							"maximum_time_s",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->maximum_time_s);
+
+				fprintf(fp, "%-30s %-15i\n",
+							"use_derivatives",
+							cfg->retrieval->algorithm->fdvar_cfg[i]->use_derivatives);
 							
 				fprintf(fp, "%-30s %-15.3e\n",
 							"update_windfield_hspeed_err",
@@ -1289,22 +1544,30 @@ void zephyros_config_print(t_zephyros_config *cfg, FILE *fp)
 				fprintf(fp, "%-30s %-15.3e\n",
 							"update_windfield_w_err",
 							cfg->retrieval->algorithm->fdvar_cfg[i]->update_windfield_w_err);
-							
-				fprintf(fp, "%-30s %-15i", 
-							"active_windfield_grid_nrs",
-							cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_grid_nrs);
-				fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_grid_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_windfield_grid_nrs);
-				fprintf(fp, "\n");							
-				fprintf(fp, "%-30s %-15i", 
-							"active_windfield_turbulence_nrs",
-							cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_turbulence_nrs);
-				fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_turbulence_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_windfield_turbulence_nrs);
-				fprintf(fp, "\n");							
-				fprintf(fp, "%-30s %-15i", 
-							"active_scattererfield_nrs",
-							cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_scattererfield_nrs);
-				fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_scattererfield_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_scattererfield_nrs);
-				fprintf(fp, "\n");							
+				
+				if ( cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_grid_nrs != 0) {			
+					fprintf(fp, "%-30s %-15i", 
+								"active_windfield_grid_nrs",
+								cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_grid_nrs);
+					fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_grid_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_windfield_grid_nrs);
+					fprintf(fp, "\n");							
+				}
+
+				if ( cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_turbulence_nrs != 0) {							
+					fprintf(fp, "%-30s %-15i", 
+								"active_windfield_turbulence_nrs",
+								cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_turbulence_nrs);
+					fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_windfield_turbulence_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_windfield_turbulence_nrs);
+					fprintf(fp, "\n");							
+				}
+				
+				if ( cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_psd_nrs != 0) {							
+					fprintf(fp, "%-30s %-15i", 
+								"active_psd_nrs",
+								cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_psd_nrs);
+					fprinti_array(fp, cfg->retrieval->algorithm->fdvar_cfg[i]->n_active_psd_nrs, cfg->retrieval->algorithm->fdvar_cfg[i]->active_psd_nrs);
+					fprintf(fp, "\n");							
+				}
 			}
 		}
 		fflush(fp);
@@ -1473,10 +1736,21 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 				fprintf(fp, "\n");
 			}
 			
-						
-			fprintf(fp, "%-30s %-15i\n",
-			"use_hspeed_hdir_erorrs",
-			mywindfield->use_hspeed_hdir_erorrs[i]);
+			if (mywindfield->grid_hspeed[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hspeed",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hspeed[i]);
+				fprintf(fp, "\n");
+			}
+			
+			if (mywindfield->grid_hdir[i] != NULL) {		
+				fprintf(fp, "%-30s %-15i", 
+							"grid_hdir",
+							mywindfield->field[i]->n);
+				fprintf_array(fp, mywindfield->field[i]->n, mywindfield->grid_hdir[i]);
+				fprintf(fp, "\n");
+			}
 						
 			if (mywindfield->grid_hspeed_err[i] != NULL) {		
 				fprintf(fp, "%-30s %-15i", 
@@ -1520,10 +1794,14 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 
 			fflush(fp);
 			
+			if ((mywindfield->type == 1) | (mywindfield->type == 2)) {
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_hspeed_hdir",
+						mywindfield->fit_hspeed_hdir[i]);
+			}
+					
 			if (mywindfield->type == 1) {
-				if (mywindfield->fit_u[i] & mywindfield->fit_v[i]
-					& (mywindfield->use_hspeed_hdir_erorrs[i] == 1)
-					) {
+				if (mywindfield->fit_hspeed_hdir[i]) {
 					fprintf(fp, "%-30s %-15.3e\n",
 							"cl_x_m_hspeed",
 							mywindfield->hspeed_ecm[i]->cl_x_m);
@@ -1543,11 +1821,9 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 			}
 			
 			fflush(fp);
-			
+		
 			if (mywindfield->type == 1) {
-				if (mywindfield->fit_u[i] & mywindfield->fit_v[i]
-					& (mywindfield->use_hspeed_hdir_erorrs[i] == 1)
-					) {
+				if (mywindfield->fit_hspeed_hdir[i]) {
 					fprintf(fp, "%-30s %-15.3e\n",
 							"cl_x_m_hdir",
 							mywindfield->hdir_ecm[i]->cl_x_m);
@@ -1575,9 +1851,7 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 			}
 			
 			if (mywindfield->type == 1) {
-				if (mywindfield->fit_u[i]
-					& (mywindfield->use_hspeed_hdir_erorrs[i] == 0)
-					) {
+				if (mywindfield->fit_u[i]) {
 					fprintf(fp, "%-30s %-15.3e\n",
 							"cl_x_m_u",
 							mywindfield->u_ecm[i]->cl_x_m);
@@ -1605,9 +1879,7 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 			}
 			
 			if (mywindfield->type == 1) {
-				if (mywindfield->fit_v[i]
-					& (mywindfield->use_hspeed_hdir_erorrs[i] == 0)
-					) {
+				if (mywindfield->fit_v[i]) {
 					fprintf(fp, "%-30s %-15.3e\n",
 							"cl_x_m_v",
 							mywindfield->v_ecm[i]->cl_x_m);
@@ -1657,6 +1929,26 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 		}
 	}
 
+	for ( i = 0; i <= 100; i++ ) {
+		if (mywindfield->ekmanspiral[i] != NULL) {	
+			fprintf(fp, "%-30s %-15i\n", 
+					"ekmanspiral",
+					i);
+
+			fprintf(fp, "%-30s %-15.3e\n",
+					"ekmanspiral_depth_m",
+					mywindfield->ekmanspiral[i]->depth_m);
+
+			fprintf(fp, "%-30s %-15.3e\n",
+					"ekmanspiral_ug_ms",
+					mywindfield->ekmanspiral[i]->ug_ms);
+
+			fprintf(fp, "%-30s %-15.3e\n",
+					"ekmanspiral_vg_ms",
+					mywindfield->ekmanspiral[i]->vg_ms);
+		}
+	}
+	
 	for ( i = 0; i <= 100; i++ ) {
 		if (mywindfield->wave[i] != NULL) {	
 			fprintf(fp, "%-30s %-15i\n", 
@@ -1910,6 +2202,16 @@ void zephyros_config_print_windfield(t_zephyros_windfield *mywindfield, FILE *fp
 						fprintf(fp, " %-15.3e", mywindfield->turbulence[i]->grid_edr13_err[j]);					
 					}
 					fprintf(fp, "\n"); fflush(fp);
+					
+					if (mywindfield->turbulence[i]->grid_zetaI != NULL) {
+						fprintf(fp, "%-30s %-15i", 
+									"turbulence_grid_zetaI",
+									mywindfield->turbulence[i]->field->n); fflush(fp);
+						for (j=0; j<mywindfield->turbulence[i]->field->n; j++) {
+							fprintf(fp, " %-15.3e", mywindfield->turbulence[i]->grid_zetaI[j]);					
+						}
+						fprintf(fp, "\n"); fflush(fp);
+					}					
 				}
 
 				fprintf(fp, "%-30s %-15i\n",
@@ -2095,27 +2397,30 @@ void zephyros_config_print_scattererfield(t_zephyros_scattererfield *myscatterer
 
 			if ((myscattererfield->type == 1) | (myscattererfield->type == 2)) {
 				fprintf(fp, "%-30s %-15i\n",
-						"fit_dBN",
-						myscattererfield->psd[i]->fit_dBN);  fflush(fp);
+						"N_constraint",
+						myscattererfield->psd[i]->N_constraint);  fflush(fp);
+				fprintf(fp, "%-30s %-15i\n",
+						"fit_dBm",
+						myscattererfield->psd[i]->fit_dBm);  fflush(fp);
 			}
 			
 			if (myscattererfield->type == 1) {
-				if (myscattererfield->psd[i]->fit_dBN) {
+				if (myscattererfield->psd[i]->fit_dBm) {
 					fprintf(fp, "%-30s %-15.3e\n",
-							"cl_x_m_dBN",
-							myscattererfield->psd[i]->dBN_ecm->cl_x_m);
+							"cl_x_m_dBm",
+							myscattererfield->psd[i]->dBm_ecm->cl_x_m);
 					fprintf(fp, "%-30s %-15.3e\n",
-							"cl_y_m_dBN",
-							myscattererfield->psd[i]->dBN_ecm->cl_y_m);
+							"cl_y_m_dBm",
+							myscattererfield->psd[i]->dBm_ecm->cl_y_m);
 					fprintf(fp, "%-30s %-15.3e\n",
-							"cl_z_m_dBN",
-							myscattererfield->psd[i]->dBN_ecm->cl_z_m);
+							"cl_z_m_dBm",
+							myscattererfield->psd[i]->dBm_ecm->cl_z_m);
 					fprintf(fp, "%-30s %-15.3e\n",
-							"cl_t_s_dBN",
-							myscattererfield->psd[i]->dBN_ecm->cl_t_s);
+							"cl_t_s_dBm",
+							myscattererfield->psd[i]->dBm_ecm->cl_t_s);
 					fprintf(fp, "%-30s %-15.3e\n",
-							"c_threshold_dBN",
-							myscattererfield->psd[i]->dBN_ecm->c_threshold);
+							"c_threshold_dBm",
+							myscattererfield->psd[i]->dBm_ecm->c_threshold);
 				}
 			}
 			
@@ -2135,6 +2440,24 @@ void zephyros_config_print_scattererfield(t_zephyros_scattererfield *myscatterer
 			fprintf_array(fp, myscattererfield->psd[i]->n_diameters, myscattererfield->psd[i]->discrete_D_equiv_mm);
 			fprintf(fp, "\n");
 			fflush(fp);
+
+			if (myscattererfield->psd[i]->distribution_type == 1) fprintf(fp, "#    ");
+			fprintf(fp, "%-30s %-15i", 
+						"psd_discrete_D_equiv_mm_interval_llimt",
+						myscattererfield->psd[i]->n_diameters);
+			fprintf_array(fp, myscattererfield->psd[i]->n_diameters, myscattererfield->psd[i]->discrete_D_equiv_mm_interval_llimt);
+			fprintf(fp, "\n");
+			fflush(fp);
+
+			if (myscattererfield->psd[i]->distribution_type == 1) fprintf(fp, "#    ");
+			fprintf(fp, "%-30s %-15i", 
+						"psd_discrete_D_equiv_mm_interval_ulimt",
+						myscattererfield->psd[i]->n_diameters);
+			fprintf_array(fp, myscattererfield->psd[i]->n_diameters, myscattererfield->psd[i]->discrete_D_equiv_mm_interval_ulimt);
+			fprintf(fp, "\n");
+			fflush(fp);
+			
+			
 			
 			for (j=0; j<myscattererfield->psd[i]->n_diameters; j++) {
 				if (myscattererfield->psd[i]->distribution_type == 1) fprintf(fp, "#    ");	
@@ -2185,46 +2508,11 @@ void fprinti_array(FILE *fp, int n, int *variable)
 }
 
 
-void zephyros_config_initialize(t_zephyros_config **pcfg)
-{
-	t_zephyros_config *cfg 			= malloc(sizeof(t_zephyros_config));
-	
-	//general
-	cfg->general 									= malloc(sizeof(t_zephyros_config_general));
-	cfg->general->additional_output					= malloc(sizeof(t_zephyros_config_general_additional_output));
-
-	util_initialize_atmosphere(&cfg->general->atmosphere);	
-	cfg->general->instrument 						= malloc(sizeof(t_zephyros_instrument));
-
-	cfg->general->overall									= malloc(sizeof(t_zephyros_config_general_overall));
-	cfg->general->water_refractive_index					= malloc(sizeof(t_zephyros_config_general_water_refractive_index));
-	cfg->general->white1999_integral						= malloc(sizeof(t_zephyros_config_general_white1999_integral));
-	cfg->general->water_refractive_index->wavelength_m 		= NULL;
-	cfg->general->water_refractive_index->realindex 		= NULL;
-	cfg->general->water_refractive_index->imagindex 		= NULL;
-	cfg->general->water_refractive_index->lut_realindex 	= NULL;
-	cfg->general->water_refractive_index->lut_imagindex 	= NULL;
-	cfg->general->white1999_integral->vec_ln_a 				= NULL;
-	cfg->general->white1999_integral->vec_ln_b 				= NULL;
-	cfg->general->white1999_integral->vec_ln_L 				= NULL;
-	cfg->general->white1999_integral->integral_sqrt			= NULL;
-	cfg->general->white1999_integral->lut_integral_sqrt		= NULL;
-
-	//simulation, optional
-	cfg->simulation					= NULL;
-	
-	//retrieval, optional
-	cfg->retrieval					= NULL;
-	
-	cfg->derived_quantities			= malloc(sizeof(t_zephyros_config_derived_quantities));
-	
-	*pcfg = cfg;
-}
 
 void zephyros_config_initialize_simulation(t_zephyros_config *cfg)
 {
 	if (cfg->simulation == NULL) {
-		cfg->simulation										= malloc(sizeof(t_zephyros_config_simulation));	
+		cfg->simulation										= calloc(1,sizeof(t_zephyros_config_simulation));	
 		util_initialize_radarfilter(&cfg->simulation->radarfilter, 0);
 		util_initialize_scattererfield(&(cfg->simulation->scattererfield));
 		util_initialize_windfield(&(cfg->simulation->windfield));
@@ -2235,14 +2523,15 @@ void zephyros_config_initialize_retrieval(t_zephyros_config *cfg)
 {
 	int i;
 	if (cfg->retrieval == NULL) {
-		cfg->retrieval					= malloc(sizeof(t_zephyros_config_retrieval));	
+		cfg->retrieval					= calloc(1, sizeof(t_zephyros_config_retrieval));	
 		util_initialize_radarfilter(&cfg->retrieval->radarfilter, 1);
 		util_initialize_scattererfield(&(cfg->retrieval->prior_scattererfield));
 		cfg->retrieval->post_scattererfield = NULL;
 		util_initialize_windfield(&(cfg->retrieval->prior_windfield));
+		util_initialize_windfield(&(cfg->retrieval->post_windfield));
 		cfg->retrieval->post_windfield = NULL;
 		
-		cfg->retrieval->algorithm		= malloc(sizeof(t_zephyros_config_retrieval_algorithm));
+		cfg->retrieval->algorithm		= calloc(1, sizeof(t_zephyros_config_retrieval_algorithm));
 		for ( i = 0; i <= 100; i++ ) {
 			cfg->retrieval->algorithm->type[i] = 0;
 			cfg->retrieval->algorithm->fdvar_cfg[i] = NULL;
@@ -2251,80 +2540,7 @@ void zephyros_config_initialize_retrieval(t_zephyros_config *cfg)
 	}
 }
 
-void zephyros_config_free(t_zephyros_config **pcfg)
-{
-	int i;
-	t_zephyros_config *cfg = *pcfg;
 
-	#ifdef _ZEPHYROS_CONFIG_DEBUG
-		printf("zephyros_config_free\n"); fflush(stdout);
-	#endif 
-	
-	if (cfg != NULL) {
-		free(cfg->general->additional_output);
-
-		util_free_atmosphere(&cfg->general->atmosphere);
-		
-		free(cfg->general->instrument);
-		
-		free(cfg->general->overall);
-
-		if (cfg->general->water_refractive_index->wavelength_m != NULL) {free(cfg->general->water_refractive_index->wavelength_m);}
-		if (cfg->general->water_refractive_index->realindex != NULL) {free(cfg->general->water_refractive_index->realindex);}
-		if (cfg->general->water_refractive_index->imagindex != NULL) {free(cfg->general->water_refractive_index->imagindex);}
-		interpolation_free_lut(&cfg->general->water_refractive_index->lut_realindex);
-		interpolation_free_lut(&cfg->general->water_refractive_index->lut_imagindex);
-		free(cfg->general->water_refractive_index);
-		
-		if (cfg->general->white1999_integral->vec_ln_a != NULL) 		{free(cfg->general->white1999_integral->vec_ln_a);}
-		if (cfg->general->white1999_integral->vec_ln_b != NULL) 		{free(cfg->general->white1999_integral->vec_ln_b);}
-		if (cfg->general->white1999_integral->vec_ln_L != NULL) 		{free(cfg->general->white1999_integral->vec_ln_L);}
-		if (cfg->general->white1999_integral->integral_sqrt != NULL) {free(cfg->general->white1999_integral->integral_sqrt);}
-		interpolation_free_lut(&cfg->general->white1999_integral->lut_integral_sqrt);
-		free(cfg->general->white1999_integral);
-		
-		free(cfg->general);
-
-		if (cfg->simulation != NULL) {	
-			free(cfg->simulation->radarfilter);
-		
-			util_free_scattererfield(&cfg->simulation->scattererfield);
-			util_free_windfield(&cfg->simulation->windfield);
-			
-			free(cfg->simulation); cfg->simulation = NULL;
-		}
-		
-		if (cfg->retrieval != NULL) {	
-			free(cfg->retrieval->radarfilter);
-			util_free_scattererfield(&cfg->retrieval->prior_scattererfield);
-			util_free_scattererfield(&cfg->retrieval->post_scattererfield);
-			util_free_windfield(&cfg->retrieval->prior_windfield);
-			util_free_windfield(&cfg->retrieval->post_windfield);
-						
-			for ( i = 0; i <= 100; i++ ) {
-				if (cfg->retrieval->algorithm->fdvar_cfg[i] != NULL) {
-					zephyros_config_free_retrieval_fdvar_cfg(&cfg->retrieval->algorithm->fdvar_cfg[i]);
-				}
-				if (cfg->retrieval->algorithm->lwm_cfg[i] != NULL) {
-					free(cfg->retrieval->algorithm->lwm_cfg[i]->xvec_m);
-					free(cfg->retrieval->algorithm->lwm_cfg[i]->yvec_m);
-					free(cfg->retrieval->algorithm->lwm_cfg[i]->zvec_m);
-					free(cfg->retrieval->algorithm->lwm_cfg[i]->tvec_s);
-					free(cfg->retrieval->algorithm->lwm_cfg[i]);
-					cfg->retrieval->algorithm->lwm_cfg[i] = NULL;
-				}
-			}
-			free(cfg->retrieval->algorithm);
-			free(cfg->retrieval); cfg->retrieval = NULL;
-		}
-
-		free(cfg->derived_quantities);
-		
-		fclose(cfg->fp_ao);
-		free(cfg);
-		*pcfg = NULL;
-	}
-}
 
 
 void zephyros_config_get_dirname(char filename[8192], char dirname[8192])

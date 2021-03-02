@@ -69,11 +69,11 @@ void interpolation_assert_initialized_lut(t_zephyros_interpolation_bilint_lut *l
 {
 	if (lut == NULL) {
 		printf("LUT was NULL pointer. Exiting.\n");
-		exit(0);		
+		fflush(stdout); exit(0);		
 	}
 	if (lut->initialized != 1) {
 		printf("LUT was not initialized. Exiting.\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 }
 
@@ -82,7 +82,7 @@ void interpolation_assert_prepared_lut(t_zephyros_interpolation_bilint_lut *lut)
 	interpolation_assert_initialized_lut(lut);
 	if (lut->prepared != 1) {
 		printf("LUT `%s' was not prepared. Exiting.\n", lut->name);
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 }
 
@@ -490,7 +490,7 @@ void interpolation_bilint_griddep(
 	if (((myslice_i0 == NULL) | (myslice_i1 == NULL) | (myslice_di == NULL) | (tmp_tup == NULL)
 		| (tmp_tup_edge == NULL) | (tmp_tup_edge2 == NULL))) {
 		printf("Memory allocation failed...\n");
-		exit(0);
+		fflush(stdout); exit(0);
 	}
 		
 	/* clean up */

@@ -18,16 +18,16 @@ double specialfunctions_incompletegamma (double alpha, double x)
 */
    int i;
    double p=alpha, g=lgamma(alpha);
-   double accurate=1e-8, overflow=1e30;
-   double factor, gin=0, rn=0, a=0,b=0,an=0,dif=0, term=0, pn[6];
+   double accurate=1.e-50, overflow=1.e30;
+   double factor, gin=0., rn=0., a=0.,b=0.,an=0.,dif=0., term=0., pn[6];
 
-   if (x==0) return (0);
-   if (x<0 || p<=0) return (-1);
+   if (x==0.) return (0.);
+   if (x<0. || p<=0.) return (-1);
 
    factor=exp(p*log(x)-x-g);   
    if (x>1 && x>=p) goto l30;
    /* (1) series expansion */
-   gin=1;  term=1;  rn=p;
+   gin=1.;  term=1.;  rn=p;
  l20:
    rn++;
    term*=x/rn;   gin+=term;
@@ -37,13 +37,13 @@ double specialfunctions_incompletegamma (double alpha, double x)
    goto l50;
  l30:
    /* (2) continued fraction */
-   a=1-p;   b=a+x+1;  term=0;
-   pn[0]=1;  pn[1]=x;  pn[2]=x+1;  pn[3]=x*b;
+   a=1.-p;   b=a+x+1.;  term=0.;
+   pn[0]=1.;  pn[1]=x;  pn[2]=x+1.;  pn[3]=x*b;
    gin=pn[2]/pn[3];
  l32:
-   a++;  b+=2;  term++;   an=a*term;
+   a++;  b+=2.;  term++;   an=a*term;
    for (i=0; i<2; i++) pn[i+4]=b*pn[i+2]-an*pn[i];
-   if (pn[5] == 0) goto l35;
+   if (pn[5] == 0.) goto l35;
    rn=pn[4]/pn[5];   dif=fabs(gin-rn);
    if (dif>accurate) goto l34;
    if (dif<=accurate*rn) goto l42;
@@ -55,7 +55,7 @@ double specialfunctions_incompletegamma (double alpha, double x)
    for (i=0; i<4; i++) pn[i]/=overflow;
    goto l32;
  l42:
-   gin=1-factor*gin;
+   gin=1.-(factor*gin);
 
  l50:
    return (gin);

@@ -761,7 +761,7 @@ void func_dbl_arr_calloc(
 		arr = calloc(n, sizeof(double));
 		if (arr == NULL) {
 		  printf("out of memory!\n");
-		  exit(1);
+		  fflush(stdout); exit(1);
 		}
 		*ptrarr = arr;
 	}
@@ -782,7 +782,7 @@ void func_int_arr_malloc(
 		arr = calloc(n, sizeof(int));
 		if (arr == NULL) {
 		  printf("out of memory!\n");
-		  exit(1);
+		  fflush(stdout); exit(1);
 		}
 		*ptrarr = arr;
 	}
@@ -802,7 +802,7 @@ void func_ptr_arr_malloc(
 		arr = calloc(n, sizeof(void*));
 		if (arr == NULL) {
 		  printf("out of memory!\n");
-		  exit(1);
+		  fflush(stdout); exit(1);
 		}
 		*ptrarr = arr;
 	}
@@ -908,3 +908,13 @@ double func_modulo(double x, double y)
 		return fmod(x,y);
 	}
 }
+
+double func_norm(int *n, double *arr)
+{
+	double res;
+	dbldotprod(n, arr, arr, &res);
+	return sqrt(res / *n);
+}
+
+
+

@@ -89,6 +89,7 @@ void util_initialize_turbulence_widget(t_zephyros_turbulence_widget **pcfg)
 	cfg->turb_lut_w = NULL;
 
 	cfg->fit_edr13 = 0;
+	cfg->grid_zetaI = NULL;
 	cfg->grid_edr13_err = NULL;
 
 	util_initialize_field_errcovmatrix(&cfg->edr13_ecm);
@@ -106,6 +107,7 @@ void util_free_turbulence_widget(t_zephyros_turbulence_widget **pcfg)
 		fields_free(&cfg->field);
 		util_safe_free(&cfg->grid_edr);
 		util_safe_free(&cfg->grid_edr13);
+		util_safe_free(&cfg->grid_zetaI);
 		interpolation_free_lut(&cfg->lut_edr13);
 		util_safe_free(&cfg->freqx);
 		util_safe_free(&cfg->freqy);
@@ -275,17 +277,17 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 	if (cfg->type == 1) {
 		//mann1998 ...
 		//memory allocation
-		cfg->random_fourier_c0 = malloc(cfg->Nx * sizeof(double complex**));
-		cfg->random_fourier_c1 = malloc(cfg->Nx * sizeof(double complex**));
-		cfg->random_fourier_c2 = malloc(cfg->Nx * sizeof(double complex**));
+		cfg->random_fourier_c0 = calloc(cfg->Nx, sizeof(double complex**));
+		cfg->random_fourier_c1 = calloc(cfg->Nx, sizeof(double complex**));
+		cfg->random_fourier_c2 = calloc(cfg->Nx, sizeof(double complex**));
 		for (ix=0; ix<cfg->Nx; ix++) {
-			cfg->random_fourier_c0[ix] = malloc(cfg->Ny * sizeof(double complex*));
-			cfg->random_fourier_c1[ix] = malloc(cfg->Ny * sizeof(double complex*));
-			cfg->random_fourier_c2[ix] = malloc(cfg->Ny * sizeof(double complex*));
+			cfg->random_fourier_c0[ix] = calloc(cfg->Ny, sizeof(double complex*));
+			cfg->random_fourier_c1[ix] = calloc(cfg->Ny, sizeof(double complex*));
+			cfg->random_fourier_c2[ix] = calloc(cfg->Ny, sizeof(double complex*));
 			for (iy=0; iy<cfg->Ny; iy++) {
-				cfg->random_fourier_c0[ix][iy] = malloc(cfg->Nz * sizeof(double complex));
-				cfg->random_fourier_c1[ix][iy] = malloc(cfg->Nz * sizeof(double complex));
-				cfg->random_fourier_c2[ix][iy] = malloc(cfg->Nz * sizeof(double complex));			
+				cfg->random_fourier_c0[ix][iy] = calloc(cfg->Nz, sizeof(double complex));
+				cfg->random_fourier_c1[ix][iy] = calloc(cfg->Nz, sizeof(double complex));
+				cfg->random_fourier_c2[ix][iy] = calloc(cfg->Nz, sizeof(double complex));			
 			}
 		}
 
@@ -310,7 +312,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			if( fp == NULL )
 			{
 				perror("Error while opening the configuration file.\n");
-				exit(EXIT_FAILURE);
+				fflush(stdout); exit(EXIT_FAILURE);
 			}
 			for (ix=0; ix<cfg->Nx; ix++) {
 				for (iy=0; iy<cfg->Ny; iy++) {
@@ -368,7 +370,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 
 		//transfer to field
 		//reduces calculation time if it is required often
-		if (1) {		
+		if (0) {	
 			fields_initialize(&(cfg->turb_field));
 			strcpy(cfg->turb_field->name, "turb_field");		
 			
@@ -376,10 +378,10 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			cfg->turb_field->n_y = cfg->Ny;
 			cfg->turb_field->n_z = cfg->Nz;
 			cfg->turb_field->n_t = 1;
-			cfg->turb_field->vec_x = malloc(cfg->turb_field->n_x*sizeof(double));
-			cfg->turb_field->vec_y = malloc(cfg->turb_field->n_y*sizeof(double));
-			cfg->turb_field->vec_z = malloc(cfg->turb_field->n_z*sizeof(double));
-			cfg->turb_field->vec_t = malloc(cfg->turb_field->n_t*sizeof(double));
+			cfg->turb_field->vec_x = calloc(cfg->turb_field->n_x, sizeof(double));
+			cfg->turb_field->vec_y = calloc(cfg->turb_field->n_y, sizeof(double));
+			cfg->turb_field->vec_z = calloc(cfg->turb_field->n_z, sizeof(double));
+			cfg->turb_field->vec_t = calloc(cfg->turb_field->n_t, sizeof(double));
 			
 			for (ix=0; ix<cfg->Nx; ix++) 
 				cfg->turb_field->vec_x[ix] = 1. * ix * cfg->Lx / cfg->Nx;
@@ -392,11 +394,11 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			cfg->turb_field->prepared 	= 1;
 
 			cfg->turb_field->n = cfg->turb_field->n_x * cfg->turb_field->n_y * cfg->turb_field->n_z * cfg->turb_field->n_t;
-			cfg->turb_u = malloc(cfg->turb_field->n * sizeof(double));
-			cfg->turb_v = malloc(cfg->turb_field->n * sizeof(double));
-			cfg->turb_w = malloc(cfg->turb_field->n * sizeof(double));
+			cfg->turb_u = calloc(cfg->turb_field->n, sizeof(double));
+			cfg->turb_v = calloc(cfg->turb_field->n, sizeof(double));
+			cfg->turb_w = calloc(cfg->turb_field->n, sizeof(double));
 			
-			tmpxyzt = malloc(4 * sizeof(double));
+			tmpxyzt = calloc(4, sizeof(double));
 			i= -1;
 
 			for (iz=0; iz<cfg->Nz; iz++) {
@@ -430,14 +432,14 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			util_field2lut(cfg->turb_field, cfg->turb_w, 0, &cfg->turb_lut_w);
 			
 			//make periodic
-			cfg->turb_lut_u->periodic_L = malloc(4 * sizeof(double));
+			cfg->turb_lut_u->periodic_L = calloc(4, sizeof(double));
 			cfg->turb_lut_u->periodic_L[0] = cfg->Lx;
 			cfg->turb_lut_u->periodic_L[1] = cfg->Ly;
 			cfg->turb_lut_u->periodic_L[2] = cfg->Lz;
 			cfg->turb_lut_u->periodic_L[3] = 1.;
 			cfg->turb_lut_u->periodic = 1;
 
-			cfg->turb_lut_v->periodic_L = malloc(4 * sizeof(double));
+			cfg->turb_lut_v->periodic_L = calloc(4, sizeof(double));
 			cfg->turb_lut_v->periodic_L[0] = cfg->Lx;
 			cfg->turb_lut_v->periodic_L[1] = cfg->Ly;
 			cfg->turb_lut_v->periodic_L[2] = cfg->Lz;
@@ -450,7 +452,6 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			cfg->turb_lut_w->periodic_L[2] = cfg->Lz;
 			cfg->turb_lut_w->periodic_L[3] = 1.;
 			cfg->turb_lut_w->periodic = 1;
-			
 		}
 		
 		//make the coefficients for a real signal!
@@ -495,7 +496,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			if( fp == NULL )
 			{
 				perror("Error while opening the configuration file.\n");
-				exit(EXIT_FAILURE);
+				fflush(stdout); exit(EXIT_FAILURE);
 			}
 			for (ix=0; ix<cfg->Nx; ix++) {
 				RN1 = ltqnorm(read_uniform_random(fp)); RN2 = read_uniform_random(fp);
@@ -596,7 +597,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			if( fp == NULL )
 			{
 				perror("Error while opening the configuration file.\n");
-				exit(EXIT_FAILURE);
+				fflush(stdout); exit(EXIT_FAILURE);
 			}
 			for (ix=0; ix<cfg->Nx; ix++) {
 				for (iy=0; iy<cfg->Ny; iy++) {
@@ -635,7 +636,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			if( fp == NULL )
 			{
 				perror("Error while opening the configuration file.\n");
-				exit(EXIT_FAILURE);
+				fflush(stdout); exit(EXIT_FAILURE);
 			}
 			for (ik=0; ik<cfg->K; ik++) {
 				for (im=0; im<cfg->M; im++) {
@@ -656,7 +657,7 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 		if( fp == NULL )
 		{
 			perror("Error while opening the configuration file.\n");
-			exit(EXIT_FAILURE);
+			fflush(stdout); exit(EXIT_FAILURE);
 		}
 		for (ik=0; ik<cfg->K; ik++) {
 			cfg->lambdak[ik] = read_uniform_random(fp); //function name misused
@@ -683,6 +684,8 @@ void util_prepare_turbulence_widget(t_zephyros_turbulence_widget *cfg)
 			| (cfg->calibration_method == 4)) {
 		util_turbulence_calibrate(cfg);
 	}
+
+	printf("cfg->calibration_factor = %.2e\n", cfg->calibration_factor);
 
 	free(karmanspec);
 }
@@ -915,7 +918,7 @@ void util_turbulence_mann1998_uvw(
 	}
 	
 	if (done == 0) {
-		karmanspec= malloc(sizeof(t_util_turbulence_karmanspec));	
+		karmanspec= calloc(1, sizeof(t_util_turbulence_karmanspec));	
 		interpolation_bilint(cfg->lut_kolmogorov_constant,
 				xyzt,
 				&karmanspec->a,
@@ -1300,7 +1303,7 @@ void util_turbulence_calibrate(t_zephyros_turbulence_widget *cfg)
 	original_lut_edr13 = cfg->lut_edr13;
 		
 	//make temporary lut with edr = 1.
-	tmp_edr13 = malloc(cfg->field->n * sizeof(double));
+	tmp_edr13 = calloc(cfg->field->n, sizeof(double));
 	for (i = 0; i < cfg->field->n; i++) {
 		tmp_edr13[i] = 1.;
 	}

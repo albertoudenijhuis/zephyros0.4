@@ -23,10 +23,14 @@ typedef struct st_fdvar_p
 
 typedef struct st_fdvar_opc
 {
-	t_fdvar_o *o;
-	t_fdvar_p *p;
-	t_zephyros_config_retrieval_fdvar_cfg *c;
-	t_zephyros_config *zc;
+	t_fdvar_o 								*o;
+	t_fdvar_p 								*p;
+	t_zephyros_config_retrieval_fdvar_cfg 	*c;
+	t_zephyros_config 						*zc;
+	
+	t_radarfilter_res_vol 					*res_vol;
+	t_radarfilter_todolist					*todo_no_derivatives;	
+	t_radarfilter_todolist					*todo_with_derivatives;	
 } t_fdvar_opc;
 
 
@@ -52,6 +56,8 @@ void retrieval_fdvar_cost_function(
 	int 	*iflag			
 	);
 	
+
+
 
 	
 double retrieval_fdvar_K2x(t_fdvar_p *p, double *x, int Knr);

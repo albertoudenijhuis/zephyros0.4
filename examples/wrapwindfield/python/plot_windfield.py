@@ -13,16 +13,17 @@ rc('text',usetex=True)
 from matplotlib.mlab import griddata
 
 myplotdcts = {}
-#myplotdcts['vector'] 							= {'windfield': 'vector', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-#myplotdcts['grid'] 								= {'windfield': 'grid', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-#myplotdcts['wave'] 								= {'windfield': 'wave', 'plane':'xz', 'scale':10.e3, 'unit':'m'}
-#myplotdcts['rankine_vortex'] 					= {'windfield': 'rankine_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-#myplotdcts['lamb_oseen_vortex'] 				= {'windfield': 'lamb_oseen_vortex', 'plane':'xy', 'scale':10.e3, 'unit':'m'}
-myplotdcts['turbulence_mann1998_small_scales_30m'] 	= {'windfield': 'turbulence_mann1998_small_scales_30m', 'plane':'xz', 'scale':30., 'unit':'m'}
-#myplotdcts['turbulence_pinsky2006_xyplane'] 	= {'windfield': 'turbulence_pinsky2006_xyplane', 'plane':'xy', 'scale':100., 'unit':'m'}
-#myplotdcts['profile_turbulence_stochastic'] 	= {'windfield': 'profile_turbulence_stochastic', 'plane':'xz', 'scale':50., 'unit':'m'}
+myplotdcts['vector'] 									= {'windfield': 'vector', 								'plane':'xz', 'scale':10.e3, 	'unit':'m'}
+myplotdcts['grid'] 										= {'windfield': 'grid', 								'plane':'xz', 'scale':10.e3, 	'unit':'m'}
 
+#myplotdcts['wave'] 									= {'windfield': 'wave', 								'plane':'xz', 'scale':10.e3, 	'unit':'m'}
+#myplotdcts['rankine_vortex'] 							= {'windfield': 'rankine_vortex', 						'plane':'xy', 'scale':10.e3, 	'unit':'m'}
+#myplotdcts['lamb_oseen_vortex'] 						= {'windfield': 'lamb_oseen_vortex', 					'plane':'xy', 'scale':10.e3, 	'unit':'m'}
+#myplotdcts['turbulence_mann1998_small_scales_30m'] 	= {'windfield': 'turbulence_mann1998_small_scales_30m', 'plane':'xz', 'scale':30., 		'unit':'m'}
+#myplotdcts['turbulence_pinsky2006_xyplane'] 			= {'windfield': 'turbulence_pinsky2006_xyplane', 		'plane':'xy', 'scale':100., 	'unit':'m'}
+#myplotdcts['profile_turbulence_stochastic'] 			= {'windfield': 'profile_turbulence_stochastic', 		'plane':'xz', 'scale':50., 		'unit':'m'}
 
+#run export LC_ALL=C to prevents bug with fscanf
 for myplotname in myplotdcts.keys():
 	myplotdct = myplotdcts[myplotname]
 	print myplotname
@@ -38,6 +39,9 @@ for myplotname in myplotdcts.keys():
 	wind['cfg_filename']                += "../../../input_files/simulation/scatterers/rain.cfg;"
 	wind['cfg_filename']                +=  "../../../input_files/simulation/wind/"+myplotdct['windfield']+".cfg;"
 	wind['additional_output_filename']  =  "../data/"+myplotname+"_additional_output.zout"
+
+	#if os.path.exists(wind['additional_output_filename']):
+	#	continue
 
 	n = 15
 
@@ -153,3 +157,7 @@ for myplotname in myplotdcts.keys():
 	print 'min:', np.min(wind['w'])
 	print 'max:', np.max(wind['w'])
 	print 'mean:', np.mean(wind['w'])
+
+	#because of a bug, restart of the Python kernel is required.
+	#break
+	
